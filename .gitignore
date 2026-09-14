@@ -1,0 +1,9 @@
+node_modules/
+.next/
+out/
+public/sw.js
+*.tsbuildinfo
+.env*
+!.env.example
+.DS_Store
+.worktrees/
