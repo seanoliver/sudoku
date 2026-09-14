@@ -7,3 +7,4 @@ public/sw.js
 !.env.example
 .DS_Store
 .worktrees/
+.vercel
