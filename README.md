@@ -1,5 +1,7 @@
 # Sudoku
 
+[Play Sudoku](https://sudoku.seanoliver.dev)
+
 A small, free, mobile-friendly Sudoku PWA built with Next.js, React, and TypeScript. Things 3 inspired the restrained colors, system typography, controls, and interaction style.
 
 ## Run
@@ -37,6 +39,14 @@ Keyboard: arrow keys move, 1–9 enter, N toggles notes, Backspace/Delete erases
 Use HTTPS on a hosted deployment (localhost is suitable for development). Visit once online and wait for “Ready to play offline.” On iOS, use Safari → Share → Add to Home Screen. Supported Android and desktop browsers offer their own installation UI; the app also handles the install prompt when available. A LAN HTTP address on a physical phone does not provide the secure context required for service workers.
 
 No account, backend, analytics, advertising, or external font requests. Clearing browser data removes saved progress. Browser storage may be evicted by the operating system. Multiple tabs do not synchronize games; use one active tab per device.
+
+## Hosting
+
+Production is hosted in the Vercel **Cabin 9** workspace, project `sudoku`. The connected GitHub repository is `seanoliver/sudoku`; pushes to `main` trigger production deployments and automatically assign `sudoku.seanoliver.dev`.
+
+Porkbun manages DNS. The `sudoku` CNAME points to `f908c3c1f24cf884.vercel-dns-017.com` with a 600-second TTL. Vercel manages HTTPS.
+
+Before deploying through the CLI, verify that its signed-in account can access Cabin 9. The repository link alone does not change CLI authentication.
 
 ## Development
 
