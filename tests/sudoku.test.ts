@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { generatePuzzle, countSolutions, conflicts, peers, type Difficulty } from '../src/lib/sudoku.ts';
+import { generatePuzzle, countSolutions, conflicts, peers, possibleCells, type Difficulty } from '../src/lib/sudoku.ts';
 import { createGame, enter, undo, restore, isComplete } from '../src/lib/game.ts';
 import { restorePreferences, DEFAULT_PREFS } from '../src/lib/preferences.ts';
 
@@ -78,5 +78,52 @@ test('corrupt preferences fall back without throwing or preventing game restorat
     assert.deepEqual(restorePreferences(raw), DEFAULT_PREFS);
   }
   const prefs = { theme: 'dark', showConflicts: false, highlightPeers: false };
-  assert.deepEqual(restorePreferences(JSON.stringify(prefs)), prefs);
+  assert.deepEqual(restorePreferences(JSON.stringify(prefs)), { ...prefs, smartHighlighting: false });
+});
+
+test('possible cells exclude the active digit’s row, column, box and occupied cells', () => {
+  const values = Array(81).fill(0);
+  values[0] = 5;
+  values[40] = 7;
+  const original = [...values];
+  const result = possibleCells(values, 5);
+  assert.equal(result.size, 59);
+  for (const index of [0, 8, 72, 10, 40]) assert.equal(result.has(index), false);
+  for (const index of [12, 28, 80]) assert.equal(result.has(index), true);
+  assert.deepEqual(values, original);
+  assert.equal(possibleCells(values, 7).has(12), true);
+  assert.equal(possibleCells(values, 7).has(30), false);
+});
+test('possible cells need an active digit and exclude all filled cells', () => {
+  const values = Array(81).fill(0);
+  for (const digit of [0, -1, 10, 1.5, NaN]) assert.equal(possibleCells(values, digit).size, 0);
+  assert.equal(possibleCells(values, 1).size, 81);
+  assert.equal(possibleCells(generatePuzzle('easy', 1).solution, 1).size, 0);
+});
+test('possible cells follow current entries, ignore notes and restore after undo', () => {
+  const game = createGame(generatePuzzle('easy', 19));
+  const index = game.values.indexOf(0);
+  const digit = game.solution[index];
+  const original = possibleCells(game.values, digit);
+  assert.ok(original.has(index));
+  const noted = enter(game, { index, value: digit, pencil: true });
+  assert.deepEqual(possibleCells(noted.values, digit), original);
+  const filled = enter(noted, { index, value: digit });
+  assert.equal(possibleCells(filled.values, digit).has(index), false);
+  assert.deepEqual(possibleCells(undo(filled).values, digit), original);
+  // Even a mistaken entry constrains possibilities using the visible board.
+  const wrongDigit = digit % 9 + 1;
+  const mistaken = enter(game, { index, value: wrongDigit });
+  for (const peer of peers(index)) assert.equal(possibleCells(mistaken.values, wrongDigit).has(peer), false);
+});
+test('smart highlighting is opt-in and restored without resetting existing preferences', () => {
+  assert.equal(DEFAULT_PREFS.smartHighlighting, false);
+  const prefs = { theme: 'dark', showConflicts: false, highlightPeers: false };
+  for (const smartHighlighting of [true, false]) {
+    const saved = { ...prefs, smartHighlighting };
+    assert.deepEqual(restorePreferences(JSON.stringify(saved)), saved);
+  }
+  for (const smartHighlighting of [undefined, null, 'true', 1]) {
+    assert.deepEqual(restorePreferences(JSON.stringify({ ...prefs, smartHighlighting })), { ...prefs, smartHighlighting: false });
+  }
 });
