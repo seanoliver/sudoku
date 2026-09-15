@@ -44,6 +44,8 @@ No account, backend, analytics, advertising, or external font requests. Clearing
 
 Production is hosted in the Vercel **Cabin 9** workspace, project `sudoku`. The connected GitHub repository is `seanoliver/sudoku`; pushes to `main` trigger production deployments and automatically assign `sudoku.seanoliver.dev`.
 
+Pushes to other branches automatically create Vercel preview deployments. Open a pull request to see its preview URL in the Vercel bot comment and deployment status; subsequent pushes update the preview. This uses Vercel's GitHub integration and requires no GitHub Actions workflow or deployment token. Pull requests from forks may require approval in Vercel before deployment.
+
 Porkbun manages DNS. The `sudoku` CNAME points to `f908c3c1f24cf884.vercel-dns-017.com` with a 600-second TTL. Vercel manages HTTPS.
 
 Before deploying through the CLI, verify that its signed-in account can access Cabin 9. The repository link alone does not change CLI authentication.
