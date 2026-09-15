@@ -30,9 +30,26 @@ function HiddenPairsExample() {
   </figure>;
 }
 
+function HiddenSinglesExample() {
+  return <figure className="deduction-example">
+    <div className="example-caption">One place for 4 in the center box</div>
+    <div className="pointing-example singles-example" role="img" aria-label="The center box has only one possible 4, in its center cell. Reserve that cell for 4 and remove 4 from every other cell in its row and column, including outside the box.">
+      {Array.from({ length: 81 }, (_, i) => {
+        const row = Math.floor(i / 9), col = i % 9;
+        const source = row >= 3 && row <= 5 && col >= 3 && col <= 5;
+        return <span key={i} aria-hidden="true" className={`example-cell ${source ? 'example-source' : ''}`}>
+          {i === 40 ? <b>4</b> : !source && (row === 4 || col === 4) ? <del>4</del> : <span className="example-dot">·</span>}
+        </span>;
+      })}
+    </div>
+    <figcaption>The center box must put its 4 in the marked cell. Remove 4 from the rest of that row and column, and remove other possibilities from the marked cell. The app keeps 4 as a note until you enter it.</figcaption>
+  </figure>;
+}
+
 const EXAMPLES: Record<DeductionId, typeof PointingPairsExample> = {
   pointingPairs: PointingPairsExample,
   hiddenPairs: HiddenPairsExample,
+  hiddenSingles: HiddenSinglesExample,
 };
 
 export function DeductionSettings({ value, onChange }: { value: Settings; onChange: (value: Settings) => void }) {

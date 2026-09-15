@@ -48,3 +48,25 @@ test('hidden pairs require both digits to have the same two placements', () => {
   assert.equal(rules.applyHiddenPairs(candidates), false);
   assert.deepEqual(candidates.map(n => [...n]), before);
 });
+
+for (const house of [rules.ROWS[0], rules.COLUMNS[0], rules.BOXES[0]]) {
+  test(`hidden single in house ${house} reserves its cell and removes the digit from all peers`, () => {
+    const candidates = fresh();
+    for (const i of house) if (i !== 0) candidates[i].delete(4);
+    assert.equal(rules.applyHiddenSingles(candidates), true);
+    assert.deepEqual([...candidates[0]], [4]);
+    const peers = new Set([...rules.ROWS[0], ...rules.COLUMNS[0], ...rules.BOXES[0]]);
+    for (let i = 1; i < 81; i++) {
+      assert.equal(candidates[i].has(4), !peers.has(i));
+      assert.ok(candidates[i].has(5));
+    }
+  });
+}
+
+test('hidden singles do not infer a placement when a house still has two candidates', () => {
+  const candidates = fresh();
+  for (const i of topLeft) if (i !== 0 && i !== 10) candidates[i].delete(4);
+  const before = candidates.map(cell => [...cell]);
+  assert.equal(rules.applyHiddenSingles(candidates), false);
+  assert.deepEqual(candidates.map(cell => [...cell]), before);
+});

@@ -70,7 +70,8 @@ test('contradictory entries fall back to basic candidates', () => {
 });
 
 test('all enabled-rule combinations preserve solution candidates across generated puzzles', () => {
-  const configurations: Partial<DeductionSettings>[] = [{}, { pointingPairs: true }, { hiddenPairs: true }, both];
+  const configurations: Partial<DeductionSettings>[] = [{}, { pointingPairs: true }, { hiddenPairs: true }, both]
+    .flatMap(deductions => [deductions, { ...deductions, hiddenSingles: true }]);
   for (const difficulty of ['easy', 'medium', 'hard'] as const) for (let seed = 1; seed <= 20; seed++) {
     const puzzle = generatePuzzle(difficulty, seed);
     const original = [...puzzle.givens];
@@ -94,4 +95,32 @@ test('contradictions exposed by deductions restore the basic candidates', () => 
   applyPointingPairs(attempted); applyHiddenPairs(attempted);
   assert.notDeepEqual(attempted, basic);
   assert.deepEqual(engine.getCandidates({ values, deductions: both }), basic);
+});
+
+test('screenshot hidden single at row 6 column 1 removes green 4s from its row and column', () => {
+  const values = [
+    0,0,9,0,8,0,6,2,0,
+    0,7,8,0,2,0,0,0,0,
+    6,0,0,0,0,4,3,8,0,
+    7,2,3,0,0,0,0,5,0,
+    0,0,6,0,0,0,0,3,0,
+    0,8,5,0,0,0,1,0,9,
+    0,0,1,0,0,0,0,0,6,
+    8,3,0,0,0,6,9,0,0,
+    0,0,7,0,1,0,8,0,0,
+  ];
+  const original = [...values];
+  const before = engine.getCandidates({ values, deductions: both });
+  assert.deepEqual([...before[45]], [4]);
+  const after = engine.getCandidates({ values, deductions: { ...both, hiddenSingles: true } });
+  for (const i of [0,9,54,72,48,49,52]) {
+    assert.ok(engine.candidateCells(before, 4).has(i));
+    assert.equal(engine.candidateCells(after, 4).has(i), false, `4 should be removed at ${i}`);
+    assert.equal(engine.automaticNotes(after)[i].includes(4), false);
+  }
+  assert.deepEqual([...after[45]], [4]);
+  assert.ok(engine.candidateCells(after, 4).has(45));
+  assert.ok(engine.automaticNotes(after)[45].includes(4));
+  assert.deepEqual(values, original);
+  assert.deepEqual(engine.getCandidates({ values, deductions: { ...both, hiddenSingles: false } }), before);
 });

@@ -1,6 +1,6 @@
 # Configurable deductions
 
-Sean approved independent Pointing pairs and Hidden pairs toggles with explanations and expandable examples. Both default off. Hidden pairs apply to rows, columns, and boxes; pointing pairs eliminate a digit outside its box along a shared row or column.
+Sean approved independent Pointing pairs, Hidden pairs, and Hidden singles toggles with explanations and expandable examples. All default off. Hidden pairs apply to rows, columns, and boxes; pointing pairs eliminate a digit outside its box along a shared row or column. Hidden singles reserve the only possible cell for a digit in any house and eliminate that digit from every peer, including cells outside the source house.
 
 A shared candidate calculation starts from placed numbers, runs enabled rules until no candidates change, and supplies both Smart highlighting and Auto notes. Auto notes retain their one-or-two-placements-per-box display threshold. Manual notes remain independent, and no values are filled automatically. Disabling a rule recalculates from the placed numbers, restoring any possibilities no longer eliminated. Reload, erase, undo, and new puzzles follow the same calculation.
 
@@ -11,3 +11,5 @@ Candidate sets only shrink within a calculation. If entries already conflict, or
 Settings examples show the candidates that establish each pattern and the candidates removed by it, with equivalent text for screen readers. Examples can be opened without enabling the rule. Use existing theme colors and native disclosure controls.
 
 Verify both pointing orientations, all hidden-pair house types, negative examples, rule independence, repeated deduction, reversibility, invalid boards, preference migration, and preservation of solution candidates across generated puzzles. Browser checks cover shared notes/highlights, toggles, reload, examples, keyboard use, and mobile light/dark layouts.
+
+Sean added Hidden singles after sharing a board where row 6, column 1 was the only place for 4 in its box. This remains a candidate deduction: keep the cell as a note and leave value entry to the player.

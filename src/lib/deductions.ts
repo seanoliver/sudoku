@@ -36,6 +36,22 @@ export function applyHiddenPairs(candidates: Candidates): boolean {
   return changed;
 }
 
+export function applyHiddenSingles(candidates: Candidates): boolean {
+  let changed = false;
+  for (const house of HOUSES) for (const digit of DIGITS) {
+    const cells = house.filter(i => candidates[i].has(digit));
+    if (cells.length !== 1) continue;
+    const index = cells[0];
+    for (const other of candidates[index]) {
+      if (other !== digit) { candidates[index].delete(other); changed = true; }
+    }
+    for (const related of HOUSES) if (related.includes(index)) {
+      for (const peer of related) if (peer !== index && candidates[peer].delete(digit)) changed = true;
+    }
+  }
+  return changed;
+}
+
 export const DEDUCTIONS = [
   {
     id: 'pointingPairs',
@@ -48,6 +64,12 @@ export const DEDUCTIONS = [
     title: 'Hidden pairs',
     description: 'If two numbers can only go in the same two cells in a row, column, or box, remove every other possibility from those cells.',
     apply: applyHiddenPairs,
+  },
+  {
+    id: 'hiddenSingles',
+    title: 'Hidden singles',
+    description: 'If a number has only one possible cell in a row, column, or box, reserve that cell for it and remove it from all other cells sharing its row, column, or box.',
+    apply: applyHiddenSingles,
   },
 ] as const;
 export type DeductionId = typeof DEDUCTIONS[number]['id'];

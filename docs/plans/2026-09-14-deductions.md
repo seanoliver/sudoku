@@ -2,7 +2,7 @@
 
 > **For Codex:** REQUIRED SUB-SKILL: Use executing-plans to implement this plan task-by-task.
 
-**Goal:** Add two independently enabled deductions with learning examples and shared candidate results.
+**Goal:** Add three independently enabled deductions with learning examples and shared candidate results.
 
 **Architecture:** Separate pure candidate elimination rules from board derivation and display selectors. Use one typed registry for rule metadata, execution, and preference recovery; derive automatic notes and highlights from the same resulting candidate sets.
 
@@ -35,3 +35,12 @@ Files: `docs/investigations/2026-09-14-deductions.md`, `docs/screenshots/deducti
 1. Start the production build locally and verify toggles, examples, reload, manual notes, and both displays with Playwright MCP.
 2. Verify light/dark mobile layout, scrolling, and keyboard operation; inspect screenshots and console errors.
 3. Review the final diff and record verification results in the investigation entry. Commit the feature on its isolated branch.
+
+### Task 4: Hidden singles
+
+Files: `src/lib/deductions.ts`, `src/components/deduction-settings.tsx`, rule/candidate/preference tests, and example CSS.
+
+1. Reproduce Sean's screenshot as an explicit board fixture; assert that the unique 4 at row 6 column 1 eliminates peer highlights while remaining a note.
+2. Test hidden singles in rows, columns, and boxes, negative two-placement cases, preference migration, and all eight toggle combinations.
+3. Register the new rule and example without changing the candidate execution loop or preference recovery.
+4. Verify the screenshot in the local browser, update documentation and the existing draft PR, and check the Vercel preview deployment.
