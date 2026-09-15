@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent }
 import { createGame, enter, undo, restore, isComplete, SAVE_KEY, type GameState } from '@/lib/game';
 import { conflicts, peers, type Difficulty, type Puzzle } from '@/lib/sudoku';
 import { automaticNotes, candidateCells, getCandidates } from '@/lib/candidates';
+import { CellNotes } from './cell-notes';
 import { DeductionSettings } from './deduction-settings';
 import { AppMark, Icon } from './icons';
 import { Clock } from './clock';
@@ -12,6 +13,7 @@ import { restorePreferences, DEFAULT_PREFS, PREFS_KEY, type Theme, type Preferen
 type Sheet = 'new' | 'settings' | 'help' | 'install' | null;
 type InstallEvent = Event & { prompt: () => Promise<void>; userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }> };
 const DIGITS = [1,2,3,4,5,6,7,8,9];
+const EMPTY_NOTES: number[] = [];
 const LEVELS: Difficulty[] = ['easy','medium','hard'];
 
 export default function SudokuGame() {
@@ -172,13 +174,14 @@ export default function SudokuGame() {
               const i = row * 9 + col;
               const value = game?.values[i] ?? 0;
               const given = Boolean(game?.givens[i]);
-              const manualNotes = game?.notes[i] ?? [];
+              const manualNotes = game?.notes[i] ?? EMPTY_NOTES;
               const notes = autoNotes ? [...new Set([...manualNotes, ...autoNotes[i]])].sort((a, b) => a - b) : manualNotes;
               const selectedCell = selected === i && !complete;
               const same = value > 0 && selectedValue === value;
               const classes = ['cell', given ? 'given' : 'entered', selectedCell ? 'selected' : '', !selectedCell && related.has(i) && preferences.highlightPeers && !complete ? 'related' : '', same && !selectedCell && !complete ? 'matching' : '', possible.has(i) ? 'possible' : '', badCells.has(i) ? 'conflict' : ''].filter(Boolean).join(' ');
               return <div role="gridcell" aria-selected={selectedCell} aria-readonly={given} aria-rowindex={row+1} aria-colindex={col+1} key={i} className="cell-slot"><button className={classes} data-index={i} data-given={given} tabIndex={selected === i ? 0 : -1} aria-label={`Row ${row+1}, column ${col+1}, ${value ? `${value}${given ? ', given' : ''}` : notes.length ? `notes ${notes.join(', ')}` : 'empty'}${possible.has(i) ? `, possible placement for ${selectedValue}` : ''}${badCells.has(i) ? ', conflict' : ''}`} aria-disabled={complete} onClick={() => setSelected(i)}>
-                {value ? <span className="cell-number">{value}</span> : notes.length ? <span className="notes">{DIGITS.map(n => <span key={n}>{notes.includes(n) ? n : ''}</span>)}</span> : null}
+                {value ? <span className="cell-number">{value}</span> : null}
+                <CellNotes key={game?.id} filled={Boolean(value)} manual={manualNotes} automatic={autoNotes?.[i] ?? EMPTY_NOTES}/>
                 {badCells.has(i) && <span className="conflict-dot"/>}
               </button></div>;
             })}
