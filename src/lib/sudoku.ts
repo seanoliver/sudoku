@@ -11,6 +11,21 @@ export function possibleCells(values: number[], digit: number): Set<number> {
   return new Set(indexes.filter(i => values[i] === 0 && !peers(i).some(j => values[j] === digit)));
 }
 
+/** Notes for digits with one or two legal placements in a box, using placed numbers only. */
+export function automaticNotes(values: number[]): number[][] {
+  const notes: number[][] = Array.from({ length: 81 }, () => []);
+  for (let digit = 1; digit <= 9; digit++) {
+    const placements: number[][] = Array.from({ length: 9 }, () => []);
+    for (const index of possibleCells(values, digit)) placements[box(index)].push(index);
+    for (const cells of placements) {
+      if (cells.length >= 1 && cells.length <= 2) {
+        for (const index of cells) notes[index].push(digit);
+      }
+    }
+  }
+  return notes;
+}
+
 export function conflicts(values: number[]): Set<number> {
   return new Set(indexes.filter(i => values[i] && peers(i).some(j => values[j] === values[i])));
 }
