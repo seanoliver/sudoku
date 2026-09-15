@@ -1,5 +1,4 @@
 import { automaticNotes, getCandidates } from '../src/lib/candidates.ts';
-import { DEFAULT_DEDUCTIONS } from '../src/lib/deductions.ts';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { generatePuzzle, countSolutions, conflicts, peers, possibleCells, type Difficulty } from '../src/lib/sudoku.ts';
@@ -82,7 +81,7 @@ test('corrupt preferences fall back without throwing or preventing game restorat
     assert.deepEqual(restorePreferences(raw), DEFAULT_PREFS);
   }
   const prefs = { theme: 'dark', showConflicts: false, highlightPeers: false };
-  assert.deepEqual(restorePreferences(JSON.stringify(prefs)), { ...prefs, smartHighlighting: false, autoNotes: false, deductions: DEFAULT_DEDUCTIONS });
+  assert.deepEqual(restorePreferences(JSON.stringify(prefs)), { ...prefs, smartHighlighting: false });
 });
 
 test('possible cells exclude the active digit’s row, column, box and occupied cells', () => {
@@ -125,10 +124,10 @@ test('smart highlighting is opt-in and restored without resetting existing prefe
   const prefs = { theme: 'dark', showConflicts: false, highlightPeers: false };
   for (const smartHighlighting of [true, false]) {
     const saved = { ...prefs, smartHighlighting };
-    assert.deepEqual(restorePreferences(JSON.stringify(saved)), { ...saved, autoNotes: false, deductions: DEFAULT_DEDUCTIONS });
+    assert.deepEqual(restorePreferences(JSON.stringify(saved)), { ...saved });
   }
   for (const smartHighlighting of [undefined, null, 'true', 1]) {
-    assert.deepEqual(restorePreferences(JSON.stringify({ ...prefs, smartHighlighting })), { ...prefs, smartHighlighting: false, autoNotes: false, deductions: DEFAULT_DEDUCTIONS });
+    assert.deepEqual(restorePreferences(JSON.stringify({ ...prefs, smartHighlighting })), { ...prefs, smartHighlighting: false });
   }
 });
 
@@ -175,16 +174,4 @@ test('auto notes follow entry, erase and undo without changing manual notes or h
   assert.deepEqual(basicNotes(undo(erased).values), basicNotes(filled.values));
   assert.deepEqual(basicNotes(undo(filled).values), basicNotes(noted.values));
   assert.equal(JSON.stringify(noted), saved);
-});
-
-test('auto notes preference is opt-in and migrates independently of other preferences', () => {
-  assert.equal(DEFAULT_PREFS.autoNotes, false);
-  const prefs = { theme: 'dark', showConflicts: false, highlightPeers: false, smartHighlighting: true };
-  for (const autoNotes of [true, false]) {
-    const saved = { ...prefs, autoNotes };
-    assert.deepEqual(restorePreferences(JSON.stringify(saved)), { ...saved, deductions: DEFAULT_DEDUCTIONS });
-  }
-  for (const autoNotes of [undefined, null, 'true', 1]) {
-    assert.deepEqual(restorePreferences(JSON.stringify({ ...prefs, autoNotes })), { ...prefs, autoNotes: false, deductions: DEFAULT_DEDUCTIONS });
-  }
 });

@@ -1,5 +1,8 @@
 # Automatic note animation
 
+> Historical design. Gameplay now follows [manual notes and one-time Fill notes](../plans/2026-09-15-manual-notes.md); automatic deduction application and its settings have been removed.
+
+
 ## Context
 
 Automatic note changes need a subtle visual cue so players can follow deductions as the board changes.

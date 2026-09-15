@@ -1,5 +1,8 @@
 # Configurable Deductions Implementation Plan
 
+> Historical design. Gameplay now follows [manual notes and one-time Fill notes](../plans/2026-09-15-manual-notes.md); automatic deduction application and its settings have been removed.
+
+
 > **For Codex:** REQUIRED SUB-SKILL: Use executing-plans to implement this plan task-by-task.
 
 **Goal:** Add three independently enabled deductions with learning examples and shared candidate results.

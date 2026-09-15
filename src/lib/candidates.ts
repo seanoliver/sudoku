@@ -41,3 +41,10 @@ export function automaticNotes(candidates: Candidates): number[][] {
   }
   return notes;
 }
+
+/** Player-facing possibilities never run deduction rules or infer from missing notes. */
+export function getPlayableCandidates({ values, exclusions }: { values: number[]; exclusions: number[][] }): Candidates {
+  const candidates = getCandidates({ values });
+  for (let i = 0; i < 81; i++) for (const digit of exclusions[i]) candidates[i].delete(digit);
+  return candidates;
+}

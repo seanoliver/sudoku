@@ -1,5 +1,8 @@
 # Shared candidate deductions
 
+> Historical design. Gameplay now follows [manual notes and one-time Fill notes](../plans/2026-09-15-manual-notes.md); automatic deduction application and its settings have been removed.
+
+
 ## Context
 Auto notes previously counted legal placements independently of Smart highlighting. Sean requested Pointing pairs, Hidden pairs, and Hidden singles, each independently enabled in Settings with explanations and examples. Both displays must reflect chained deductions.
 

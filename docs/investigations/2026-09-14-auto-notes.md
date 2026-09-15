@@ -1,5 +1,8 @@
 # Auto notes for one or two placements in a box
 
+> Historical design. Gameplay now follows [manual notes and one-time Fill notes](../plans/2026-09-15-manual-notes.md); automatic deduction application and its settings have been removed.
+
+
 ## Context
 Sean requested automatic pencil notes when a digit has only one or two possible cells in a 3 × 3 box. Further configuration may follow later.
 

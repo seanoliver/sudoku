@@ -1,5 +1,8 @@
 # Configurable deductions
 
+> Historical design. Gameplay now follows [manual notes and one-time Fill notes](../plans/2026-09-15-manual-notes.md); automatic deduction application and its settings have been removed.
+
+
 Sean approved independent Pointing pairs, Hidden pairs, and Hidden singles toggles with explanations and expandable examples. All default off. Hidden pairs apply to rows, columns, and boxes; pointing pairs eliminate a digit outside its box along a shared row or column. Hidden singles reserve the only possible cell for a digit in any house and eliminate that digit from every peer, including cells outside the source house.
 
 A shared candidate calculation starts from placed numbers, runs enabled rules until no candidates change, and supplies both Smart highlighting and Auto notes. Auto notes retain their one-or-two-placements-per-box display threshold. Manual notes remain independent, and no values are filled automatically. Disabling a rule recalculates from the placed numbers, restoring any possibilities no longer eliminated. Reload, erase, undo, and new puzzles follow the same calculation.
