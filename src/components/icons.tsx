@@ -1,6 +1,7 @@
 import type { CSSProperties } from 'react';
-export type IconName = 'undo' | 'erase' | 'pencil' | 'pause' | 'play' | 'plus' | 'chevron' | 'settings' | 'download' | 'check' | 'close' | 'help' | 'sun' | 'moon';
+export type IconName = 'fill' | 'undo' | 'erase' | 'pencil' | 'pause' | 'play' | 'plus' | 'chevron' | 'settings' | 'download' | 'check' | 'close' | 'help' | 'sun' | 'moon';
 const paths: Record<IconName, React.ReactNode> = {
+  fill: <><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M9 4v16M15 4v16M4 9h16M4 15h16"/></>,
   undo: <><path d="M9 5 4 10l5 5M4 10h10a6 6 0 0 1 0 12" transform="translate(0 -2)" /></>,
   erase: <><path d="m14 3 7 7-10 10H6l-4-4L14 3Z"/><path d="m8 10 7 7M11 20h10"/></>,
   pencil: <><path d="m15 4 5 5M4 20l5-1L21 7a2 2 0 0 0 0-3l-1-1a2 2 0 0 0-3 0L5 15l-1 5Z"/></>,

@@ -1,8 +1,11 @@
+import { automaticNotes, getCandidates } from '../src/lib/candidates.ts';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { generatePuzzle, countSolutions, conflicts, peers, possibleCells, type Difficulty } from '../src/lib/sudoku.ts';
 import { createGame, enter, undo, restore, isComplete } from '../src/lib/game.ts';
 import { restorePreferences, DEFAULT_PREFS } from '../src/lib/preferences.ts';
+
+const basicNotes = (values: number[]) => automaticNotes(getCandidates({ values }));
 
 for (const difficulty of ['easy', 'medium', 'hard'] as Difficulty[]) {
   test(`${difficulty}: varied, valid, uniquely solvable puzzles`, () => {
@@ -121,9 +124,54 @@ test('smart highlighting is opt-in and restored without resetting existing prefe
   const prefs = { theme: 'dark', showConflicts: false, highlightPeers: false };
   for (const smartHighlighting of [true, false]) {
     const saved = { ...prefs, smartHighlighting };
-    assert.deepEqual(restorePreferences(JSON.stringify(saved)), saved);
+    assert.deepEqual(restorePreferences(JSON.stringify(saved)), { ...saved });
   }
   for (const smartHighlighting of [undefined, null, 'true', 1]) {
     assert.deepEqual(restorePreferences(JSON.stringify({ ...prefs, smartHighlighting })), { ...prefs, smartHighlighting: false });
   }
+});
+
+test('auto notes mark exactly one or two legal placements, never zero or three', () => {
+  const values = Array(81).fill(0);
+  values[3] = 5; values[15] = 5;
+  const digitCells = () => basicNotes(values).slice(0, 27)
+    .flatMap((notes, i) => notes.includes(5) ? [i] : []);
+  assert.deepEqual(digitCells(), []); // Three legal cells: 18, 19, 20.
+  values[18] = 1;
+  assert.deepEqual(digitCells(), [19, 20]);
+  values[19] = 2;
+  assert.deepEqual(digitCells(), [20]);
+  values[20] = 3;
+  assert.deepEqual(digitCells(), []);
+  values[20] = 5; // Digit already placed in this box.
+  assert.deepEqual(digitCells(), []);
+});
+
+test('auto notes group each digit independently in all nine boxes without mutating values', () => {
+  const solution = generatePuzzle('easy', 19).solution;
+  const values = solution.map(n => n <= 2 ? 0 : n);
+  const original = [...values];
+  const notes = basicNotes(values);
+  assert.equal(notes.length, 81);
+  for (let i = 0; i < 81; i++) assert.deepEqual(notes[i], values[i] ? [] : [1, 2]);
+  assert.deepEqual(values, original);
+  assert.ok(basicNotes(Array(81).fill(0)).every(n => !n.length));
+  assert.ok(basicNotes(solution).every(n => !n.length));
+});
+
+test('auto notes follow entry, erase and undo without changing manual notes or history', () => {
+  const puzzle = generatePuzzle('easy', 19);
+  const game = createGame({ ...puzzle, givens: Array(81).fill(0) });
+  game.values[3] = 5; game.values[15] = 5;
+  const noted = enter(game, { index: 19, value: 7, pencil: true });
+  const saved = JSON.stringify(noted);
+  assert.deepEqual(basicNotes(noted.values), basicNotes(game.values));
+  const filled = enter(noted, { index: 18, value: 1 });
+  assert.ok(basicNotes(filled.values)[19].includes(5));
+  assert.deepEqual(filled.notes[19], [7]);
+  const erased = enter(filled, { index: 18, value: 0 });
+  assert.equal(basicNotes(erased.values)[19].includes(5), false);
+  assert.deepEqual(basicNotes(undo(erased).values), basicNotes(filled.values));
+  assert.deepEqual(basicNotes(undo(filled).values), basicNotes(noted.values));
+  assert.equal(JSON.stringify(noted), saved);
 });

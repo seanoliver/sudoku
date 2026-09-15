@@ -25,7 +25,9 @@ The build generates `public/sw.js` after Next.js finishes, precaching the comple
 ## Play
 
 - Select a cell, then a number. Starting numbers cannot be changed.
-- Notes toggles pencil marks. Entering a number removes that note from related cells.
+- Notes (N) toggles manual pencil marks. Exclude (X) toggles crossed-out digits and removes those cells from Smart highlighting for that digit.
+- Fill notes adds all candidates allowed by placed numbers as blue notes in one undoable action. Editing a cell makes its notes manual; future fills preserve it, even if cleared. Entering a number removes matching peer notes.
+- Deduction detection is retained for future hints and does not change notes or highlighting.
 - Undo restores the previous number and note state (up to 200 actions).
 - Pause hides the board and stops the clock. The clock also pauses in dialogs and background tabs.
 - Progress saves automatically on this device, including undo history.
