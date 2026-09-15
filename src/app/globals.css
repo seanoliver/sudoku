@@ -121,7 +121,9 @@ h1 { font-size: 32px; font-weight: 720; letter-spacing: -1.2px; line-height: 1.1
 
 .notes { color: var(--ink); }
 .note-generated { color: var(--note-blue); }
-.note-excluded { text-decoration: line-through; text-decoration-thickness: 1.5px; }
-.exclude-icon { font-size: 23px; line-height: 22px; text-decoration: line-through; text-decoration-thickness: 2px; }
+.note-excluded,.exclude-icon { position: relative; color: var(--red); }
+.note-excluded::after,.exclude-icon::after { content: ''; position: absolute; top: 50%; left: 50%; width: 1.15em; height: 1px; background: currentColor; transform: translate(-50%, -50%) rotate(-55deg); pointer-events: none; }
+.exclude-icon { font-size: 23px; line-height: 22px; }
+.exclude-icon::after { height: 1.5px; }
 .tools { justify-content: space-between; gap: 4px; }
 .tool-button { min-width: 0; flex: 1; }
