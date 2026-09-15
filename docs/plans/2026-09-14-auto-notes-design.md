@@ -1,5 +1,8 @@
 # Auto notes
 
+> Historical design. Gameplay now follows [manual notes and one-time Fill notes](../plans/2026-09-15-manual-notes.md); automatic deduction application and its settings have been removed.
+
+
 Sean requested automatic notes for digits with one or two legal placements in a box, and confirmed that calculation should use placed numbers only.
 
 Add an independent **Auto notes** setting, disabled by default and persisted on this device. For each digit and each 3 × 3 box, show a note in each legal empty cell when there are exactly one or two legal placements. Reuse the current row, column, and box checks; do not consult the solution or manual notes. A single placement stays a note.
