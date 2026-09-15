@@ -50,6 +50,18 @@ Before deploying through the CLI, verify that its signed-in account can access C
 
 ## Development
 
+Pull requests run the [CI workflow](.github/workflows/ci.yml) on Node 22 with
+the pnpm version pinned in `package.json` and a frozen lockfile. The `CI` check
+must pass lint, TypeScript checking, unit tests, and the production build
+(including service-worker generation). It runs for every PR, including docs-only
+changes, and for pushes to `main`.
+
+The GitHub `main` ruleset requires a pull request and a successful `CI` check
+from GitHub Actions against the latest `main`. It also blocks force pushes and
+branch deletion, with no bypass actors. Keep the job name `CI` in sync with the
+required check in repository settings. Browser and offline behavior still need
+manual verification when affected.
+
 ```sh
 pnpm test
 pnpm typecheck
