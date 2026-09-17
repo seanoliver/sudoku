@@ -50,6 +50,10 @@ Porkbun manages DNS. The `sudoku` CNAME points to `f908c3c1f24cf884.vercel-dns-0
 
 Before deploying through the CLI, verify that its signed-in account can access Cabin 9. The repository link alone does not change CLI authentication.
 
+## Roadmap
+
+See the [feature roadmap](docs/ROADMAP.md) for the planned sequence from faster input and recovery to explainable deductions, progressive hints, and technique-based practice.
+
 ## Development
 
 Pull requests run the [CI workflow](.github/workflows/ci.yml) on Node 22 with
