@@ -62,7 +62,7 @@ h1 { font-size: 32px; font-weight: 720; letter-spacing: -1.2px; line-height: 1.1
 .board-row { display: grid; grid-template-columns: repeat(9,1fr); min-height: 0; }
 .board-row:not(:last-child) { border-bottom: 1px solid var(--line); }.board-row:nth-child(3),.board-row:nth-child(6) { border-bottom: 1.5px solid var(--box-line); }
 .cell-slot { position: relative; min-width: 0; min-height: 0; }.cell-slot:not(:last-child) { border-right: 1px solid var(--line); }.cell-slot:nth-child(3),.cell-slot:nth-child(6) { border-right: 1.5px solid var(--box-line); }
-.cell { display: grid; place-items: center; position: relative; width: 100%; height: 100%; font-variant-numeric: tabular-nums; color: var(--ink); background: var(--surface); transition: background-color 80ms ease; }
+.cell { touch-action: pinch-zoom; -webkit-touch-callout: none; display: grid; place-items: center; position: relative; width: 100%; height: 100%; font-variant-numeric: tabular-nums; color: var(--ink); background: var(--surface); transition: background-color 80ms ease; }
 .cell-number { font-size: clamp(23px, 6.4vw, 29px); line-height: 1; font-weight: 460; }.cell.entered { color: var(--blue-strong); }.cell.entered .cell-number { font-weight: 430; }
 .cell.related { background: var(--peer); }.cell.matching { background: var(--matching); }.cell.possible { background: var(--possible); }.cell.selected { background: var(--selection); z-index: 1; box-shadow: inset 0 0 0 2px var(--blue); }
 .cell:focus-visible { outline: 0; box-shadow: inset 0 0 0 2px var(--blue); z-index: 2; }.cell:not(:disabled):active { transform: none; }

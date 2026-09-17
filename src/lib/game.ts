@@ -20,6 +20,22 @@ export function fillNotes(game: GameState): GameState {
   const noteOrigins = game.noteOrigins.map((origin, i) => !game.values[i] && origin !== 'manual' && notes[i].length ? 'generated' as const : origin);
   return record(game, { values: game.values, notes, exclusions: game.exclusions, noteOrigins });
 }
+export function addNotes(game: GameState, { indices, value }: { indices: readonly number[]; value: number }): GameState {
+  if (!Number.isInteger(value) || value < 1 || value > 9 || isComplete(game)) return game;
+  const targets = [...new Set(indices)].filter(index => Number.isInteger(index) && index >= 0 && index < 81
+    && !game.givens[index] && !game.values[index]
+    && (!game.notes[index].includes(value) || game.noteOrigins[index] !== 'manual'));
+  if (!targets.length) return game;
+  const notes = [...game.notes];
+  const exclusions = [...game.exclusions];
+  const noteOrigins = [...game.noteOrigins];
+  for (const index of targets) {
+    notes[index] = notes[index].includes(value) ? notes[index] : [...notes[index], value].sort();
+    exclusions[index] = exclusions[index].filter(n => n !== value);
+    noteOrigins[index] = 'manual';
+  }
+  return record(game, { values: game.values, notes, exclusions, noteOrigins });
+}
 export function enter(game: GameState, { index, value, pencil = false, exclude = false }: { index: number; value: number; pencil?: boolean; exclude?: boolean }): GameState {
   if (!Number.isInteger(index) || index < 0 || index >= 81 || !Number.isInteger(value) || value < 0 || value > 9 || game.givens[index] || isComplete(game)) return game;
   if ((pencil || exclude) && game.values[index] && value !== 0) return game;
