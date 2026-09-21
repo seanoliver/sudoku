@@ -1,12 +1,13 @@
 export type Theme = 'system' | 'light' | 'dark';
-export type Preferences = { theme: Theme; showConflicts: boolean; highlightPeers: boolean; smartHighlighting: boolean };
+export type Preferences = { theme: Theme; blockIncorrectAnswers: boolean; highlightPeers: boolean; smartHighlighting: boolean };
 export const PREFS_KEY = 'sudoku.preferences.v1';
-export const DEFAULT_PREFS: Preferences = { theme: 'system', showConflicts: true, highlightPeers: true, smartHighlighting: false };
+export const DEFAULT_PREFS: Preferences = { theme: 'system', blockIncorrectAnswers: true, highlightPeers: true, smartHighlighting: false };
 export function restorePreferences(raw: string | null): Preferences {
   try {
     const prefs = JSON.parse(raw ?? 'null');
-    if (prefs && ['system','light','dark'].includes(prefs.theme) && typeof prefs.showConflicts === 'boolean' && typeof prefs.highlightPeers === 'boolean') {
-      return { theme: prefs.theme, showConflicts: prefs.showConflicts, highlightPeers: prefs.highlightPeers, smartHighlighting: typeof prefs.smartHighlighting === 'boolean' ? prefs.smartHighlighting : false };
+    const blocking = typeof prefs?.blockIncorrectAnswers === 'boolean' ? prefs.blockIncorrectAnswers : prefs?.showConflicts;
+    if (prefs && ['system','light','dark'].includes(prefs.theme) && typeof blocking === 'boolean' && typeof prefs.highlightPeers === 'boolean') {
+      return { theme: prefs.theme, blockIncorrectAnswers: blocking, highlightPeers: prefs.highlightPeers, smartHighlighting: typeof prefs.smartHighlighting === 'boolean' ? prefs.smartHighlighting : false };
     }
   } catch { /* Preferences are optional; invalid data must never affect a saved game. */ }
   return { ...DEFAULT_PREFS };

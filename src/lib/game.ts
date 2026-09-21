@@ -36,8 +36,9 @@ export function addNotes(game: GameState, { indices, value }: { indices: readonl
   }
   return record(game, { values: game.values, notes, exclusions, noteOrigins });
 }
-export function enter(game: GameState, { index, value, pencil = false, exclude = false }: { index: number; value: number; pencil?: boolean; exclude?: boolean }): GameState {
+export function enter(game: GameState, { index, value, pencil = false, exclude = false, blockIncorrectAnswers = false }: { index: number; value: number; pencil?: boolean; exclude?: boolean; blockIncorrectAnswers?: boolean }): GameState {
   if (!Number.isInteger(index) || index < 0 || index >= 81 || !Number.isInteger(value) || value < 0 || value > 9 || game.givens[index] || isComplete(game)) return game;
+  if (blockIncorrectAnswers && !pencil && !exclude && value !== 0 && value !== game.solution[index]) return game;
   if ((pencil || exclude) && game.values[index] && value !== 0) return game;
   if (!pencil && !exclude && game.values[index] === value && !game.notes[index].length && !game.exclusions[index].length) return game;
   const values = [...game.values];
