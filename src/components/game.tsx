@@ -216,7 +216,7 @@ export default function SudokuGame() {
         </div>}
       </div>
 
-      <div className="digit-focus-bar" aria-label="Digit focus" inert={paused || busy || complete || !game}>
+      <div className="digit-focus-bar" role="group" aria-label="Digit focus" inert={paused || busy || complete || !game}>
         <div className="digit-focus-controls">
           {focusedDigit !== null ? <><span className="digit-focus-label" role="status">Focusing on <strong>{focusedDigit}</strong></span><button className="focus-button" onClick={() => { setFocusedDigit(null); board.current?.querySelector<HTMLButtonElement>(`[data-index="${selected}"]`)?.focus(); }}>Clear focus</button></>
             : <button className="focus-button" disabled={!selectedCellValue || batchNotes} onClick={() => setFocusedDigit(selectedCellValue)} aria-describedby={selectedCellValue && !focusHoldLearned ? 'focus-hold-hint' : undefined}>Focus on {selectedCellValue || 'a number'}</button>}
