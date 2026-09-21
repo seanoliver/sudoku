@@ -7,6 +7,7 @@ const MOVE_TOLERANCE = 8;
 type Gesture = {
   id: number;
   index: number;
+  kind: 'notes' | 'focus';
   x: number;
   y: number;
   startX: number;
@@ -18,11 +19,12 @@ type Gesture = {
 };
 
 /** Temporary notes selection, separate from the board's keyboard focus. */
-export function useNoteSelection({ values, enabled, onSelect, onBegin }: {
+export function useNoteSelection({ values, enabled, onSelect, onBegin, onFocus }: {
   values: readonly number[] | undefined;
   enabled: boolean;
   onSelect: (index: number) => void;
   onBegin: () => void;
+  onFocus: (input: { index: number; hasSelection: boolean }) => void;
 }) {
   const [indices, setIndices] = useState<number[]>([]);
   const gesture = useRef<Gesture | null>(null);
@@ -65,18 +67,18 @@ export function useNoteSelection({ values, enabled, onSelect, onBegin }: {
     const target = (event.target as HTMLElement).closest<HTMLElement>('[data-index]');
     if (!target) return;
     const index = Number(target.dataset.index);
-    if (!eligible(index)) return;
+    if (!values || !Number.isInteger(index) || index < 0 || index >= values.length) return;
     target.setPointerCapture(event.pointerId);
     const current: Gesture = {
-      id: event.pointerId, index, target, x: event.clientX, y: event.clientY,
+      id: event.pointerId, index, kind: values[index] ? 'focus' : 'notes', target, x: event.clientX, y: event.clientY,
       startX: event.clientX, startY: event.clientY, dragging: false, cancelled: false,
     };
     current.timer = setTimeout(() => {
       if (gesture.current !== current) return;
       current.dragging = true;
       suppressClick.current = true;
-      onBegin();
-      add(index);
+      if (current.kind === 'focus') onFocus({ index, hasSelection: indices.length > 0 });
+      else { onBegin(); add(index); }
     }, HOLD_MS);
     gesture.current = current;
   };
@@ -87,11 +89,11 @@ export function useNoteSelection({ values, enabled, onSelect, onBegin }: {
     if (!current.dragging && moved) {
       clearTimeout(current.timer);
       suppressClick.current = true;
-      if (!indices.length) { current.cancelled = true; return; }
+      if (current.kind === 'focus' || !indices.length) { current.cancelled = true; return; }
       current.dragging = true;
       add(current.index);
     }
-    if (!current.dragging) return;
+    if (!current.dragging || current.kind === 'focus') return;
     event.preventDefault();
     // Sample the segment so fast drags also select cells between pointer events.
     const steps = Math.max(1, Math.ceil(Math.hypot(event.clientX - current.x, event.clientY - current.y) / 6));
