@@ -36,6 +36,21 @@ export function addNotes(game: GameState, { indices, value }: { indices: readonl
   }
   return record(game, { values: game.values, notes, exclusions, noteOrigins });
 }
+export function addExclusions(game: GameState, { indices, value }: { indices: readonly number[]; value: number }): GameState {
+  if (!Number.isInteger(value) || value < 1 || value > 9 || isComplete(game)) return game;
+  const targets = [...new Set(indices)].filter(index => Number.isInteger(index) && index >= 0 && index < 81
+    && !game.givens[index] && !game.values[index] && !game.exclusions[index].includes(value));
+  if (!targets.length) return game;
+  const notes = [...game.notes];
+  const exclusions = [...game.exclusions];
+  const noteOrigins = [...game.noteOrigins];
+  for (const index of targets) {
+    notes[index] = notes[index].filter(n => n !== value);
+    exclusions[index] = [...exclusions[index], value].sort();
+    noteOrigins[index] = 'manual';
+  }
+  return record(game, { values: game.values, notes, exclusions, noteOrigins });
+}
 export function enter(game: GameState, { index, value, pencil = false, exclude = false, blockIncorrectAnswers = false }: { index: number; value: number; pencil?: boolean; exclude?: boolean; blockIncorrectAnswers?: boolean }): GameState {
   if (!Number.isInteger(index) || index < 0 || index >= 81 || !Number.isInteger(value) || value < 0 || value > 9 || game.givens[index] || isComplete(game)) return game;
   if (blockIncorrectAnswers && !pencil && !exclude && value !== 0 && value !== game.solution[index]) return game;
