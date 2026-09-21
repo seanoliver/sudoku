@@ -1,4 +1,4 @@
-import { conflicts, peers, type Puzzle } from './sudoku.ts';
+import { conflicts, peers, getEntryDigits, type Puzzle } from './sudoku.ts';
 import { getPlayableCandidates } from './candidates.ts';
 export type NoteOrigin = 'manual' | 'generated' | null;
 const emptyNotes = (): number[][] => Array.from({ length: 81 }, () => []);
@@ -54,8 +54,9 @@ export function addExclusions(game: GameState, { indices, value }: { indices: re
   }
   return record(game, { values: game.values, notes, exclusions, noteOrigins });
 }
-export function enter(game: GameState, { index, value, pencil = false, exclude = false, blockIncorrectAnswers = false }: { index: number; value: number; pencil?: boolean; exclude?: boolean; blockIncorrectAnswers?: boolean }): GameState {
+export function enter(game: GameState, { index, value, pencil = false, exclude = false, blockIncorrectAnswers = false, filterNumberKeys = false }: { index: number; value: number; pencil?: boolean; exclude?: boolean; blockIncorrectAnswers?: boolean; filterNumberKeys?: boolean }): GameState {
   if (!Number.isInteger(index) || index < 0 || index >= 81 || !Number.isInteger(value) || value < 0 || value > 9 || game.givens[index] || isComplete(game)) return game;
+  if (filterNumberKeys && !pencil && !exclude && value !== 0 && !getEntryDigits({ values: game.values, index }).includes(value)) return game;
   if (blockIncorrectAnswers && !pencil && !exclude && value !== 0 && value !== game.solution[index]) return game;
   if ((pencil || exclude) && game.values[index] && value !== 0) return game;
   if (!pencil && !exclude && game.values[index] === value && !game.notes[index].length && !game.exclusions[index].length) return game;

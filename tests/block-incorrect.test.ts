@@ -30,7 +30,7 @@ test('blocking allows notes and exclusions regardless of the solution', () => {
 test('blocking defaults on, migrates conflict preferences and prefers the new saved setting', () => {
   assert.equal(DEFAULT_PREFS.blockIncorrectAnswers, true);
   for (const enabled of [false, true]) {
-    const base = { theme: 'dark', highlightPeers: false, smartHighlighting: true };
+    const base = { theme: 'dark', highlightPeers: false, smartHighlighting: true, filterNumberKeys: false };
     const expected = { ...base, blockIncorrectAnswers: enabled };
     assert.deepEqual(restorePreferences(JSON.stringify({ ...base, showConflicts: enabled })), expected);
     assert.deepEqual(restorePreferences(JSON.stringify(expected)), expected);

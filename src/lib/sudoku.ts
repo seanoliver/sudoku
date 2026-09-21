@@ -5,6 +5,11 @@ const row = (i: number) => Math.floor(i / 9);
 const box = (i: number) => Math.floor(row(i) / 3) * 3 + Math.floor((i % 9) / 3);
 const peerTable = indexes.map(i => indexes.filter(j => j !== i && (row(i) === row(j) || i % 9 === j % 9 || box(i) === box(j))));
 export function peers(index: number): number[] { return peerTable[index] ?? []; }
+export function getEntryDigits({ values, index }: { values: readonly number[]; index: number }): number[] {
+  if (!Number.isInteger(index) || index < 0 || index >= 81) return [];
+  const occupied = new Set(peers(index).map(peer => values[peer]));
+  return [1,2,3,4,5,6,7,8,9].filter(digit => !occupied.has(digit));
+}
 /** Legal empty cells for a digit based on current entries, without solving the puzzle. */
 export function possibleCells(values: number[], digit: number): Set<number> {
   if (!Number.isInteger(digit) || digit < 1 || digit > 9) return new Set();

@@ -32,7 +32,7 @@ The build generates `public/sw.js` after Next.js finishes, precaching the comple
 - Pause hides the board and stops the clock. The clock also pauses in dialogs and background tabs.
 - Progress saves automatically on this device, including undo history.
 - Choose a new easy, medium, or hard puzzle. Each generated puzzle has exactly one solution.
-- Settings include system/light/dark appearance, conflict marking, and related-cell highlighting.
+- Settings include system/light/dark appearance, Block incorrect answers, related-cell highlighting, and optional Filter number keys. Filtering dims numbers already in the selected cell’s row, column, or box and rejects matching keyboard input. It starts off, ignores notes/exclusions and the solution, and leaves all annotation modes unrestricted.
 
 Keyboard: arrow keys move, 1–9 enter, N toggles notes, Backspace/Delete erases, and Cmd/Ctrl+Z undoes.
 
