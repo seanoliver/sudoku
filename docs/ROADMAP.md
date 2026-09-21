@@ -11,6 +11,7 @@ Make steady progress through a puzzle feel fast and effortless. Reduce repetitiv
 Already merged into `main`:
 
 - Offline play, local saves, undo, keyboard controls, and light/dark appearance.
+- CI on pull requests runs lint, typechecks, unit tests and the production build/service-worker generation. The active [main ruleset](https://github.com/seanoliver/sudoku/rules/23413937) requires the CI check, an up-to-date branch and a PR, with no configured bypass actors. The connected Vercel workflow deploys merged main commits.
 - Optional Smart highlighting, manual notes and exclusions, and one-time Fill notes.
 - Digit focus through an explicit button or filled-cell hold, with an integrated board toolbar ([PR #10](https://github.com/seanoliver/sudoku/pull/10)).
 - Hold/drag selection for batch notes and exclusions, with one undo step per batch and a grouped keypad panel containing Clear selection ([PR #11](https://github.com/seanoliver/sudoku/pull/11)).
@@ -31,7 +32,7 @@ Pointing-pair, hidden-pair, and hidden-single logic exists in the engine, but it
 
 Digit focus and batch exclusions have shipped. The new requests below add an input and layout pass before recovery; speed replay should follow the action-recording work alongside recovery. This is a proposed order, not a commitment to start implementation. Explainable detection can be developed before the hint UI, but every explanation must refer to a valid board state.
 
-## Requested additions: input, layout and replay
+## Requested additions: input, layout, feedback and replay
 
 Captured from Sean's September 20 feedback. Each item needs its own design review before implementation.
 
@@ -49,6 +50,8 @@ Captured from Sean's September 20 feedback. Each item needs its own design revie
 
 ### Immediate drag selection
 
+**Status:** Implemented in [PR #12](https://github.com/seanoliver/sudoku/pull/12), awaiting merge.
+
 **Player benefit:** Start selecting cells as soon as a drag begins, without waiting while holding still.
 
 - Begin batch selection when movement crosses a small drag threshold on an empty cell, regardless of how little time has passed since pointer-down.
@@ -60,6 +63,8 @@ Captured from Sean's September 20 feedback. Each item needs its own design revie
 
 ### One title and puzzle actions in Settings
 
+**Status:** Implemented in [PR #12](https://github.com/seanoliver/sudoku/pull/12), awaiting merge. Includes a gear button, gameplay-setting icons, and immediate preference saving without greetings or Done.
+
 **Player benefit:** Give the board more space and keep puzzle management together.
 
 - Keep the top app-bar Sudoku branding.
@@ -69,6 +74,53 @@ Captured from Sean's September 20 feedback. Each item needs its own design revie
 - Design clear restart confirmation and define how restarting interacts with undo, checkpoints and replay attempts. Keep New puzzle and Restart puzzle distinct.
 
 **Completion criteria:** The game shows one Sudoku title, both actions are available in Settings, restarting preserves puzzle identity, and starting a new puzzle still supports difficulty selection. Verify keyboard access and both themes.
+
+### Exit batch selection by selecting a filled cell
+
+**Player benefit:** Return to normal selection with one tap while scanning the puzzle.
+
+- Clicking or tapping a filled cell while batch selection is active clears all batch targets, exits Add note/Exclude batch mode, and selects that filled cell normally.
+- Support both givens and player-entered values, including keyboard/assistive activation.
+- Keep this distinct from dragging across a filled cell, which still skips it without ending the batch. Preserve filled-cell hold for digit focus.
+- Clearing the batch must not edit annotations or add undo history. Existing digit focus follows the normal filled-cell selection behavior.
+
+**Completion criteria:** The batch panel disappears, the clicked value becomes selected, and no selected empty cells remain. Verify tap versus drag versus hold, both annotation modes, digit focus, and keyboard input afterward.
+
+### Small celebrations for completed units
+
+**Player benefit:** Notice progress when a row, column or 3×3 box (house) is completed.
+
+- Play a brief, subtle animation on the completed unit when a player's entry changes it from incomplete to validly complete.
+- A completed unit contains 1–9 exactly once. Nine filled cells with duplicates must not trigger a celebration.
+- Handle a move completing several units together without stacking distracting effects; coordinate with the full-puzzle completion treatment.
+- Keep inputs responsive, preserve selection/highlights and respect reduced motion. Loading a save or opening Settings must not replay celebrations.
+- Define how undo/re-entry and later speed replay handle these effects, so undo itself does not celebrate and repeated playback stays controlled.
+
+**Completion criteria:** Each newly completed row, column and box is detected once per qualifying move. Effects are brief, readable in both themes, do not change game state, and have a restrained reduced-motion alternative.
+
+### Fill notes: permanent fill or temporary preview
+
+**Player benefit:** Inspect possible notes without committing them to the puzzle.
+
+- Preserve the current permanent Fill notes action and add a clearly distinguished temporary preview option. Choose the exact interaction during design.
+- Preview possible notes as a read-only overlay, then remove only the preview when dismissed. Existing notes and exclusions remain visible and unchanged.
+- Use the same candidate rules as the current fill: placed-number constraints and manual exclusions, with no automatic advanced deductions or solution lookup.
+- Preview must not claim annotation ownership, write saved notes, or add undo history. Permanent fill retains its current manual-note ownership behavior.
+- Make it clear when preview is active and easy to end. Define dismissal on release/toggle, board edits, pause, dialogs, restart and new puzzle; never leave stale preview candidates visible.
+- Check interaction with digit focus, batch selection and the future optional number picker.
+
+**Completion criteria:** Showing and dismissing preview restores the exact prior annotations, ownership and history. Committing a permanent fill remains a separate explicit action. Verify empty/manual/generated notes, exclusions, edits, undo and reopening.
+
+### CI/CD merge gates
+
+**Status:** Already implemented and verified against the live repository rules on September 20.
+
+- Pull requests must pass the required CI job before merging to main. The job runs lint, typechecks, unit tests and the production build, including service-worker generation.
+- Main requires an up-to-date branch and PR-based changes; its active ruleset has no configured bypass actors.
+- Keep these requirements aligned with workflow check names so future changes do not weaken or deadlock the gate.
+- Continue the connected GitHub-to-Vercel deployment flow after merge and verify production deployment status. Preview deployments do not replace required CI.
+
+**Completion criteria:** A failed or missing required check prevents a normal merge, and successful CI permits merging under the active branch rules. Keep the checked-in ruleset and live configuration consistent.
 
 ### Speed replay after completion
 
@@ -186,4 +238,4 @@ This roadmap keeps automatic bookkeeping limited to explicit actions and existin
 
 ## Delivery discipline
 
-Digit focus and batch exclusions are complete. Proposed next pass: immediate drag selection, title/Settings cleanup, and the optional constrained number picker; then recovery and speed replay. Each feature starts with three rendered design directions for Sean to review, followed by a detailed implementation plan and a focused PR. Sean may change the order or skip renderings explicitly. This roadmap does not authorize implementing every phase at once. Update milestone status and links as changes merge.
+Digit focus and batch exclusions are complete. PR #12 contains immediate dragging and title/Settings cleanup and awaits merge. Follow-ups include filled-cell exit from batch selection, the optional constrained number picker, temporary note preview and unit-completion animations; recovery and speed replay retain their dependencies. CI merge gates are already active. Each feature starts with three rendered design directions for Sean to review, followed by a detailed implementation plan and a focused PR. Sean may change the order or skip renderings explicitly. This roadmap does not authorize implementing every phase at once. Update milestone status and links as changes merge.
