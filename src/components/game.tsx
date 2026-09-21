@@ -217,11 +217,12 @@ export default function SudokuGame() {
       </div>
 
       <div className="digit-focus-bar" role="group" aria-label="Digit focus" inert={paused || busy || complete || !game}>
-        <div className="digit-focus-controls">
-          {focusedDigit !== null ? <><span className="digit-focus-label" role="status">Focusing on <strong>{focusedDigit}</strong></span><button className="focus-button" onClick={() => { setFocusedDigit(null); board.current?.querySelector<HTMLButtonElement>(`[data-index="${selected}"]`)?.focus(); }}>Clear focus</button></>
-            : <button className="focus-button" disabled={!selectedCellValue || batchNotes} onClick={() => setFocusedDigit(selectedCellValue)} aria-describedby={selectedCellValue && !focusHoldLearned ? 'focus-hold-hint' : undefined}>Focus on {selectedCellValue || 'a number'}</button>}
-        </div>
-        <p id="focus-hold-hint" className="focus-hint" hidden={focusedDigit !== null || !selectedCellValue || focusHoldLearned}>You can also hold a filled cell.</p>
+        {focusedDigit !== null ? <>
+          <span className="digit-focus-label" role="status"><Icon name="focus" size={18}/><span>Focused on <strong>{focusedDigit}</strong></span></span>
+          <button className="clear-focus-button" aria-label="Clear focus" title="Clear focus" onClick={() => { setFocusedDigit(null); board.current?.querySelector<HTMLButtonElement>(`[data-index="${selected}"]`)?.focus(); }}><Icon name="close" size={16}/></button>
+        </> : <button className="focus-button" disabled={!selectedCellValue || batchNotes} onClick={() => setFocusedDigit(selectedCellValue)} aria-label={selectedCellValue ? `Focus on ${selectedCellValue}` : 'Focus on a number'} aria-describedby={selectedCellValue && !focusHoldLearned ? 'focus-hold-hint' : undefined}>
+          <Icon name="focus" size={18}/><span className="focus-copy"><span>{selectedCellValue ? <>Focus on <strong>{selectedCellValue}</strong></> : 'Select a number to focus'}</span><span id="focus-hold-hint" className="focus-hint" hidden={!selectedCellValue || focusHoldLearned}>Or hold a filled cell</span></span>
+        </button>}
       </div>
 
       <div className={`board-wrap ${complete ? 'is-complete' : ''}`}>

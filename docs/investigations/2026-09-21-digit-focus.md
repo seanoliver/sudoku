@@ -16,7 +16,7 @@ Roadmap milestone 1 keeps a digit highlighted independently of cell selection. S
 
 A 400ms filled-cell hold invokes the focus callback. Movement beyond 8px before activation cancels it, and dragging after activation cannot turn into batch selection. Holding a filled cell during a batch keeps the batch and its selected entry target. Native Focus and Clear focus buttons support keyboard activation.
 
-Only shortcut discovery is saved, under `sudoku.focus-hold-learned.v1`. Read/write failure is tolerated. Focus itself resets on reload or a new puzzle. After playtest feedback, a bordered panel groups the action, active-digit badge, Clear focus, and shortcut hint. A stable-height panel prevents the board moving when the hint disappears or focus changes.
+Only shortcut discovery is saved, under `sudoku.focus-hold-learned.v1`. Read/write failure is tolerated. Focus itself resets on reload or a new puzzle. After playtest feedback, a slim 58px panel groups a focus icon, the action/status text, and a small shortcut hint. The active state uses an icon-only close button with a Clear focus accessible label; nested button fills and the digit badge were removed. A stable-height panel prevents the board moving when the hint disappears or focus changes.
 
 ## Gotchas
 
@@ -30,7 +30,7 @@ The prototype forced Smart highlighting on and disabled saving. Neither behavior
 - Short taps and canceled holds (movement, blur, pointer cancellation, a second pointer, dialog, pause) did not activate focus.
 - Hint appearance, retirement after a successful hold, persistence across reload, unavailable hint storage, and focus reset on reload/new puzzle passed.
 - All 58 existing unit tests, ESLint, TypeScript, production build, service-worker generation, and whitespace checks passed.
-- Production-build checks passed for both activation methods and persistent focus. Inspected phone light/dark and desktop captures. Phone captures use 390 × 960 to fit the extra control row without a scrollbar; board margins are 17px on both sides.
+- Production-build checks passed for both activation methods and persistent focus. Inspected phone light/dark and desktop captures. Phone captures use 390 × 930 to fit the extra control row without a scrollbar; board margins are 17px on both sides.
 - Keep the test page foreground for hold checks: background-tab timer throttling can postpone the 400ms hold beyond a simulated press.
 - Physical iOS/Safari gesture behavior remains unverified.
 
