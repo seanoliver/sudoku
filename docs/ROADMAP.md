@@ -221,6 +221,18 @@ Deliver in two releases:
 
 **Completion criteria:** Labels agree with reproducible solve traces. A practice puzzle requires a useful instance of the selected technique; merely containing a recognizable pattern is insufficient. Generation stays responsive and has a fallback when constraints cannot be met. The existing clue-count labels are replaced only after calibration.
 
+## Very low priority: desktop experience
+
+**Player benefit:** Make desktop feel intentionally designed for a larger screen, with comfortable mouse and keyboard play.
+
+- Revisit board sizing, spacing, control placement and Settings presentation for desktop, rather than simply enlarging the phone layout.
+- Review keyboard navigation, focus states, shortcuts and pointer interactions together.
+- Preserve the mobile experience and shared game behavior. Explore three desktop renderings when this work is scheduled.
+
+**Priority:** Very low. Keep behind the gameplay, input, recovery and assistance work above; do not let it delay those milestones.
+
+**Completion criteria:** The desktop layout uses available space deliberately, controls are easy to reach, and keyboard and mouse play feel consistent across common window sizes.
+
 ## Polish throughout delivery
 
 - Keep actions near the board, touch targets generous, and layout stable during gestures. Show selection count and mode explicitly.
