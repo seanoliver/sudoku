@@ -121,6 +121,7 @@ export function useNoteSelection({ values, enabled, onSelect, onBegin, onFocus }
     // Keyboard / assistive activation has detail 0 and no accompanying pointer gesture.
     if (event.detail !== 0 && suppressClick.current) { suppressClick.current = false; return; }
     if (!indices.length) { onSelect(index); return; }
+    if (values?.[index]) { reset(); onSelect(index); return; }
     if (!eligible(index)) return;
     setIndices(current => current.includes(index) ? current.filter(i => i !== index) : [...current, index]);
     onSelect(index);
