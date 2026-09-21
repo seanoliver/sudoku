@@ -3,7 +3,7 @@ import { DIGITS } from '@/lib/deductions';
 
 type NoteProps = { manual: number[]; automatic: number[]; excluded: number[]; boardKey: string };
 
-export function CellNotes({ manual, automatic, excluded, boardKey, filled }: NoteProps & { filled: boolean }) {
+export function CellNotes({ manual, automatic, excluded, boardKey, filled, focusedDigit = null }: NoteProps & { filled: boolean; focusedDigit?: number | null }) {
   const grid = useRef<HTMLSpanElement>(null);
   const previous = useRef<NoteProps>({ manual, automatic, excluded, boardKey });
 
@@ -43,6 +43,6 @@ export function CellNotes({ manual, automatic, excluded, boardKey, filled }: Not
 
   // Keep glyphs mounted for exit animations; the cell's label describes only current notes.
   return <span className="notes" ref={grid} aria-hidden="true" hidden={filled}>
-    {DIGITS.map(digit => <span key={digit} className={`note-digit ${automatic.includes(digit) ? 'note-generated' : ''} ${excluded.includes(digit) ? 'note-excluded' : ''}`} data-visible={manual.includes(digit) || automatic.includes(digit) || excluded.includes(digit)}>{digit}</span>)}
+    {DIGITS.map(digit => <span key={digit} className={`note-digit ${automatic.includes(digit) ? 'note-generated' : ''} ${excluded.includes(digit) ? 'note-excluded' : ''} ${focusedDigit === digit && !excluded.includes(digit) && (manual.includes(digit) || automatic.includes(digit)) ? 'note-focused' : ''}`} data-visible={manual.includes(digit) || automatic.includes(digit) || excluded.includes(digit)}>{digit}</span>)}
   </span>;
 }
