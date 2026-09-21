@@ -10,7 +10,7 @@ Hold on an empty cell retains batch selection. Moving before the hold threshold,
 
 ## Presentation and accessibility
 
-A minimalist 58px standalone panel with a focus icon and an accessible close control above the board groups the shortcut hint with its action and offers Focus on the selected digit, then Focusing on the digit and Clear focus. Keep its height stable while choosing cells. The hint reads “You can also hold a filled cell.” It is shown only with an available Focus action, before the shortcut has been learned. Persist only that learned flag, tolerating storage failure. Put the complete instructions in How to play. Native buttons provide keyboard access; focus and batch controls remain separate.
+Sean selected rendering B: a 44px toolbar attached directly to the top of the board, sharing its outer outline and rounded top corners. Show the Focus on X action at left and “Or hold a filled cell” at right until learned. Active focus shows a small blue indicator, “Focus X”, and an accessible Clear focus close control. Keep height stable, preserve native keyboard access, and keep the board’s bottom selection corners rounded. Existing focus behavior and tutorial persistence are unchanged.
 
 ## Verification
 

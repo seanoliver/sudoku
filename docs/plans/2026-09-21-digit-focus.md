@@ -23,3 +23,10 @@ Repeat failing browser checks, then exercise both activation methods and the cas
 ## Task 4: Review and PR
 
 Review the complete diff against origin/main, exclude generated files, and commit only scoped changes. Open a focused PR with screenshots and verification, then wait for CI. Do not merge before user review of this new interaction.
+
+## Approved rendering B refinement
+
+1. Group the focus toolbar and board in game.tsx; use a compact active indicator and horizontal hint.
+2. Join their outlines in globals.css, preserve bottom corner selection radii, and keep a 44px toolbar.
+3. Verify explicit activation, hold, clear, pause, 320px/390px/desktop sizing, and dark theme in Playwright; run lint and typecheck.
+4. Save rendering-first preference in AGENTS.md and capture updated browser screenshots.
