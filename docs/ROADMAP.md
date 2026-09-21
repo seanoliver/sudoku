@@ -50,7 +50,7 @@ Captured from Sean's September 20 feedback. Each item needs its own design revie
 
 ### Immediate drag selection
 
-**Status:** Implemented in [PR #12](https://github.com/seanoliver/sudoku/pull/12), awaiting merge.
+**Status:** Shipped in [PR #12](https://github.com/seanoliver/sudoku/pull/12).
 
 **Player benefit:** Start selecting cells as soon as a drag begins, without waiting while holding still.
 
@@ -63,7 +63,7 @@ Captured from Sean's September 20 feedback. Each item needs its own design revie
 
 ### One title and puzzle actions in Settings
 
-**Status:** Implemented in [PR #12](https://github.com/seanoliver/sudoku/pull/12), awaiting merge. Includes a gear button, gameplay-setting icons, and immediate preference saving without greetings or Done.
+**Status:** Shipped in [PR #12](https://github.com/seanoliver/sudoku/pull/12). Includes a gear button, gameplay-setting icons, and immediate preference saving without greetings or Done.
 
 **Player benefit:** Give the board more space and keep puzzle management together.
 
@@ -250,4 +250,4 @@ This roadmap keeps automatic bookkeeping limited to explicit actions and existin
 
 ## Delivery discipline
 
-Digit focus and batch exclusions are complete. PR #12 contains immediate dragging and title/Settings cleanup and awaits merge. Follow-ups include filled-cell exit from batch selection, the optional constrained number picker, temporary note preview and unit-completion animations; recovery and speed replay retain their dependencies. CI merge gates are already active. Each feature starts with three rendered design directions for Sean to review, followed by a detailed implementation plan and a focused PR. Sean may change the order or skip renderings explicitly. This roadmap does not authorize implementing every phase at once. Update milestone status and links as changes merge.
+Digit focus and batch exclusions are complete. PR #12 shipped immediate dragging and title/Settings cleanup. Follow-ups include filled-cell exit from batch selection, the optional constrained number picker, temporary note preview and unit-completion animations; recovery and speed replay retain their dependencies. CI merge gates are already active. Each feature starts with three rendered design directions for Sean to review, followed by a detailed implementation plan and a focused PR. Sean may change the order or skip renderings explicitly. This roadmap does not authorize implementing every phase at once. Update milestone status and links as changes merge.
