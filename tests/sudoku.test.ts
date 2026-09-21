@@ -81,7 +81,7 @@ test('corrupt preferences fall back without throwing or preventing game restorat
     assert.deepEqual(restorePreferences(raw), DEFAULT_PREFS);
   }
   const prefs = { theme: 'dark', blockIncorrectAnswers: false, highlightPeers: false };
-  assert.deepEqual(restorePreferences(JSON.stringify(prefs)), { ...prefs, smartHighlighting: false });
+  assert.deepEqual(restorePreferences(JSON.stringify(prefs)), { ...prefs, smartHighlighting: false, filterNumberKeys: false });
 });
 
 test('possible cells exclude the active digit’s row, column, box and occupied cells', () => {
@@ -124,10 +124,10 @@ test('smart highlighting is opt-in and restored without resetting existing prefe
   const prefs = { theme: 'dark', blockIncorrectAnswers: false, highlightPeers: false };
   for (const smartHighlighting of [true, false]) {
     const saved = { ...prefs, smartHighlighting };
-    assert.deepEqual(restorePreferences(JSON.stringify(saved)), { ...saved });
+    assert.deepEqual(restorePreferences(JSON.stringify(saved)), { ...saved, filterNumberKeys: false });
   }
   for (const smartHighlighting of [undefined, null, 'true', 1]) {
-    assert.deepEqual(restorePreferences(JSON.stringify({ ...prefs, smartHighlighting })), { ...prefs, smartHighlighting: false });
+    assert.deepEqual(restorePreferences(JSON.stringify({ ...prefs, smartHighlighting })), { ...prefs, smartHighlighting: false, filterNumberKeys: false });
   }
 });
 

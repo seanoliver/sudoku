@@ -168,3 +168,5 @@ h1,h2,h3,p { margin: 0; }
 .setting-copy { flex: 1; min-width: 0; }
 .setting-row > svg { color: var(--secondary); }
 @media (max-width: 380px) { .puzzle-action { gap: 6px; font-size: 12px; }.setting-row { gap: 10px; } }
+
+.number-key.digit-filtered { color: var(--secondary); background: color-mix(in srgb, var(--line) 45%, var(--canvas)); opacity: .65; box-shadow: none; }
