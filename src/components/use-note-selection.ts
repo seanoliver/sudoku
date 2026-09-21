@@ -18,7 +18,7 @@ type Gesture = {
   timer?: ReturnType<typeof setTimeout>;
 };
 
-/** Temporary notes selection, separate from the board's keyboard focus. */
+/** Temporary annotation selection, separate from the board's keyboard focus. */
 export function useNoteSelection({ values, enabled, onSelect, onBegin, onFocus }: {
   values: readonly number[] | undefined;
   enabled: boolean;
@@ -78,7 +78,7 @@ export function useNoteSelection({ values, enabled, onSelect, onBegin, onFocus }
       current.dragging = true;
       suppressClick.current = true;
       if (current.kind === 'focus') onFocus({ index, hasSelection: indices.length > 0 });
-      else { onBegin(); add(index); }
+      else { if (!indices.length) onBegin(); add(index); }
     }, HOLD_MS);
     gesture.current = current;
   };
