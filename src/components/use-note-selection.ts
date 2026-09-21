@@ -89,7 +89,8 @@ export function useNoteSelection({ values, enabled, onSelect, onBegin, onFocus }
     if (!current.dragging && moved) {
       clearTimeout(current.timer);
       suppressClick.current = true;
-      if (current.kind === 'focus' || !indices.length) { current.cancelled = true; return; }
+      if (current.kind === 'focus') { current.cancelled = true; return; }
+      if (!indices.length) onBegin();
       current.dragging = true;
       add(current.index);
     }

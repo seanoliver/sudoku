@@ -8,6 +8,9 @@ export const SAVE_KEY = 'sudoku.game.v1';
 export function createGame(puzzle: Puzzle): GameState {
   return { ...puzzle, version: 1, values: [...puzzle.givens], notes: emptyNotes(), exclusions: emptyNotes(), noteOrigins: Array(81).fill(null), history: [] };
 }
+export function restartGame({ id, difficulty, givens, solution }: GameState): GameState {
+  return createGame({ id, difficulty, givens, solution });
+}
 function record(game: GameState, next: Snapshot): GameState {
   const { values, notes, exclusions, noteOrigins } = game;
   return { ...game, ...next, history: [...game.history.slice(-199), { values, notes, exclusions, noteOrigins }] };

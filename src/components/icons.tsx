@@ -1,6 +1,9 @@
 import type { CSSProperties } from 'react';
-export type IconName = 'focus' | 'fill' | 'undo' | 'erase' | 'pencil' | 'pause' | 'play' | 'plus' | 'chevron' | 'settings' | 'download' | 'check' | 'close' | 'help' | 'sun' | 'moon';
+export type IconName = 'restart' | 'shield' | 'sparkles' | 'focus' | 'fill' | 'undo' | 'erase' | 'pencil' | 'pause' | 'play' | 'plus' | 'chevron' | 'settings' | 'download' | 'check' | 'close' | 'help' | 'sun' | 'moon';
 const paths: Record<IconName, React.ReactNode> = {
+  restart: <><path d="M3 10a9 9 0 1 1 2 8M3 4v6h6"/></>,
+  shield: <><path d="M12 3 4 6v6c0 5 8 9 8 9s8-4 8-9V6l-8-3Z"/><path d="m8 12 3 3 5-6"/></>,
+  sparkles: <><path d="m12 3 2.5 6.5L21 12l-6.5 2.5L12 21l-2.5-6.5L3 12l6.5-2.5L12 3Z"/></>,
   focus: <><path d="M8 4H5a1 1 0 0 0-1 1v3m12-4h3a1 1 0 0 1 1 1v3M4 16v3a1 1 0 0 0 1 1h3m8 0h3a1 1 0 0 0 1-1v-3"/><circle cx="12" cy="12" r="2.5"/></>,
   fill: <><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M9 4v16M15 4v16M4 9h16M4 15h16"/></>,
   undo: <><path d="M9 5 4 10l5 5M4 10h10a6 6 0 0 1 0 12" transform="translate(0 -2)" /></>,
@@ -10,7 +13,7 @@ const paths: Record<IconName, React.ReactNode> = {
   play: <path d="m8 5 11 7-11 7V5Z" fill="currentColor" stroke="none"/>,
   plus: <path d="M12 5v14M5 12h14"/>,
   chevron: <path d="m7 10 5 5 5-5"/>,
-  settings: <><path d="M4 7h16M4 17h16"/><circle cx="9" cy="7" r="3" fill="var(--surface)"/><circle cx="16" cy="17" r="3" fill="var(--surface)"/></>,
+  settings: <><path d="m9.5 3-.6 2.4-2 .9-2.2-.7-2.4 4.2 1.7 1.7v2.3l-1.7 1.7 2.4 4.1 2.3-.6 2 .9.5 2.1h5l.6-2.3 2-.8 2.2.7 2.4-4.2-1.7-1.7v-2.3l1.7-1.7-2.4-4.1-2.3.6-2-.9L14.5 3h-5Z"/><circle cx="12" cy="12" r="3"/></>,
   download: <><path d="M12 3v12m-4-4 4 4 4-4M5 16v4h14v-4"/></>,
   check: <path d="m5 12 4 4L19 6"/>,
   close: <path d="m6 6 12 12M6 18 18 6"/>,
