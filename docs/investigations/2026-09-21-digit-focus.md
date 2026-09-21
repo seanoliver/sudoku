@@ -41,3 +41,9 @@ The prototype forced Smart highlighting on and disabled saving. Neither behavior
 - `src/components/game.tsx`
 - `src/components/use-note-selection.ts`
 - `src/components/cell-notes.tsx`
+
+## Approved board toolbar (rendering B)
+
+Sean selected B from three generated directions. The 44px toolbar now joins the board outline; its hint sits alongside the action. Top board cells have square selection corners at the internal seam, while bottom cells retain rounded selection corners. Rendering-first review is now saved in repository and global Codex guidance.
+
+Verified button activation, filled-cell hold, clear and pause in Playwright. At 320px, 390px and 1100px the toolbar and board edges align with no gap or horizontal overflow. Light and dark screenshots inspected. Production screenshots at 390×930 have equal 17px board margins and no scrollbar. Lint, typecheck, production build and diff checks passed.

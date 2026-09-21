@@ -216,9 +216,10 @@ export default function SudokuGame() {
         </div>}
       </div>
 
+      <div className="puzzle-panel">
       <div className="digit-focus-bar" role="group" aria-label="Digit focus" inert={paused || busy || complete || !game}>
         {focusedDigit !== null ? <>
-          <span className="digit-focus-label" role="status"><Icon name="focus" size={18}/><span>Focused on <strong>{focusedDigit}</strong></span></span>
+          <span className="digit-focus-label" role="status"><span className="focus-indicator" aria-hidden="true"/><span>Focus <strong>{focusedDigit}</strong></span></span>
           <button className="clear-focus-button" aria-label="Clear focus" title="Clear focus" onClick={() => { setFocusedDigit(null); board.current?.querySelector<HTMLButtonElement>(`[data-index="${selected}"]`)?.focus(); }}><Icon name="close" size={16}/></button>
         </> : <button className="focus-button" disabled={!selectedCellValue || batchNotes} onClick={() => setFocusedDigit(selectedCellValue)} aria-label={selectedCellValue ? `Focus on ${selectedCellValue}` : 'Focus on a number'} aria-describedby={selectedCellValue && !focusHoldLearned ? 'focus-hold-hint' : undefined}>
           <Icon name="focus" size={18}/><span className="focus-copy"><span>{selectedCellValue ? <>Focus on <strong>{selectedCellValue}</strong></> : 'Select a number to focus'}</span><span id="focus-hold-hint" className="focus-hint" hidden={!selectedCellValue || focusHoldLearned}>Or hold a filled cell</span></span>
@@ -249,6 +250,8 @@ export default function SudokuGame() {
         {(paused || busy || !game) && <div className="board-cover">
           {busy ? <><span className="spinner"/><h2>Getting your puzzle ready</h2></> : paused ? <><span className="pause-emblem"><Icon name="pause" size={28}/></span><h2>Take a break</h2><p>Your puzzle will be right here.</p><button className="primary-button" onClick={() => setPaused(false)}><Icon name="play" size={17}/>Resume puzzle</button></> : <><h2>Let’s try that again</h2><button className="primary-button" onClick={() => requestPuzzle(difficulty)}>Create puzzle</button></>}
         </div>}
+      </div>
+
       </div>
 
       <div className="progress-line" role="progressbar" aria-label="Cells filled" aria-valuemin={0} aria-valuemax={total} aria-valuenow={filled}><span style={{ transform: `scaleX(${filled/total})` }}/></div>
