@@ -137,7 +137,7 @@ h1 { font-size: 32px; font-weight: 720; letter-spacing: -1.2px; line-height: 1.1
 
 .puzzle-panel { border-radius: 11px; box-shadow: var(--shadow); }
 .puzzle-panel .board-wrap { border-top-left-radius: 0; border-top-right-radius: 0; box-shadow: none; }
-.puzzle-panel .board-row:first-child .cell { border-top-left-radius: 0; border-top-right-radius: 0; }
+.puzzle-panel .board-row:first-child .cell-slot .cell { border-top-left-radius: 0; border-top-right-radius: 0; }
 .digit-focus-bar { height: 44px; display: flex; align-items: center; justify-content: space-between; border: 1px solid var(--box-line); border-bottom: 0; border-radius: 11px 11px 0 0; background: var(--surface); }
 .digit-focus-bar[inert] > * { visibility: hidden; }
 .focus-button,.digit-focus-label { display: flex; align-items: center; gap: 11px; padding: 0 14px; font-size: 12px; font-weight: 500; color: var(--ink); }
