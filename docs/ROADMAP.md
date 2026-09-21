@@ -1,6 +1,6 @@
 # Sudoku feature roadmap
 
-Updated: September 17, 2026. These are proposed milestones in implementation order, without date commitments. Each milestone should ship independently and be checked in real play before starting the next.
+Updated: September 20, 2026. These are proposed milestones in implementation order, without date commitments. Each milestone should ship independently and be checked in real play before starting the next.
 
 ## Product goal
 
@@ -12,8 +12,8 @@ Already merged into `main`:
 
 - Offline play, local saves, undo, keyboard controls, and light/dark appearance.
 - Optional Smart highlighting, manual notes and exclusions, and one-time Fill notes.
-- Hold/drag selection for batch notes, with one undo step per batch.
-- A prominent Clear selection button above the board.
+- Digit focus through an explicit button or filled-cell hold, with an integrated board toolbar ([PR #10](https://github.com/seanoliver/sudoku/pull/10)).
+- Hold/drag selection for batch notes and exclusions, with one undo step per batch and a grouped keypad panel containing Clear selection ([PR #11](https://github.com/seanoliver/sudoku/pull/11)).
 
 Pointing-pair, hidden-pair, and hidden-single logic exists in the engine, but it does not automatically change gameplay notes or highlighting. Difficulty currently uses clue density. Redo, explanation records, progressive hints, and technique-based grading remain future work.
 
@@ -21,17 +21,70 @@ Pointing-pair, hidden-pair, and hidden-single logic exists in the engine, but it
 
 | Order | Milestone | First useful release | Dependency |
 | --- | --- | --- | --- |
-| 1 | Digit locking | Keep one digit highlighted while scanning and annotating | Existing Smart highlighting |
-| 2 | Batch exclusions | Record one deduction across multiple cells | Existing batch selection; coordinate with digit lock |
+| 1 (shipped) | Digit locking | Keep one digit highlighted while scanning and annotating | Existing Smart highlighting |
+| 2 (shipped) | Batch exclusions | Record one deduction across multiple cells | Existing batch selection; coordinate with digit lock |
 | 3 | Recovery | Persistent redo, action descriptions, then a checkpoint | Stable batch actions from milestone 2 |
 | 4 | Candidate explanations | Inspect basic constraints and distinguish manual exclusions | Recovery support for future explanation state |
 | 5 | Apply a chosen deduction | Validate and apply a player-selected pointing pair | Explanation records from milestone 4 |
 | 6 | Progressive hints | Reveal one supported move in optional steps | Explainable detection from milestones 4 and 5 |
 | 7 | Technique-based difficulty and practice | Grade puzzles by supported logical techniques | Reliable step traces from milestone 6 |
 
-This is the recommended delivery order. Digit locking and batch exclusions do not technically require each other; shipping them in sequence lets us settle their shared input behavior. Explainable detection can be developed before the hint UI, but every explanation must refer to a valid board state.
+Digit focus and batch exclusions have shipped. The new requests below add an input and layout pass before recovery; speed replay should follow the action-recording work alongside recovery. This is a proposed order, not a commitment to start implementation. Explainable detection can be developed before the hint UI, but every explanation must refer to a valid board state.
+
+## Requested additions: input, layout and replay
+
+Captured from Sean's September 20 feedback. Each item needs its own design review before implementation.
+
+### Optional constraint-aware number picker
+
+**Player benefit:** Avoid choosing a number already ruled out by filled cells.
+
+- Add an optional setting that disables impossible number keys for the selected cell.
+- Compute availability only from filled values in that cell's row, column and box. Do not use the stored solution, notes, manual exclusions or advanced deductions.
+- When replacing an editable filled cell, ignore its own value while evaluating peer constraints. Update immediately when selection or filled values change, including erase, undo, redo and restart.
+- Keep this setting distinct from Block incorrect answers, which checks against the solution.
+- During design, define its scope for note/exclusion modes and multi-cell selection. Annotation controls must still allow removing notes and recording exclusions; do not silently apply a single-cell filter to a batch.
+
+**Completion criteria:** Disabled states are clear and accessible, touch and keyboard value entry agree, and disabling the preference restores current entry behavior. A number that is legal under filled-cell constraints remains available even when it is not the solution or has been manually excluded.
+
+### Immediate drag selection
+
+**Player benefit:** Start selecting cells as soon as a drag begins, without waiting while holding still.
+
+- Begin batch selection when movement crosses a small drag threshold on an empty cell, regardless of how little time has passed since pointer-down.
+- Retain stationary hold as an alternative; elapsed hold time must not gate dragging. Include the starting cell and every eligible cell crossed by the drag.
+- Preserve Add note/Exclude mode when extending a batch. Filled-cell hold still focuses a digit; a drag must not accidentally focus or enter a number.
+- Resolve touch scrolling and drag intent during design, preserving normal taps, cancellation and multi-touch handling.
+
+**Completion criteria:** A drag that begins immediately after pointer-down selects cells without a preliminary stationary hold. Slow and fast drags, existing selections, pointer cancellation and touch scrolling are checked on phone and desktop, including physical iOS/Safari.
+
+### One title and puzzle actions in Settings
+
+**Player benefit:** Give the board more space and keep puzzle management together.
+
+- Keep the top app-bar Sudoku branding.
+- Remove the second Sudoku heading, its “Take your time.” tagline and its adjacent New puzzle button; remove the unused heading-row space.
+- Move New puzzle into Settings, preserving difficulty choice and the existing puzzle-replacement flow.
+- Add Restart puzzle in Settings. Restart uses the same givens and solution, resets entries, notes, exclusions and elapsed time, and clears transient selection/focus.
+- Design clear restart confirmation and define how restarting interacts with undo, checkpoints and replay attempts. Keep New puzzle and Restart puzzle distinct.
+
+**Completion criteria:** The game shows one Sudoku title, both actions are available in Settings, restarting preserves puzzle identity, and starting a new puzzle still supports difficulty selection. Verify keyboard access and both themes.
+
+### Speed replay after completion
+
+**Player benefit:** Watch a quick animation of the solve, showing entries in the order they were made.
+
+- Add an optional Replay action to the completion screen; play a compressed animation from the initial givens through the player's actual actions.
+- Record chronological actions while playing, including entries, corrections/erasures, annotations, batch edits and undo/redo, so replay shows what happened rather than reconstructing only the final solution.
+- Keep a replay log separate from the bounded undo stack: current undo retains at most 200 snapshots and discards undone steps, so it cannot represent a complete solve.
+- Persist replay progress records across reopening. Define restart/attempt boundaries and storage limits with recovery work; distinguish older saves with incomplete logs instead of fabricating missing moves.
+- Provide a way to stop or skip playback, respect reduced motion, and leave the completed puzzle, time and history unchanged.
+
+**Completion criteria:** Playback preserves action order, includes the final entry and reaches the completed board. Long pauses are compressed, corrections are visible, and viewing replay is read-only. Verify long solves, reopened games, restarts and legacy saves.
 
 ## 1. Digit locking
+
+**Status:** Shipped as digit focus in [PR #10](https://github.com/seanoliver/sudoku/pull/10).
 
 **Player benefit:** Select 4 once and scan its possible locations without repeatedly finding and tapping a filled 4.
 
@@ -43,6 +96,8 @@ This is the recommended delivery order. Digit locking and batch exclusions do no
 **Completion criteria:** Digit focus never places a value by itself. Switching digits, clearing the lock, adding notes, and entering values work predictably with touch and keyboard. Highlighting follows placements, exclusions, and undo.
 
 ## 2. Batch exclusions
+
+**Status:** Shipped with the grouped keypad panel in [PR #11](https://github.com/seanoliver/sudoku/pull/11).
 
 **Player benefit:** After finding a pointing pair, select affected cells and rule out the digit in one action.
 
@@ -63,6 +118,8 @@ Deliver in two small releases:
 2. Add one explicit checkpoint per puzzle. Restoring it recovers values and annotations together and is itself undoable. Label the checkpoint so its contents are clear.
 
 **Completion criteria:** Batch edits remain atomic, save migration preserves existing puzzles, and restore/undo/redo keep annotation ownership intact. Define bounded history and checkpoint storage before implementation.
+
+Coordinate action descriptions and persistence with the requested speed replay, while keeping the complete replay log separate from bounded undo history. Define checkpoint and restart events so playback remains chronological.
 
 This precedes applied deductions because their affected notes and explanations must be reversible together.
 
@@ -129,4 +186,4 @@ This roadmap keeps automatic bookkeeping limited to explicit actions and existin
 
 ## Delivery discipline
 
-Start next with milestone 1, digit locking. Design its input gesture against the existing keypad, then implement it in a focused PR. Each later milestone gets its own detailed implementation plan when scheduled; this roadmap does not authorize implementing every phase at once. Update milestone status and links as changes merge.
+Digit focus and batch exclusions are complete. Proposed next pass: immediate drag selection, title/Settings cleanup, and the optional constrained number picker; then recovery and speed replay. Each feature starts with three rendered design directions for Sean to review, followed by a detailed implementation plan and a focused PR. Sean may change the order or skip renderings explicitly. This roadmap does not authorize implementing every phase at once. Update milestone status and links as changes merge.
