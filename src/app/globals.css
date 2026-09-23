@@ -68,7 +68,8 @@ h1,h2,h3,p { margin: 0; }
 .cell.conflict { color: var(--red); background: var(--red-soft); }.cell.conflict.selected { box-shadow: inset 0 0 0 2px var(--red); }
 .conflict-dot { width: 3px; height: 3px; border-radius: 50%; background: var(--red); position: absolute; bottom: 3px; }
 .cell.rejecting { background: var(--red-soft); }.cell.rejecting.selected { box-shadow: inset 0 0 0 2px var(--red); }.cell.rejecting .notes { visibility: hidden; }
-.rejected-digit { position: absolute; inset: 0; display: grid; place-items: center; font-size: clamp(23px, 6.4vw, 29px); line-height: 1; font-weight: 430; color: var(--red); text-decoration: line-through; text-decoration-thickness: 2px; pointer-events: none; animation: reject-shake 250ms ease-in-out, reject-fade 800ms ease-in forwards; }
+.rejected-digit { position: absolute; inset: 0; display: grid; place-items: center; font-size: clamp(23px, 6.4vw, 29px); line-height: 1; font-weight: 430; color: var(--red); pointer-events: none; animation: reject-shake 250ms ease-in-out, reject-fade 800ms ease-in forwards; }
+.rejected-digit::after { content: ''; position: absolute; left: 50%; top: 50%; width: 1.15em; height: 2px; margin: -1px 0 0 -.575em; border-radius: 1px; background: currentColor; transform: rotate(45deg); }
 .rejection-source { position: absolute; inset: 0; border-radius: inherit; box-shadow: inset 0 0 0 2px var(--red); pointer-events: none; animation: reject-pulse 800ms ease-out forwards; }
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 @keyframes reject-shake { 0%,100% { transform: translateX(0); } 20%,60% { transform: translateX(-4px); } 40%,80% { transform: translateX(4px); } }
