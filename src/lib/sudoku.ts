@@ -5,6 +5,23 @@ const row = (i: number) => Math.floor(i / 9);
 const box = (i: number) => Math.floor(row(i) / 3) * 3 + Math.floor((i % 9) / 3);
 const peerTable = indexes.map(i => indexes.filter(j => j !== i && (row(i) === row(j) || i % 9 === j % 9 || box(i) === box(j))));
 export function peers(index: number): number[] { return peerTable[index] ?? []; }
+export type Unit = { kind: 'row' | 'column' | 'box'; number: number; cells: number[] };
+const unitsOf = (index: number): Unit[] => [
+  { kind: 'row', number: row(index) + 1, cells: indexes.filter(i => row(i) === row(index)) },
+  { kind: 'column', number: index % 9 + 1, cells: indexes.filter(i => i % 9 === index % 9) },
+  { kind: 'box', number: box(index) + 1, cells: indexes.filter(i => box(i) === box(index)) },
+];
+const isUnitComplete = (values: readonly number[], cells: number[]) => new Set(cells.map(i => values[i]).filter(Boolean)).size === 9;
+/** Rows, columns and boxes containing `index` that `after` completes with 1–9 exactly once and `before` did not. */
+export function completedUnits({ before, after, index }: { before: readonly number[]; after: readonly number[]; index: number }): Unit[] {
+  if (!Number.isInteger(index) || index < 0 || index >= 81) return [];
+  return unitsOf(index).filter(unit => isUnitComplete(after, unit.cells) && !isUnitComplete(before, unit.cells));
+}
+/** Screen-reader text such as "Row 5, column 5 and box 5 complete". */
+export function celebrationLabel(units: readonly Unit[]): string {
+  const names = units.map(({ kind, number }, i) => `${i ? kind : kind[0].toUpperCase() + kind.slice(1)} ${number}`);
+  return `${names.length > 1 ? `${names.slice(0, -1).join(', ')} and ${names.at(-1)}` : names[0] ?? ''} complete`;
+}
 export function getEntryDigits({ values, index }: { values: readonly number[]; index: number }): number[] {
   if (!Number.isInteger(index) || index < 0 || index >= 81) return [];
   const occupied = new Set(peers(index).map(peer => values[peer]));
