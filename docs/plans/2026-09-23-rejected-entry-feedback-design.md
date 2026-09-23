@@ -15,13 +15,13 @@ When the game rejects an entry, the only feedback is a line of hint text under t
 
 ## Behavior
 
-- The rejected digit appears in the cell in red with a strike-through. The cell shakes horizontally for about 250ms, and the digit fades out, removed after 0.8s.
+- The rejected digit appears in the cell in red, struck by a diagonal line from top left to bottom right. A horizontal strike-through was rejected because it reads badly on digits such as 4. The cell shakes horizontally for about 250ms, and the digit fades out, removed after 0.8s.
 - Game state, undo history, notes and exclusions do not change. Existing notes in the cell are hidden while the digit is shown.
 - Filter rejection: the peer cell or cells already holding the digit pulse with a red outline for the same duration, showing why.
 - Block rejection: ghost digit and shake only. The check uses the solution, so no cell on the board explains it.
 - Repeating a rejected entry during the animation restarts it. Selecting another cell, undo, redo, pause, restart, a new puzzle, or opening a sheet clears it immediately.
 - The two "blocked" hint messages are removed from the visible hint line. A visually hidden live region announces "5 rejected, already in this column" or "5 rejected, incorrect for this cell".
-- Reduced motion: no shake, fade or pulse. The red struck digit and source outline appear statically and are removed on the same 0.8s timer.
+- Reduced motion: no shake, fade or pulse. The struck red digit and source outline appear statically and are removed on the same 0.8s timer.
 
 ## Implementation
 
