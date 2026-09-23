@@ -25,16 +25,17 @@ The build generates `public/sw.js` after Next.js finishes, precaching the comple
 ## Play
 
 - Select a cell, then a number. Starting numbers cannot be changed.
-- Notes (N) toggles manual pencil marks. Exclude (X) toggles crossed-out digits and removes those cells from Smart highlighting for that digit.
-- Fill notes adds all candidates allowed by placed numbers as blue notes in one undoable action. Editing a cell makes its notes manual; future fills preserve it, even if cleared. Entering a number removes matching peer notes.
+- Notes (N) switches between number entry and annotations. While Notes is on, the compact Exclude chip (X) toggles crossed-out digits and removes those cells from Smart highlighting for that digit. Turning Notes off also exits batch selection.
+- Erase appears only for a selected user-entered number or annotations and clears that cell. It stays hidden for givens, empty cells, and batch selections.
+- Fill notes in Settings adds all candidates allowed by placed numbers as blue notes in one undoable action. Editing a cell makes its notes manual; future fills preserve it, even if cleared. Entering a number removes matching peer notes.
 - Deduction detection is retained for future hints and does not change notes or highlighting.
-- Undo restores the previous number and note state (up to 200 actions).
+- Undo in Settings restores the previous number and note state (up to 200 actions).
 - Pause hides the board and stops the clock. The clock also pauses in dialogs and background tabs.
 - Progress saves automatically on this device, including undo history.
 - Choose a new easy, medium, or hard puzzle. Each generated puzzle has exactly one solution.
 - Settings include system/light/dark appearance, Block incorrect answers, related-cell highlighting, and optional Filter number keys. Filtering dims numbers already in the selected cell’s row, column, or box and rejects matching keyboard input. It starts off, ignores notes/exclusions and the solution, and leaves all annotation modes unrestricted.
 
-Keyboard: arrow keys move, 1–9 enter, N toggles notes, Backspace/Delete erases, and Cmd/Ctrl+Z undoes.
+Keyboard: arrow keys move, 1–9 enter, N toggles notes, X toggles exclusions while Notes is on, Backspace/Delete erases, and Cmd/Ctrl+Z undoes.
 
 ## Install
 
