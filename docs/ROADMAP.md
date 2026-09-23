@@ -18,7 +18,7 @@ Already merged into `main`:
 - Hold/drag selection for batch notes and exclusions, with one undo step per batch and a grouped keypad panel containing Clear selection ([PR #11](https://github.com/seanoliver/sudoku/pull/11)).
 - Compact annotation controls: one Notes switch, an Exclude chip within Notes mode, contextual Erase, and Undo/Fill notes in Settings ([PR #15](https://github.com/seanoliver/sudoku/pull/15)).
 
-Pointing-pair, hidden-pair, and hidden-single logic exists in the engine, but it does not automatically change gameplay notes or highlighting. Difficulty currently uses clue density. Redo, explanation records, progressive hints, and technique-based grading remain future work.
+Pointing-pair, hidden-pair, and hidden-single logic exists in the engine, but it does not automatically change gameplay notes or highlighting. Difficulty currently uses clue density. Persistent Redo has shipped in [PR #18](https://github.com/seanoliver/sudoku/pull/18). Explanation records, progressive hints, and technique-based grading remain future work.
 
 ## Sequence
 
@@ -267,7 +267,7 @@ Status: queued for research. The feature outcomes below are uncommitted. Complet
 
 ## 3. Recovery
 
-**Status:** Persistent Undo/Redo implemented in Settings, with keyboard shortcuts and a shared 200-action limit. Action descriptions and checkpoints remain deferred.
+**Status:** Persistent Undo/Redo shipped in [PR #18](https://github.com/seanoliver/sudoku/pull/18) in Settings, with keyboard shortcuts and a shared 200-action limit. Action descriptions and checkpoints remain deferred.
 
 **Player benefit:** Correct an accidental action without losing work or reconstructing a previous position.
 
@@ -344,7 +344,7 @@ Deliver in two releases:
 
 - Keep actions near the board, touch targets generous, and layout stable during gestures. Show selection count and mode explicitly.
 - Offer optional subtle feedback when a hold activates. Haptics depend on device support; the visual cue must work everywhere.
-- Add a hide-timer preference alongside recovery work. Hiding the timer must not alter pause or elapsed-time behavior.
+- Hide timer is implemented as a persistent Settings preference. It changes display only; pause, elapsed time, save/reload and restart behavior remain unchanged.
 - Respect reduced motion, support keyboard and assistive navigation, and distinguish notes and exclusions through more than color.
 - Verify affected interactions on narrow phones and desktop, in both themes, with saved-game recovery. Use physical iOS/Safari checks for gesture changes before treating them as fully verified.
 - Keep progress local and offline. Evaluate friction through observed play and user feedback without introducing analytics as a prerequisite.

@@ -30,7 +30,7 @@ The build generates `public/sw.js` after Next.js finishes, precaching the comple
 - Fill notes in Settings replaces notes in every empty cell with all candidates allowed by placed numbers, preserving crossed-out exclusions and omitting those digits. Generated notes are blue. One undo restores the previous annotations. Entering a number removes matching peer notes.
 - Deduction detection is retained for future hints and does not change notes or highlighting.
 - Undo and Redo in Settings restore values, notes and exclusions (up to 200 actions total). Both persist across reopening. A new edit clears Redo. Use ⌘/Ctrl+Z to undo and ⌘/Ctrl+Shift+Z to redo, including the final placement.
-- Pause hides the board and stops the clock. The clock also pauses in dialogs and background tabs.
+- Pause hides the board and stops the clock. The clock also pauses in dialogs and background tabs. Hide timer in Settings hides the time display while elapsed time continues to be tracked and saved.
 - Progress saves automatically on this device, including undo history.
 - Choose a new easy, medium, or hard puzzle. Each generated puzzle has exactly one solution.
 - Settings include system/light/dark appearance, Block incorrect answers, related-cell highlighting, and optional Filter number keys. Filtering dims numbers already in the selected cell’s row, column, or box and rejects matching keyboard input. It starts off, ignores notes/exclusions and the solution, and leaves all annotation modes unrestricted.
