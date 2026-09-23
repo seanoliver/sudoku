@@ -157,7 +157,7 @@ export default function SudokuGame() {
     setPreferences(next); document.documentElement.setAttribute('data-theme', next.theme);
     try { localStorage.setItem(PREFS_KEY, JSON.stringify(next)); } catch { setStorageError(true); }
   };
-  const openSheet = (next: Sheet) => { resetSelection(); setSheet(next); dialog.current?.showModal(); };
+  const openSheet = (next: Sheet) => { resetSelection(); setBlockedEntry(null); setSheet(next); dialog.current?.showModal(); };
   const closeSheet = () => dialog.current?.close();
   const focusSelectedCell = () => board.current?.querySelector<HTMLButtonElement>(`[data-index="${selected}"]`)?.focus();
   const restartPuzzle = () => {
@@ -240,7 +240,7 @@ export default function SudokuGame() {
     <main className="game">
       <div className="game-meta">
         <button className="difficulty-button" disabled={busy} onClick={() => { setDifficulty(game?.difficulty ?? 'easy'); openSheet('new'); }} aria-label={`Difficulty: ${game?.difficulty ?? 'easy'}. Start a new puzzle`}><span className="level-mark"><i/><i className={game?.difficulty !== 'easy' ? 'active' : ''}/><i className={game?.difficulty === 'hard' ? 'active' : ''}/></span><span className="capitalize">{game?.difficulty ?? 'easy'}</span><Icon name="chevron" size={14}/></button>
-        <div className="time-controls">{game ? <Clock key={game.id} id={game.id} resetRevision={clockResetRevision} hidden={preferences.hideTimer} running={!paused && !sheet && !busy && !complete}/> : <span className="clock">00:00</span>}<button className="pause-button" aria-label={paused ? 'Resume game' : 'Pause game'} disabled={busy || complete || !game} onClick={() => { resetSelection(); setPaused(value => !value); }}><Icon name={paused ? 'play' : 'pause'} size={15}/></button></div>
+        <div className="time-controls">{game ? <Clock key={game.id} id={game.id} resetRevision={clockResetRevision} hidden={preferences.hideTimer} running={!paused && !sheet && !busy && !complete}/> : <span className="clock">00:00</span>}<button className="pause-button" aria-label={paused ? 'Resume game' : 'Pause game'} disabled={busy || complete || !game} onClick={() => { resetSelection(); setBlockedEntry(null); setPaused(value => !value); }}><Icon name={paused ? 'play' : 'pause'} size={15}/></button></div>
       </div>
 
       <div className="puzzle-panel">
@@ -269,8 +269,8 @@ export default function SudokuGame() {
               return <div role="gridcell" aria-selected={selectedCell} aria-readonly={given} aria-rowindex={row+1} aria-colindex={col+1} key={i} className="cell-slot"><button className={classes} data-index={i} data-given={given} tabIndex={selected === i ? 0 : -1} aria-label={`Row ${row+1}, column ${col+1}, ${value ? `${value}${given ? ', given' : ''}` : notes.length ? `${generated ? 'generated notes' : 'notes'} ${notes.join(', ')}` : 'empty'}${!value && ruledOut.length ? `, ruled out ${ruledOut.join(', ')}` : ''}${possible.has(i) ? `, possible placement for ${selectedValue}` : ''}${badCells.has(i) ? ', incorrect answer' : ''}`} aria-disabled={complete} onClick={event => selection.clickCell(event, i)}>
                 {value ? <span className="cell-number">{value}</span> : null}
                 <CellNotes key={game?.id} focusedDigit={complete ? null : focusedDigit} filled={Boolean(value)} manual={generated ? EMPTY_NOTES : notes} automatic={generated ? notes : EMPTY_NOTES} excluded={ruledOut} boardKey={boardKey}/>
-                {rejection?.index === i && <span key={rejection.id} className="rejected-digit" aria-hidden="true">{rejection.value}</span>}
-                {rejection?.sources.includes(i) && <span key={rejection.id} className="rejection-source" aria-hidden="true"/>}
+                {rejection?.index === i && <span key={`rejected-${rejection.id}`} className="rejected-digit" aria-hidden="true">{rejection.value}</span>}
+                {rejection?.sources.includes(i) && <span key={`source-${rejection.id}`} className="rejection-source" aria-hidden="true"/>}
                 {badCells.has(i) && <span className="conflict-dot"/>}
               </button></div>;
             })}
@@ -300,7 +300,7 @@ export default function SudokuGame() {
           })}
         </div>
         <p className="input-hint" role="status">{batchSelection ? excluding ? 'Tap a number to exclude from all selected cells.' : 'Tap a number to add a note to all selected cells.' : excluding ? 'Exclude on. Tap a number to rule it out or restore it.' : pencil ? 'Notes on. Tap a number to add or remove a note.' : numberFocus ? 'Tap a number to focus it. Select an empty cell to enter a value.' : filtering ? entryDigits.length ? 'Dimmed numbers already appear in this row, column, or box.' : 'No numbers available here. Check nearby entries or undo.' : 'Select a cell, then a number. Drag across empty cells to select.'}</p>
-        <p className="sr-only" role="status">{rejection ? `${rejection.value} rejected, ${rejection.kind === 'constraint' ? `already in this ${rejection.unit}` : 'incorrect for this cell'}` : ''}</p>
+        <p className="sr-only" role="status">{rejection ? `${rejection.value} rejected, ${rejection.kind === 'constraint' ? `already in this ${rejection.unit}` : 'incorrect for this cell'}${rejection.id % 2 ? '\u00a0' : ''}` : ''}</p>
         </div>
       </>}
 
