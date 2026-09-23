@@ -136,7 +136,7 @@ Captured from Sean's September 20 feedback and the [September 21 playtest](playt
 
 - Add an optional Replay action to the completion screen; play a compressed animation from the initial givens through the player's actual actions.
 - Record chronological actions while playing, including entries, corrections/erasures, annotations, batch edits and undo/redo, so replay shows what happened rather than reconstructing only the final solution.
-- Keep a replay log separate from the bounded undo stack: current undo retains at most 200 snapshots and discards undone steps, so it cannot represent a complete solve.
+- Keep a replay log separate from the bounded undo stack: undo/redo retains at most 200 snapshots and discards the redo branch after a new edit, so it cannot represent a complete solve.
 - Persist replay progress records across reopening. Define restart/attempt boundaries and storage limits with recovery work; distinguish older saves with incomplete logs instead of fabricating missing moves.
 - Provide a way to stop or skip playback, respect reduced motion, and leave the completed puzzle, time and history unchanged.
 
@@ -156,7 +156,7 @@ Source: [original playtest notes and coverage](playtests/2026-09-21.md). Status:
 
 ### Number-row focus
 
-**Status:** Implemented using the existing focus indicator and controls. Empty-cell entry and annotation modes are preserved; filled-cell digit input focuses without replacing values.
+**Status:** Shipped in [PR #17](https://github.com/seanoliver/sudoku/pull/17) using the existing focus indicator and controls. Empty-cell entry and annotation modes are preserved; filled-cell digit input focuses without replacing values.
 
 - With a filled cell or no cell selected, tapping a number in the number row focuses the tapped digit. This applies to both givens and player-entered values.
 - Coordinate with default number focus and the constraint-aware picker.
@@ -266,6 +266,8 @@ Status: queued for research. The feature outcomes below are uncommitted. Complet
 **Completion criteria:** Filled cells are skipped, duplicate selections are harmless, and a no-op creates no history. One undo restores notes, exclusions, and note ownership exactly. Manual exclusions do not trigger deductions elsewhere.
 
 ## 3. Recovery
+
+**Status:** Persistent Undo/Redo implemented in Settings, with keyboard shortcuts and a shared 200-action limit. Action descriptions and checkpoints remain deferred.
 
 **Player benefit:** Correct an accidental action without losing work or reconstructing a previous position.
 

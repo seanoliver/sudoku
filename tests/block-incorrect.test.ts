@@ -15,7 +15,7 @@ test('blocking rejects a wrong answer without duplicates or changes to history a
   assert.equal(enter(game, { index: 0, value, blockIncorrectAnswers: true }), game);
   const correct = enter(game, { index: 0, value: game.solution[0], blockIncorrectAnswers: true });
   assert.equal(correct.values[0], game.solution[0]);
-  assert.deepEqual(undo(correct), game);
+  assert.deepEqual({ ...undo(correct), redoHistory: [] }, game);
   assert.equal(enter(correct, { index: 0, value: 0, blockIncorrectAnswers: true }).values[0], 0);
 });
 
