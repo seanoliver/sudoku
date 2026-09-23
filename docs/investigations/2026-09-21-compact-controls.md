@@ -19,6 +19,13 @@ X does nothing outside Notes mode. Erase remains hidden during batch selection b
 - Settled layouts had no horizontal overflow at 320×740, 390×844, and 1280×1000. Board margins were 12/12, 17/17, and 418/418 CSS pixels respectively. Settings remained scrollable at 320px.
 - Inspected actual light/dark phone screenshots and Settings capture. Physical iOS testing was not performed.
 
+## September 22 release verification
+
+- Fixed keyboard focus loss when N hides Exclude and when keyboard deletion hides Erase; see the [bug journal](../bugs/2026-09-22-compact-controls-keyboard-focus.md).
+- Rebuilt production browser checks confirmed focus restoration and subsequent keyboard input, Settings Undo and Fill notes, and System appearance reacting to emulated light/dark changes.
+- All 69 tests, lint, typecheck and production build passed after the fix.
+- The [release phone capture](../screenshots/compact-controls-release-phone.png) uses 390 × 844 CSS pixels, 17px board margins on both sides, Smart highlighting and no viewport-width loss. Physical iOS testing remains outstanding.
+
 ## References
 - [Approved design](../designs/compact-controls-approved.png)
 - [Design behavior](../plans/2026-09-21-compact-controls-design.md)

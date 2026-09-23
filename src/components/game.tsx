@@ -160,6 +160,7 @@ export default function SudokuGame() {
     setBlockedEntry(null);
     resetSelection();
     setNoteMode(notesActive ? 'value' : 'note');
+    board.current?.querySelector<HTMLButtonElement>(`[data-index="${selected}"]`)?.focus();
   };
   const toggleExclusions = () => {
     if (!notesActive) return;
@@ -201,7 +202,7 @@ export default function SudokuGame() {
       const next = (selected + movement[event.key] + 81) % 81;
       resetSelection(); selectCell(next); board.current?.querySelector<HTMLButtonElement>(`[data-index="${next}"]`)?.focus();
     } else if (/^[1-9]$/.test(event.key)) { event.preventDefault(); input(Number(event.key)); }
-    else if (['Backspace','Delete','0'].includes(event.key)) { event.preventDefault(); input(0); }
+    else if (['Backspace','Delete','0'].includes(event.key)) { event.preventDefault(); input(0); board.current?.querySelector<HTMLButtonElement>(`[data-index="${selected}"]`)?.focus(); }
     else if (event.key.toLowerCase() === 'x') { event.preventDefault(); toggleExclusions(); }
     else if (event.key.toLowerCase() === 'n') { event.preventDefault(); toggleNotes(); }
   };
