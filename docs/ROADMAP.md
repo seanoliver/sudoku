@@ -96,7 +96,7 @@ Captured from Sean's September 20 feedback and the [September 21 playtest](playt
 
 ### Small celebrations for completed units
 
-**Status:** Implemented on `feat/unit-celebrations` ([design](plans/2026-09-23-unit-celebrations-design.md)). A pale green sweep ripples from the entered cell across each newly completed row, column and box; the final entry sweeps the whole board.
+**Status:** Shipped in [PR #26](https://github.com/seanoliver/sudoku/pull/26) ([design](plans/2026-09-23-unit-celebrations-design.md)). A pale green sweep ripples from the entered cell across each newly completed row, column and box; the final entry sweeps the whole board.
 
 **Player benefit:** Notice progress when a row, column or 3×3 box (house) is completed.
 
