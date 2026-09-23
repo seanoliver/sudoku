@@ -1,5 +1,12 @@
 # Sudoku repository guidance
 
+## UI design principle: show, don't explain
+
+- Communicate state and feedback visually wherever possible: color, shape, icons, motion, position, and disabled or highlighted states. Treat explanatory text as a last resort.
+- Before adding or keeping UI text, check whether a visual indicator can carry the same meaning. If it can, use the indicator and remove the text.
+- Text is justified only for things a player cannot infer from the board, such as how an advanced deduction works or what a complex setting changes. Keep that text short.
+- Visual indicators must still be accessible. Pair color with a second cue (shape, icon, pattern, or motion), provide `aria-label` or live-region announcements for assistive technology, and respect reduced motion. Accessible names are not visible UI text and do not count against this principle.
+
 ## Feature design workflow
 
 - Before implementing a new feature, generate three distinct visual design directions as images for Sean to review. Show the relevant states in the actual app context, keeping unrelated UI consistent.
