@@ -24,7 +24,7 @@ The build generates `public/sw.js` after Next.js finishes, precaching the comple
 
 ## Play
 
-- Select a cell, then a number. Starting numbers cannot be changed.
+- Select an empty cell, then a number to enter it. With a filled cell selected, the number row and digit keys focus that digit without replacing the value. Use Erase before entering a replacement. Starting numbers cannot be changed.
 - Notes (N) switches between number entry and annotations. While Notes is on, the compact Exclude chip (X) toggles crossed-out digits and removes those cells from Smart highlighting for that digit. Turning Notes off also exits batch selection.
 - Erase appears only for a selected user-entered number or annotations and clears that cell. It stays hidden for givens, empty cells, and batch selections.
 - Fill notes in Settings replaces notes in every empty cell with all candidates allowed by placed numbers, preserving crossed-out exclusions and omitting those digits. Generated notes are blue. One undo restores the previous annotations. Entering a number removes matching peer notes.

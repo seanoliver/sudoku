@@ -156,6 +156,8 @@ Source: [original playtest notes and coverage](playtests/2026-09-21.md). Status:
 
 ### Number-row focus
 
+**Status:** Implemented using the existing focus indicator and controls. Empty-cell entry and annotation modes are preserved; filled-cell digit input focuses without replacing values.
+
 - With a filled cell or no cell selected, tapping a number in the number row focuses the tapped digit. This applies to both givens and player-entered values.
 - Coordinate with default number focus and the constraint-aware picker.
 - **Decision (September 22):** Only an empty selected cell receives value entry from the number row. A filled selected cell makes the number row focus the tapped digit without replacing the existing value. Preserve note/exclusion mode behavior.
