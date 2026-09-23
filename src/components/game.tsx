@@ -216,7 +216,7 @@ export default function SudokuGame() {
         const units = completedUnits({ before: game.values, after: next.values, index: selected });
         const finished = isComplete(next);
         if (finished || units.length) {
-          const label = finished ? 'Puzzle complete' : units.map(({ kind, number }, i) => `${i ? kind : kind[0].toUpperCase() + kind.slice(1)} ${number}`).join(' and ') + ' complete';
+          const label = finished ? 'Puzzle complete' : units.map(({ kind, number }, i) => `${i ? kind : kind[0].toUpperCase() + kind.slice(1)} ${number}`).join(', ').replace(/, ([^,]*)$/, ' and $1') + ' complete';
           const cells = finished ? [...Array(81).keys()] : [...new Set(units.flatMap(unit => unit.cells))];
           setCelebration({ id: ++celebrationId.current, origin: selected, cells, label });
         }
