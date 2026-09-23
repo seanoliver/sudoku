@@ -23,14 +23,14 @@ test('Fill notes adds all legal candidates once and undo restores the entire boa
   assert.ok(filled.notes.some(notes => notes.length > 2), 'must not apply hidden singles or the old box threshold');
 });
 
-test('editing generated notes claims the whole cell, even when cleared', () => {
+test('Fill notes rebuilds manually edited and cleared cells', () => {
   const generated = gameEngine.fillNotes(blank());
   const edited = gameEngine.enter(generated, { index: 0, value: 1, pencil: true });
   assert.equal(edited.noteOrigins[0], 'manual');
-  assert.deepEqual(gameEngine.fillNotes(edited).notes[0], [2,3,4,5,6,7,8,9]);
+  assert.deepEqual(gameEngine.fillNotes(edited).notes[0], [1,2,3,4,5,6,7,8,9]);
   const cleared = gameEngine.enter(edited, { index: 0, value: 0 });
   assert.equal(cleared.noteOrigins[0], 'manual');
-  assert.deepEqual(gameEngine.fillNotes(cleared).notes[0], []);
+  assert.deepEqual(gameEngine.fillNotes(cleared).notes[0], [1,2,3,4,5,6,7,8,9]);
   assert.deepEqual(gameEngine.undo(edited), generated);
 });
 
@@ -42,18 +42,18 @@ test('exclusions toggle, suppress highlights, and never propagate deductions', (
   const playable = candidates.getPlayableCandidates(excluded);
   assert.equal(playable[0].has(4), false);
   assert.equal(playable[1].has(4), true);
-  assert.deepEqual(gameEngine.fillNotes(excluded).notes[0], []);
+  assert.deepEqual(gameEngine.fillNotes(excluded).notes[0], [1,2,3,5,6,7,8,9]);
   const restored = gameEngine.enter(excluded, { index: 0, value: 4, exclude: true });
   assert.deepEqual(restored.exclusions[0], []);
   assert.ok(candidates.getPlayableCandidates(restored)[0].has(4));
   assert.deepEqual(gameEngine.undo(excluded), game);
 });
 
-test('positive notes and exclusions are mutually exclusive and manual notes survive Fill', () => {
+test('positive notes and exclusions are mutually exclusive and Fill replaces manual notes', () => {
   const excluded = gameEngine.enter(blank(), { index: 0, value: 4, exclude: true });
   const noted = gameEngine.enter(excluded, { index: 0, value: 4, pencil: true });
   assert.deepEqual(noted.exclusions[0], []);
-  assert.deepEqual(gameEngine.fillNotes(noted).notes[0], [4]);
+  assert.deepEqual(gameEngine.fillNotes(noted).notes[0], [1,2,3,4,5,6,7,8,9]);
   const ruledOut = gameEngine.enter(noted, { index: 0, value: 4, exclude: true });
   assert.deepEqual(ruledOut.notes[0], []);
   assert.deepEqual(ruledOut.exclusions[0], [4]);
@@ -82,7 +82,7 @@ test('annotations and ownership round-trip; legacy saves and history migrate to 
   const restored = gameEngine.restore(JSON.stringify(legacy))!;
   assert.equal(restored.noteOrigins[0], 'manual');
   assert.deepEqual(restored.exclusions, Array.from({ length: 81 }, () => []));
-  assert.deepEqual(gameEngine.fillNotes(restored).notes[0], [4]);
+  assert.deepEqual(gameEngine.fillNotes(restored).notes[0], [1,2,3,4,5,6,7,8,9]);
   assert.deepEqual(gameEngine.undo(restored), blank());
 });
 
@@ -120,4 +120,46 @@ test('givens, occupied cells, invalid inputs, and completed games reject annotat
   const complete = { ...game, values: [...game.solution] };
   assert.equal(gameEngine.fillNotes(complete), complete);
   assert.equal(gameEngine.enter(complete, { index: 0, value: 4, exclude: true }), complete);
+});
+
+
+test('Fill notes replaces stale notes, retains all exclusions and survives reload and undo', () => {
+  let before = gameEngine.enter(blank(), { index: 0, value: 4, pencil: true });
+  before = gameEngine.enter(before, { index: 1, value: 4 });
+  before = gameEngine.addExclusions(before, { indices: [0, 2], value: 2 });
+  before = gameEngine.enter(before, { index: 2, value: 3, exclude: true });
+  const serialized = JSON.stringify(before);
+  const after = gameEngine.fillNotes(before);
+  assert.deepEqual(after.notes[0], [1,3,5,6,7,8,9]);
+  assert.deepEqual(after.notes[2], [1,5,6,7,8,9]);
+  assert.deepEqual(after.notes[1], []);
+  assert.deepEqual(after.exclusions, before.exclusions);
+  assert.deepEqual(after.values, before.values);
+  assert.equal(after.noteOrigins[0], 'generated');
+  assert.equal(after.noteOrigins[2], 'generated');
+  assert.equal(after.history.length, before.history.length + 1);
+  assert.equal(JSON.stringify(before), serialized);
+  assert.equal(gameEngine.fillNotes(after), after);
+  const reopened = gameEngine.restore(JSON.stringify(after));
+  assert.deepEqual(reopened, after);
+  assert.deepEqual(gameEngine.undo(reopened!), before);
+});
+
+test('Fill notes includes blank cells after empty erasure or removing an exclusion', () => {
+  const initial = gameEngine.createGame(generatePuzzle('hard', 1));
+  let excluded = gameEngine.enter(initial, { index: 0, value: 2, exclude: true });
+  excluded = gameEngine.enter(excluded, { index: 0, value: 2, exclude: true });
+  for (const before of [excluded, gameEngine.enter(initial, { index: 0, value: 0, pencil: true })]) {
+    assert.deepEqual(before.notes[0], []);
+    assert.deepEqual(gameEngine.fillNotes(before).notes[0], [2,4,9]);
+  }
+});
+
+test('Fill notes preserves a fully excluded cell without inventing a candidate', () => {
+  let before = blank();
+  for (let value = 1; value <= 9; value++) before = gameEngine.enter(before, { index: 0, value, exclude: true });
+  const after = gameEngine.fillNotes(before);
+  assert.deepEqual(after.notes[0], []);
+  assert.deepEqual(after.exclusions[0], [1,2,3,4,5,6,7,8,9]);
+  assert.deepEqual(gameEngine.restore(JSON.stringify(after)), after);
 });

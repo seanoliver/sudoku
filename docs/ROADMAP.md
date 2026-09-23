@@ -113,7 +113,7 @@ Captured from Sean's September 20 feedback and the [September 21 playtest](playt
 - Preserve the current permanent Fill notes action and add a clearly distinguished temporary preview option. Choose the exact interaction during design.
 - Preview possible notes as a read-only overlay, then remove only the preview when dismissed. Existing notes and exclusions remain visible and unchanged.
 - Use the same candidate rules as the current fill: placed-number constraints and manual exclusions, with no automatic advanced deductions or solution lookup.
-- Preview must not claim annotation ownership, write saved notes, or add undo history. Permanent fill retains its current manual-note ownership behavior.
+- Preview must not claim annotation ownership, write saved notes, or add undo history. Permanent fill replaces notes in every empty cell while retaining exclusions, per the September 22 clarification.
 - Make it clear when preview is active and easy to end. Define dismissal on release/toggle, board edits, pause, dialogs, restart and new puzzle; never leave stale preview candidates visible.
 - Check interaction with digit focus, batch selection and the future optional number picker.
 
@@ -193,7 +193,8 @@ Status: queued for research. The feature outcomes below are uncommitted. Complet
 
 ### R1. Missing populated notes
 
-- **Observation:** Populate all cell notes left entire squares empty during play. The cause and the meaning of “squares” (individual cells or 3×3 boxes) are unconfirmed.
+- **Observation:** Fill notes left individual cells empty, including cells with earlier notes and cells with no visible notes. Sean clarified that Fill notes should replace all possible notes and retain exclusions.
+- **Status:** Reproduced and diagnosed. The manual-edit flag caused entire cells to be skipped; adding and removing annotations left that flag behind. A local fix rebuilds every empty cell while preserving exclusions. See the [investigation](investigations/2026-09-22-fill-notes.md).
 - **Research:** Capture a reproducible board and action sequence. Compare placed-number constraints, exclusions and manual-note ownership, including intentionally cleared notes, undo and reopened saves.
 - **Output:** A minimal reproduction and a classification of algorithm defect, persisted-state issue or confusing expected behavior. Propose a targeted fix or interaction clarification with a regression case.
 - **Proposed dependency:** Resolve before implementing temporary note preview or sole-candidate autofill, since both depend on trustworthy candidate and annotation behavior.
