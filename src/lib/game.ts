@@ -1,4 +1,4 @@
-import { conflicts, peers, type Puzzle } from './sudoku.ts';
+import { conflicts, peers, getEntryDigits, type Puzzle } from './sudoku.ts';
 import { getPlayableCandidates } from './candidates.ts';
 export type NoteOrigin = 'manual' | 'generated' | null;
 const emptyNotes = (): number[][] => Array.from({ length: 81 }, () => []);
@@ -7,6 +7,9 @@ export type GameState = Puzzle & Snapshot & { version: 1; history: Snapshot[] };
 export const SAVE_KEY = 'sudoku.game.v1';
 export function createGame(puzzle: Puzzle): GameState {
   return { ...puzzle, version: 1, values: [...puzzle.givens], notes: emptyNotes(), exclusions: emptyNotes(), noteOrigins: Array(81).fill(null), history: [] };
+}
+export function restartGame({ id, difficulty, givens, solution }: GameState): GameState {
+  return createGame({ id, difficulty, givens, solution });
 }
 function record(game: GameState, next: Snapshot): GameState {
   const { values, notes, exclusions, noteOrigins } = game;
@@ -36,8 +39,25 @@ export function addNotes(game: GameState, { indices, value }: { indices: readonl
   }
   return record(game, { values: game.values, notes, exclusions, noteOrigins });
 }
-export function enter(game: GameState, { index, value, pencil = false, exclude = false }: { index: number; value: number; pencil?: boolean; exclude?: boolean }): GameState {
+export function addExclusions(game: GameState, { indices, value }: { indices: readonly number[]; value: number }): GameState {
+  if (!Number.isInteger(value) || value < 1 || value > 9 || isComplete(game)) return game;
+  const targets = [...new Set(indices)].filter(index => Number.isInteger(index) && index >= 0 && index < 81
+    && !game.givens[index] && !game.values[index] && !game.exclusions[index].includes(value));
+  if (!targets.length) return game;
+  const notes = [...game.notes];
+  const exclusions = [...game.exclusions];
+  const noteOrigins = [...game.noteOrigins];
+  for (const index of targets) {
+    notes[index] = notes[index].filter(n => n !== value);
+    exclusions[index] = [...exclusions[index], value].sort();
+    noteOrigins[index] = 'manual';
+  }
+  return record(game, { values: game.values, notes, exclusions, noteOrigins });
+}
+export function enter(game: GameState, { index, value, pencil = false, exclude = false, blockIncorrectAnswers = false, filterNumberKeys = false }: { index: number; value: number; pencil?: boolean; exclude?: boolean; blockIncorrectAnswers?: boolean; filterNumberKeys?: boolean }): GameState {
   if (!Number.isInteger(index) || index < 0 || index >= 81 || !Number.isInteger(value) || value < 0 || value > 9 || game.givens[index] || isComplete(game)) return game;
+  if (filterNumberKeys && !pencil && !exclude && value !== 0 && !getEntryDigits({ values: game.values, index }).includes(value)) return game;
+  if (blockIncorrectAnswers && !pencil && !exclude && value !== 0 && value !== game.solution[index]) return game;
   if ((pencil || exclude) && game.values[index] && value !== 0) return game;
   if (!pencil && !exclude && game.values[index] === value && !game.notes[index].length && !game.exclusions[index].length) return game;
   const values = [...game.values];

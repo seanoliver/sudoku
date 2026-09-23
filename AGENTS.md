@@ -1,5 +1,11 @@
 # Sudoku repository guidance
 
+## Feature design workflow
+
+- Before implementing a new feature, generate three distinct visual design directions as images for Sean to review. Show the relevant states in the actual app context, keeping unrelated UI consistent.
+- Present the images directly and wait for Sean to choose a direction before implementation. Use the chosen rendering as the visual reference, then verify the implemented UI with real browser screenshots.
+- This is the default for future feature development; Sean may explicitly skip or adjust the process.
+
 ## Screenshots for sharing
 
 - Default to a phone-sized portrait viewport: **390 × 844 CSS pixels**. Keep the board large and the side margins tight.
