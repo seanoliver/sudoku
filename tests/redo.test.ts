@@ -80,3 +80,17 @@ test('unchanged Fill notes keeps redo and the combined save limit is enforced', 
   const oversized = { ...undone, history: Array(200).fill(undone.history[0]) };
   assert.equal(engine.restore(JSON.stringify(oversized)), null);
 });
+
+test('erasing an empty cell in annotation modes preserves redo and history', () => {
+  const pristine = initial();
+  const cleared = engine.enter(engine.enter(pristine, { index: 0, value: 2, pencil: true }), { index: 0, value: 0 });
+  for (const before of [pristine, cleared]) {
+    const entered = engine.enter(before, { index: 1, value: 4 });
+    const undone = engine.undo(entered);
+    for (const mode of [{ pencil: true }, { exclude: true }]) {
+      const erased = engine.enter(undone, { index: 0, value: 0, ...mode });
+      assert.equal(erased, undone);
+      assert.deepEqual(engine.redo(erased), entered);
+    }
+  }
+});

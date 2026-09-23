@@ -63,7 +63,7 @@ export function enter(game: GameState, { index, value, pencil = false, exclude =
   if (filterNumberKeys && !pencil && !exclude && value !== 0 && !getEntryDigits({ values: game.values, index }).includes(value)) return game;
   if (blockIncorrectAnswers && !pencil && !exclude && value !== 0 && value !== game.solution[index]) return game;
   if ((pencil || exclude) && game.values[index] && value !== 0) return game;
-  if (!pencil && !exclude && game.values[index] === value && !game.notes[index].length && !game.exclusions[index].length) return game;
+  if ((value === 0 || (!pencil && !exclude)) && game.values[index] === value && !game.notes[index].length && !game.exclusions[index].length) return game;
   const values = [...game.values];
   const notes = game.notes.map(n => [...n]);
   const exclusions = game.exclusions.map(n => [...n]);
