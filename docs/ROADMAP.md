@@ -1,6 +1,6 @@
 # Sudoku feature roadmap
 
-Updated: September 20, 2026. These are proposed milestones in implementation order, without date commitments. Each milestone should ship independently and be checked in real play before starting the next.
+Updated: September 22, 2026. These are proposed milestones in implementation order, without date commitments. Each milestone should ship independently and be checked in real play before starting the next.
 
 ## Product goal
 
@@ -10,11 +10,13 @@ Make steady progress through a puzzle feel fast and effortless. Reduce repetitiv
 
 Already merged into `main`:
 
-- Offline play, local saves, undo, keyboard controls, and light/dark appearance.
+- Offline play, local saves, undo, and keyboard controls.
+- Light, Dark, and System appearance in Settings. System is the default and follows device appearance changes; explicit Light or Dark overrides it. The choice persists on this device. Sean reaffirmed this requirement on September 22.
 - CI on pull requests runs lint, typechecks, unit tests and the production build/service-worker generation. The active [main ruleset](https://github.com/seanoliver/sudoku/rules/23413937) requires the CI check, an up-to-date branch and a PR, with no configured bypass actors. The connected Vercel workflow deploys merged main commits.
 - Optional Smart highlighting, manual notes and exclusions, and one-time Fill notes.
 - Digit focus through an explicit button or filled-cell hold, with an integrated board toolbar ([PR #10](https://github.com/seanoliver/sudoku/pull/10)).
 - Hold/drag selection for batch notes and exclusions, with one undo step per batch and a grouped keypad panel containing Clear selection ([PR #11](https://github.com/seanoliver/sudoku/pull/11)).
+- Compact annotation controls: one Notes switch, an Exclude chip within Notes mode, contextual Erase, and Undo/Fill notes in Settings ([PR #15](https://github.com/seanoliver/sudoku/pull/15)).
 
 Pointing-pair, hidden-pair, and hidden-single logic exists in the engine, but it does not automatically change gameplay notes or highlighting. Difficulty currently uses clue density. Redo, explanation records, progressive hints, and technique-based grading remain future work.
 
@@ -34,9 +36,13 @@ Digit focus and batch exclusions have shipped. The new requests below add an inp
 
 ## Requested additions: input, layout, feedback and replay
 
-Captured from Sean's September 20 feedback. Each item needs its own design review before implementation.
+Captured from Sean's September 20 feedback and the [September 21 playtest](playtests/2026-09-21.md). Each item needs its own design review before implementation.
 
 ### Optional constraint-aware number picker
+
+**Status:** Shipped as Filter number keys in [PR #14](https://github.com/seanoliver/sudoku/pull/14).
+
+**Playtest follow-up (September 21):** Disable impossible numbers when an empty cell is selected, with a configurable setting. This request is covered by the shipped setting.
 
 **Player benefit:** Avoid choosing a number already ruled out by filled cells.
 
@@ -76,6 +82,8 @@ Captured from Sean's September 20 feedback. Each item needs its own design revie
 **Completion criteria:** The game shows one Sudoku title, both actions are available in Settings, restarting preserves puzzle identity, and starting a new puzzle still supports difficulty selection. Verify keyboard access and both themes.
 
 ### Exit batch selection by selecting a filled cell
+
+**Status:** Shipped in [PR #13](https://github.com/seanoliver/sudoku/pull/13).
 
 **Player benefit:** Return to normal selection with one tap while scanning the puzzle.
 
@@ -133,6 +141,100 @@ Captured from Sean's September 20 feedback. Each item needs its own design revie
 - Provide a way to stop or skip playback, respect reduced motion, and leave the completed puzzle, time and history unchanged.
 
 **Completion criteria:** Playback preserves action order, includes the final entry and reaches the completed board. Long pauses are compressed, corrections are visible, and viewing replay is read-only. Verify long solves, reopened games, restarts and legacy saves.
+
+## September 21 additions
+
+Source: [original playtest notes and coverage](playtests/2026-09-21.md). Status: requested, pending design. Proposed placement: alongside the input and feedback work before recovery. Their internal order is undecided. The configurable number picker has shipped and is tracked in the existing section above.
+
+### Default number focus
+
+- Make number focus the default when selecting a number, without requiring the separate focus action.
+- Define which selections activate focus, how it clears, and how it interacts with selecting empty cells and entering values. Preserve explicit entry and annotation behavior.
+- This extends shipped digit focus; the default selection behavior remains new work.
+
+**Completion criteria:** Selecting a number activates a visible focus state, and changing or clearing focus works consistently with Smart highlighting, note/exclusion modes, touch and keyboard.
+
+### Number-row focus
+
+- With a filled cell or no cell selected, tapping a number in the number row focuses the tapped digit. This applies to both givens and player-entered values.
+- Coordinate with default number focus and the constraint-aware picker.
+- **Decision (September 22):** Only an empty selected cell receives value entry from the number row. A filled selected cell makes the number row focus the tapped digit without replacing the existing value. Preserve note/exclusion mode behavior.
+
+**Completion criteria:** With an empty cell selected in value-entry mode, tapping a number enters it. With a filled cell or no cell selected, tapping a number focuses the tapped digit without changing any values or annotations. Cover both givens and player-entered values, including tapping a digit different from the selected cell’s value. Note/exclusion actions remain intact.
+
+### More obvious incorrect-entry feedback
+
+- Make an incorrect entry or blocked incorrect-entry attempt clearly noticeable.
+- Define feedback for the current Block incorrect answers setting, including its enabled and disabled states.
+- Include a cue beyond color, support assistive announcements, and respect reduced motion. Choose the visual treatment during design.
+
+**Completion criteria:** A player can tell that an entry was rejected or marked incorrect and identify the affected cell. Feedback preserves the selected cell, annotations and existing correctness-setting semantics.
+
+### Faded red exclusions
+
+- For the active digit, show a faded red background on cells that would be green under Smart highlighting except that the player crossed out that digit.
+- Keep these cells distinct from cells ruled out by placed-number constraints and from incorrect entries. A manual exclusion remains an unverified player annotation.
+- Preserve crossed-out notation and a distinction beyond background color in both themes.
+
+**Completion criteria:** Adding or removing an exclusion switches an otherwise eligible cell between green and faded red. Placements, digit changes and undo refresh the state without changing annotations.
+
+### Optional sole-candidate autofill
+
+- Add an option to fill a cell when only one candidate is possible and that candidate is noted in the cell.
+- Validate candidate eligibility independently of the visible note count. One handwritten note alone does not establish that only one candidate is possible.
+- **Open questions:** Define whether manual exclusions count as evidence, which event triggers filling, and whether subsequent fills require another action. Resolve these against the assistance boundaries below before implementation.
+- Make resulting placements and annotation changes undoable; define how they appear in future replay and scoring records.
+
+**Completion criteria:** With the option disabled, entry behavior is unchanged. With it enabled, only cells meeting the agreed candidate and note conditions fill. Incomplete notes cannot silently produce unsupported placements.
+
+## September 21 research
+
+Status: queued for research. The feature outcomes below are uncommitted. Complete each spike with findings, a recommendation, unresolved questions and a scope proposal before adding its outcome to the implementation sequence. Use `docs/investigations/TEMPLATE.md` for findings and `docs/bugs/TEMPLATE.md` for any resulting non-trivial bug fix. The original observations remain in the [playtest record](playtests/2026-09-21.md).
+
+### R1. Missing populated notes
+
+- **Observation:** Populate all cell notes left entire squares empty during play. The cause and the meaning of “squares” (individual cells or 3×3 boxes) are unconfirmed.
+- **Research:** Capture a reproducible board and action sequence. Compare placed-number constraints, exclusions and manual-note ownership, including intentionally cleared notes, undo and reopened saves.
+- **Output:** A minimal reproduction and a classification of algorithm defect, persisted-state issue or confusing expected behavior. Propose a targeted fix or interaction clarification with a regression case.
+- **Proposed dependency:** Resolve before implementing temporary note preview or sole-candidate autofill, since both depend on trustworthy candidate and annotation behavior.
+
+### R2. Difficulty beyond Hard
+
+- **Observation:** The game needs a level harder than Hard.
+- **Research:** Evaluate current Hard puzzles by required techniques and solving effort, including enabled assistance. Assess whether the existing generator and supported deductions can reliably produce and grade a harder tier.
+- **Output:** A proposed difficulty definition, representative puzzles and validation criteria, plus dependencies on milestone 7's technique grading. Naming and delivery timing remain open.
+
+### R3. Annotation mode switching
+
+- **Observation:** Switching between note and exclude mode is still too difficult.
+- **Current baseline:** PR #15 has shipped the Notes switch and nested Exclude chip. Re-test that interaction before proposing another change; the playtest observation does not establish whether the latest controls resolve the problem.
+- **Research:** Observe single-cell and batch annotation sequences on a phone, count required actions, and identify mode confusion. Include interactions with default digit focus and number-row selection.
+- **Output:** A recommended interaction flow and a focused usability test for switching modes without accidental values or annotations. Prepare design directions if promoted to implementation.
+
+### R4. Number-row presentation
+
+- **Observations:** Remaining-number counts look messy; consider the Good Sudoku style number row.
+- **Research:** Inspect the referenced app's number-row behavior and identify which aspects address the playtest problem. Compare count presentation, completion states, focus, entry and annotations within the available phone width. Clarify whether “remaining” counts placements, correct placements or another measure.
+- **Output:** A number-row recommendation with count semantics and interaction tradeoffs, coordinated with the requested focus and constraint-aware picker changes. The number-row design remains undecided.
+
+### R5. Deduction scoring
+
+- **Idea:** Earn points based on the difficulty of deductions the player makes.
+- **Research:** Determine how a deduction can be recognized and validated from player actions, including ambiguous move sequences, manual exclusions, assistance, undo and repeated actions. Assess dependencies on explanation records and chronological action history.
+- **Output:** A proposed scoring model with worked examples, evidence requirements and rules preventing repeated credit. Record any deductions that cannot be inferred reliably.
+
+### R6. Candidate comparison
+
+- **Ideas:** Compare highlighted numbers to see their overlap, or highlight only cells where the same numbers appear.
+- **Research:** Clarify whether the desired comparison is between digits, cells or candidate sets. Use concrete boards to distinguish candidate-location intersections from identical or shared note sets, and evaluate whether either helps a player make a deduction.
+- **Output:** Worked examples and a recommendation to pursue either interaction, both, or neither. Define note/exclusion semantics and avoid presenting incomplete pencil marks as verified patterns.
+
+### R7. Accomplishments and sharing
+
+- **Idea:** Store, celebrate and share significant wins or accomplishments, including high-quality Instagram-native stories for particularly good wins.
+- **Research:** Define meaningful accomplishments and the solve evidence needed to preserve them. Explore local storage and retrieval, completion/replay integration, and story composition and export/share feasibility on phones.
+- **Output:** An accomplishment model and a proposed save-to-share flow, including what “Instagram-native” means for delivery. Capture current platform requirements during the spike and propose story design directions before implementation.
+- **Relationship:** Coordinate with existing unit celebrations and speed replay. Persistent accomplishments and external sharing require their own scope decision.
 
 ## 1. Digit locking
 
@@ -246,8 +348,8 @@ Deliver in two releases:
 
 Unrestricted deduction chaining previously reduced 86 of 100 sampled Hard puzzles to one candidate per empty cell before the first move. See the [manual-notes investigation](investigations/2026-09-15-manual-notes.md).
 
-This roadmap keeps automatic bookkeeping limited to explicit actions and existing placed-number peer cleanup. Adding notes, opening help, or enabling highlighting must not silently apply a chain of deductions. Broader automation preferences remain deferred until single-step assistance is useful and trustworthy.
+This roadmap keeps automatic bookkeeping limited to explicit actions and existing placed-number peer cleanup. Adding notes, opening help, or enabling highlighting must not silently apply a chain of deductions. The September 21 sole-noted-candidate autofill request is a scoped proposal; its evidence and chaining rules must be resolved before implementation. Broader automation preferences remain deferred until single-step assistance is useful and trustworthy.
 
 ## Delivery discipline
 
-Digit focus and batch exclusions are complete. PR #12 shipped immediate dragging and title/Settings cleanup. Follow-ups include filled-cell exit from batch selection, the optional constrained number picker, temporary note preview and unit-completion animations; recovery and speed replay retain their dependencies. CI merge gates are already active. Each feature starts with three rendered design directions for Sean to review, followed by a detailed implementation plan and a focused PR. Sean may change the order or skip renderings explicitly. This roadmap does not authorize implementing every phase at once. Update milestone status and links as changes merge.
+Digit focus and batch exclusions are complete. PR #12 shipped immediate dragging and title/Settings cleanup; #13 shipped filled-cell exit from batch selection; #14 shipped the optional constrained number picker; #15 shipped compact annotation controls. Follow-ups include temporary note preview and unit-completion animations; recovery and speed replay retain their dependencies. The September 21 playtest adds default digit focus, number-row focus selection, clearer incorrect-entry feedback, exclusion highlighting and optional sole-candidate autofill. Its seven research spikes must produce reviewed scope proposals before their feature outcomes enter the implementation sequence. CI merge gates are already active. Each feature starts with three rendered design directions for Sean to review, followed by a detailed implementation plan and a focused PR. Sean may change the order or skip renderings explicitly. This roadmap does not authorize implementing every phase at once. Update milestone status and links as changes merge.
