@@ -178,6 +178,8 @@ Source: [original playtest notes and coverage](playtests/2026-09-21.md). Status:
 
 ### Faded red exclusions
 
+**Status:** Implemented on `feat/excluded-highlighting` ([design](plans/2026-09-23-excluded-highlighting-design.md)). Uses a faded red fill; the existing struck note in the cell is the cue beyond color.
+
 - For the active digit, show a faded red background on cells that would be green under Smart highlighting except that the player crossed out that digit.
 - Keep these cells distinct from cells ruled out by placed-number constraints and from incorrect entries. A manual exclusion remains an unverified player annotation.
 - Preserve crossed-out notation and a distinction beyond background color in both themes.
