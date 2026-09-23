@@ -166,7 +166,7 @@ Source: [original playtest notes and coverage](playtests/2026-09-21.md). Status:
 
 ### More obvious incorrect-entry feedback
 
-**Status:** Implemented on `feat/rejected-entry-feedback` ([design](plans/2026-09-23-rejected-entry-feedback-design.md)). A rejected entry shows the digit in red, struck diagonally, in the selected cell; it shakes and fades within 0.8s. Filter number keys rejections also outline the peer cells that already hold the digit. A live region replaces the old hint text.
+**Status:** Shipped in [PR #23](https://github.com/seanoliver/sudoku/pull/23) ([design](plans/2026-09-23-rejected-entry-feedback-design.md)). A rejected entry shows the digit in red, struck diagonally, in the selected cell; it shakes and fades within 0.8s. Filter number keys rejections also outline the peer cells that already hold the digit. A live region replaces the old hint text.
 
 **Decision (September 23):** With Block incorrect answers off, wrong entries are accepted and stay unmarked. Feedback applies only to rejected attempts.
 
