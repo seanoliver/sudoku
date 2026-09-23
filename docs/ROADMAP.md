@@ -166,6 +166,10 @@ Source: [original playtest notes and coverage](playtests/2026-09-21.md). Status:
 
 ### More obvious incorrect-entry feedback
 
+**Status:** Shipped in [PR #23](https://github.com/seanoliver/sudoku/pull/23) ([design](plans/2026-09-23-rejected-entry-feedback-design.md)). A rejected entry shows the digit in red, struck diagonally, in the selected cell; it shakes and fades within 0.8s. Filter number keys rejections also outline the peer cells that already hold the digit. A live region replaces the old hint text.
+
+**Decision (September 23):** With Block incorrect answers off, wrong entries are accepted and stay unmarked. Feedback applies only to rejected attempts.
+
 - Make an incorrect entry or blocked incorrect-entry attempt clearly noticeable.
 - Define feedback for the current Block incorrect answers setting, including its enabled and disabled states.
 - Include a cue beyond color, support assistive announcements, and respect reduced motion. Choose the visual treatment during design.
