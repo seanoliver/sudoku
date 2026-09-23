@@ -1,6 +1,6 @@
 # Rejected-entry feedback
 
-Roadmap item: "More obvious incorrect-entry feedback" (September 21 playtest). Sean approved this design on September 23.
+Roadmap item: "More obvious incorrect-entry feedback" (September 21 playtest). Sean approved this design on September 23, choosing direction A from three options rendered in the app (ghost digit, solid red fill, keypad key reaction). Reference: ../designs/rejected-entry-approved.png.
 
 ## Problem
 
@@ -15,7 +15,7 @@ When the game rejects an entry, the only feedback is a line of hint text under t
 
 ## Behavior
 
-- The rejected digit appears in the cell in red, struck by a diagonal line from top left to bottom right. A horizontal strike-through was rejected because it reads badly on digits such as 4. The cell shakes horizontally for about 250ms, and the digit fades out, removed after 0.8s.
+- The rejected digit appears in the cell in red, struck by a diagonal line from top left to bottom right. A horizontal strike-through was rejected because it reads badly on digits such as 4. The cell turns pale red. The digit shakes horizontally for about 250ms and fades out, removed after 0.8s.
 - Game state, undo history, notes and exclusions do not change. Existing notes in the cell are hidden while the digit is shown.
 - Filter rejection: the peer cell or cells already holding the digit pulse with a red outline for the same duration, showing why.
 - Block rejection: ghost digit and shake only. The check uses the solution, so no cell on the board explains it.
@@ -25,7 +25,7 @@ When the game rejects an entry, the only feedback is a line of hint text under t
 
 ## Implementation
 
-- Add a pure helper in `src/lib`: `rejectEntry(game, { index, value, filterNumberKeys, blockIncorrectAnswers })` returns `null` or `{ kind: 'constraint' | 'answer', sources: number[], unit: 'row' | 'column' | 'box' | null }`. `input()` in `game.tsx` uses it in place of its two inline checks, keeping the existing precedence (constraint before answer).
+- Add a pure helper in `src/lib`: `rejectEntry(game, { index, value, pencil, exclude, filterNumberKeys, blockIncorrectAnswers })` returns `null` or `{ kind: 'constraint' | 'answer', sources: number[], unit: 'row' | 'column' | 'box' | null }`. `input()` in `game.tsx` uses it in place of its two inline checks, keeping the existing precedence (constraint before answer).
 - Extend the `blockedEntry` state with `sources` and an incrementing `id`. The id keys the animated elements so a repeat restarts the animation.
 - Render a `.rejected-digit` span in the cell, a `rejecting` class on the cell and `rejection-source` on source cells. Keyframes live in `globals.css`, reusing `--red` and `--red-soft`.
 
