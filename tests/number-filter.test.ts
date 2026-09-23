@@ -19,10 +19,10 @@ test('filtering defaults off and migrates missing or invalid flags without reset
   assert.equal(DEFAULT_PREFS.filterNumberKeys, false);
   const legacy = { theme: 'dark', blockIncorrectAnswers: false, highlightPeers: false, smartHighlighting: true };
   for (const flag of [undefined, null, 1, 'true']) {
-    assert.deepEqual(restorePreferences(JSON.stringify({ ...legacy, filterNumberKeys: flag })), { ...legacy, filterNumberKeys: false });
+    assert.deepEqual(restorePreferences(JSON.stringify({ ...legacy, filterNumberKeys: flag })), { ...legacy, filterNumberKeys: false, hideTimer: false });
   }
   for (const enabled of [true, false]) {
-    const prefs = { ...legacy, filterNumberKeys: enabled };
+    const prefs = { ...legacy, filterNumberKeys: enabled, hideTimer: false };
     assert.deepEqual(restorePreferences(JSON.stringify(prefs)), prefs);
   }
 });

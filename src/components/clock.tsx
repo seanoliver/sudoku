@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 const KEY = 'sudoku.clock.v1';
-export function Clock({ id, running, resetRevision = 0 }: { id: string; running: boolean; resetRevision?: number }) {
+export function Clock({ id, running, hidden = false, resetRevision = 0 }: { id: string; running: boolean; hidden?: boolean; resetRevision?: number }) {
   const [seconds, setSeconds] = useState(0);
   const lastReset = useRef(resetRevision);
   useEffect(() => {
@@ -28,6 +28,7 @@ export function Clock({ id, running, resetRevision = 0 }: { id: string; running:
     window.addEventListener('pagehide', save);
     return () => { save(); clearTimeout(initial); clearInterval(interval); document.removeEventListener('visibilitychange', visibility); window.removeEventListener('pagehide', save); };
   }, [id, running, resetRevision]);
+  if (hidden) return null;
   const minutes = Math.floor(seconds / 60);
   return <span className="clock" aria-label={`Time played: ${minutes} minutes ${seconds % 60} seconds`}>{minutes.toString().padStart(2, '0')}:{(seconds % 60).toString().padStart(2, '0')}</span>;
 }

@@ -1,6 +1,7 @@
 import type { CSSProperties } from 'react';
-export type IconName = 'filter' | 'restart' | 'shield' | 'sparkles' | 'focus' | 'fill' | 'undo' | 'erase' | 'pencil' | 'pause' | 'play' | 'plus' | 'chevron' | 'settings' | 'download' | 'check' | 'close' | 'help' | 'sun' | 'moon';
+export type IconName = 'clock' | 'filter' | 'restart' | 'shield' | 'sparkles' | 'focus' | 'fill' | 'undo' | 'erase' | 'pencil' | 'pause' | 'play' | 'plus' | 'chevron' | 'settings' | 'download' | 'check' | 'close' | 'help' | 'sun' | 'moon';
 const paths: Record<IconName, React.ReactNode> = {
+  clock: <><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></>,
   filter: <path d="M3 4h18l-7 8v8l-4-2v-6L3 4Z"/>,
   restart: <><path d="M3 10a9 9 0 1 1 2 8M3 4v6h6"/></>,
   shield: <><path d="M12 3 4 6v6c0 5 8 9 8 9s8-4 8-9V6l-8-3Z"/><path d="m8 12 3 3 5-6"/></>,
