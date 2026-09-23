@@ -18,9 +18,11 @@ function record(game: GameState, next: Snapshot): GameState {
 export function fillNotes(game: GameState): GameState {
   if (isComplete(game)) return game;
   const candidates = getPlayableCandidates(game);
-  const notes = game.notes.map((cell, i) => game.values[i] || game.noteOrigins[i] === 'manual' ? cell : [...candidates[i]]);
-  if (notes.every((cell, i) => cell.length === game.notes[i].length && cell.every(n => game.notes[i].includes(n)))) return game;
-  const noteOrigins = game.noteOrigins.map((origin, i) => !game.values[i] && origin !== 'manual' && notes[i].length ? 'generated' as const : origin);
+  const notes = game.notes.map((cell, i) => game.values[i] ? cell : [...candidates[i]]);
+  const noteOrigins: NoteOrigin[] = notes.map((cell, i) => game.values[i] ? game.noteOrigins[i]
+    : cell.length ? 'generated' : game.exclusions[i].length ? 'manual' : null);
+  if (notes.every((cell, i) => cell.length === game.notes[i].length && cell.every(n => game.notes[i].includes(n))
+    && noteOrigins[i] === game.noteOrigins[i])) return game;
   return record(game, { values: game.values, notes, exclusions: game.exclusions, noteOrigins });
 }
 export function addNotes(game: GameState, { indices, value }: { indices: readonly number[]; value: number }): GameState {
@@ -106,7 +108,7 @@ export function restore(raw: string): GameState | null {
       if (!isNotes(exclusions) || !Array.isArray(noteOrigins) || noteOrigins.length !== 81 || !noteOrigins.every(o => o === null || o === 'manual' || o === 'generated')) return null;
       if (!game.givens.every((n,i) => !n || s.values[i] === n)) return null;
       if (!s.values.every((n,i) => n ? s.notes[i].length === 0 && exclusions[i].length === 0 && noteOrigins[i] === null
-        : (!s.notes[i].length || noteOrigins[i] !== null) && (!exclusions[i].length || noteOrigins[i] === 'manual') && !s.notes[i].some(d => exclusions[i].includes(d)))) return null;
+        : (!s.notes[i].length || noteOrigins[i] !== null) && (!exclusions[i].length || noteOrigins[i] !== null) && !s.notes[i].some(d => exclusions[i].includes(d)))) return null;
       return { values: s.values, notes: s.notes, exclusions, noteOrigins };
     };
     const current = migrateSnapshot(game);
