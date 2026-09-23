@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react';
 import { createGame, restartGame, enter, addNotes, addExclusions, fillNotes, undo, redo, restore, isComplete, rejectEntry, SAVE_KEY, type GameState, type Rejection } from '@/lib/game';
 import { peers, getEntryDigits, type Difficulty, type Puzzle } from '@/lib/sudoku';
-import { candidateCells, getPlayableCandidates } from '@/lib/candidates';
+import { candidateCells, excludedCells, getPlayableCandidates } from '@/lib/candidates';
 import { useNoteSelection } from './use-note-selection';
 import { CellNotes } from './cell-notes';
 import { AppMark, Icon } from './icons';
@@ -224,6 +224,8 @@ export default function SudokuGame() {
     [values, exclusions]);
   const possible = useMemo(() => candidates && preferences.smartHighlighting && !complete
     ? candidateCells(candidates, selectedValue) : new Set<number>(), [candidates, preferences.smartHighlighting, complete, selectedValue]);
+  const excludedPossible = useMemo(() => values && exclusions && preferences.smartHighlighting && !complete
+    ? excludedCells({ values, exclusions, digit: selectedValue }) : new Set<number>(), [values, exclusions, preferences.smartHighlighting, complete, selectedValue]);
   const filled = game ? game.values.filter(Boolean).length - game.givens.filter(Boolean).length : 0;
   const total = game ? game.givens.filter(n => !n).length : 1;
   const editable = game && !game.givens[selected] && !busy && !paused && !complete;
@@ -265,7 +267,7 @@ export default function SudokuGame() {
               const generated = game?.noteOrigins[i] === 'generated';
               const selectedCell = (batchSelection ? selection.indices.includes(i) : selected === i) && !complete;
               const same = value > 0 && selectedValue === value;
-              const classes = ['cell', given ? 'given' : 'entered', selectedCell ? 'selected' : '', !selectedCell && related.has(i) && preferences.highlightPeers && !complete ? 'related' : '', same && !selectedCell && !complete ? 'matching' : '', possible.has(i) ? 'possible' : '', badCells.has(i) ? 'conflict' : '', rejection?.index === i ? 'rejecting' : ''].filter(Boolean).join(' ');
+              const classes = ['cell', given ? 'given' : 'entered', selectedCell ? 'selected' : '', !selectedCell && related.has(i) && preferences.highlightPeers && !complete ? 'related' : '', same && !selectedCell && !complete ? 'matching' : '', possible.has(i) ? 'possible' : '', excludedPossible.has(i) ? 'excluded-possible' : '', badCells.has(i) ? 'conflict' : '', rejection?.index === i ? 'rejecting' : ''].filter(Boolean).join(' ');
               return <div role="gridcell" aria-selected={selectedCell} aria-readonly={given} aria-rowindex={row+1} aria-colindex={col+1} key={i} className="cell-slot"><button className={classes} data-index={i} data-given={given} tabIndex={selected === i ? 0 : -1} aria-label={`Row ${row+1}, column ${col+1}, ${value ? `${value}${given ? ', given' : ''}` : notes.length ? `${generated ? 'generated notes' : 'notes'} ${notes.join(', ')}` : 'empty'}${!value && ruledOut.length ? `, ruled out ${ruledOut.join(', ')}` : ''}${possible.has(i) ? `, possible placement for ${selectedValue}` : ''}${badCells.has(i) ? ', incorrect answer' : ''}`} aria-disabled={complete} onClick={event => selection.clickCell(event, i)}>
                 {value ? <span className="cell-number">{value}</span> : null}
                 <CellNotes key={game?.id} focusedDigit={complete ? null : focusedDigit} filled={Boolean(value)} manual={generated ? EMPTY_NOTES : notes} automatic={generated ? notes : EMPTY_NOTES} excluded={ruledOut} boardKey={boardKey}/>
