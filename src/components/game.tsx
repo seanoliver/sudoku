@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react';
-import { createGame, restartGame, enter, addNotes, addExclusions, fillNotes, undo, redo, restore, isComplete, SAVE_KEY, type GameState } from '@/lib/game';
+import { createGame, restartGame, enter, addNotes, addExclusions, fillNotes, undo, redo, restore, isComplete, rejectEntry, SAVE_KEY, type GameState, type Rejection } from '@/lib/game';
 import { peers, getEntryDigits, type Difficulty, type Puzzle } from '@/lib/sudoku';
 import { candidateCells, getPlayableCandidates } from '@/lib/candidates';
 import { useNoteSelection } from './use-note-selection';
@@ -16,6 +16,7 @@ const DIGITS = [1,2,3,4,5,6,7,8,9];
 const EMPTY_NOTES: number[] = [];
 const FOCUS_HINT_KEY = 'sudoku.focus-hold-learned.v1';
 const LEVELS: Difficulty[] = ['easy','medium','hard'];
+const REJECTION_MS = 800;
 
 export default function SudokuGame() {
   const [game, setGame] = useState<GameState | null>(null);
@@ -28,7 +29,7 @@ export default function SudokuGame() {
   const [paused, setPaused] = useState(false);
   const [busy, setBusy] = useState(true);
   const [error, setError] = useState('');
-  const [blockedEntry, setBlockedEntry] = useState<{ index: number; value: number; kind: 'constraint' | 'answer' } | null>(null);
+  const [blockedEntry, setBlockedEntry] = useState<(Rejection & { index: number; value: number; id: number }) | null>(null);
   const [storageError, setStorageError] = useState(false);
   const [sheet, setSheet] = useState<Sheet>(null);
   const [difficulty, setDifficulty] = useState<Difficulty>('easy');
@@ -39,6 +40,7 @@ export default function SudokuGame() {
   const worker = useRef<Worker | null>(null);
   const dialog = useRef<HTMLDialogElement>(null);
   const board = useRef<HTMLDivElement>(null);
+  const rejectionId = useRef(0);
   const complete = game ? isComplete(game) : false;
   const selectCell = (index: number) => {
     setSelected(index); setBlockedEntry(null);
@@ -143,6 +145,13 @@ export default function SudokuGame() {
     return () => media.removeEventListener('change', syncChrome);
   }, [preferences.theme]);
 
+  useEffect(() => {
+    if (!blockedEntry) return;
+    const timer = window.setTimeout(() => setBlockedEntry(null), REJECTION_MS);
+    return () => window.clearTimeout(timer);
+  }, [blockedEntry]);
+  const rejection = blockedEntry && !paused && !sheet && !complete ? blockedEntry : null;
+
   const updatePreferences = (patch: Partial<Preferences>) => {
     const next = { ...preferences, ...patch };
     setPreferences(next); document.documentElement.setAttribute('data-theme', next.theme);
@@ -177,14 +186,8 @@ export default function SudokuGame() {
   const input = (value: number) => {
     if (!game || paused || busy || sheet || complete) return;
     if (value !== 0 && numberFocus) { setFocusedDigit(value); setBlockedEntry(null); return; }
-    if (game && !game.givens[selected] && filtering && value !== 0 && !entryDigits.includes(value)) {
-      setBlockedEntry({ index: selected, value, kind: 'constraint' });
-      return;
-    }
-    if (game && !game.givens[selected] && preferences.blockIncorrectAnswers && !pencil && !excluding && value !== 0 && value !== game.solution[selected]) {
-      setBlockedEntry({ index: selected, value, kind: 'answer' });
-      return;
-    }
+    const refused = rejectEntry(game, { index: selected, value, pencil, exclude: excluding, blockIncorrectAnswers: preferences.blockIncorrectAnswers, filterNumberKeys: filtering });
+    if (refused) { setBlockedEntry({ ...refused, index: selected, value, id: ++rejectionId.current }); return; }
     setBlockedEntry(null);
     if (batchSelection) {
       if (!value) { clearSelection(); return; }
@@ -262,10 +265,12 @@ export default function SudokuGame() {
               const generated = game?.noteOrigins[i] === 'generated';
               const selectedCell = (batchSelection ? selection.indices.includes(i) : selected === i) && !complete;
               const same = value > 0 && selectedValue === value;
-              const classes = ['cell', given ? 'given' : 'entered', selectedCell ? 'selected' : '', !selectedCell && related.has(i) && preferences.highlightPeers && !complete ? 'related' : '', same && !selectedCell && !complete ? 'matching' : '', possible.has(i) ? 'possible' : '', badCells.has(i) ? 'conflict' : ''].filter(Boolean).join(' ');
+              const classes = ['cell', given ? 'given' : 'entered', selectedCell ? 'selected' : '', !selectedCell && related.has(i) && preferences.highlightPeers && !complete ? 'related' : '', same && !selectedCell && !complete ? 'matching' : '', possible.has(i) ? 'possible' : '', badCells.has(i) ? 'conflict' : '', rejection?.index === i ? 'rejecting' : ''].filter(Boolean).join(' ');
               return <div role="gridcell" aria-selected={selectedCell} aria-readonly={given} aria-rowindex={row+1} aria-colindex={col+1} key={i} className="cell-slot"><button className={classes} data-index={i} data-given={given} tabIndex={selected === i ? 0 : -1} aria-label={`Row ${row+1}, column ${col+1}, ${value ? `${value}${given ? ', given' : ''}` : notes.length ? `${generated ? 'generated notes' : 'notes'} ${notes.join(', ')}` : 'empty'}${!value && ruledOut.length ? `, ruled out ${ruledOut.join(', ')}` : ''}${possible.has(i) ? `, possible placement for ${selectedValue}` : ''}${badCells.has(i) ? ', incorrect answer' : ''}`} aria-disabled={complete} onClick={event => selection.clickCell(event, i)}>
                 {value ? <span className="cell-number">{value}</span> : null}
                 <CellNotes key={game?.id} focusedDigit={complete ? null : focusedDigit} filled={Boolean(value)} manual={generated ? EMPTY_NOTES : notes} automatic={generated ? notes : EMPTY_NOTES} excluded={ruledOut} boardKey={boardKey}/>
+                {rejection?.index === i && <span key={rejection.id} className="rejected-digit" aria-hidden="true">{rejection.value}</span>}
+                {rejection?.sources.includes(i) && <span key={rejection.id} className="rejection-source" aria-hidden="true"/>}
                 {badCells.has(i) && <span className="conflict-dot"/>}
               </button></div>;
             })}
@@ -294,7 +299,8 @@ export default function SudokuGame() {
             return <button key={n} className={`number-key ${!remaining ? 'digit-finished' : ''} ${filtered ? 'digit-filtered' : ''}`} aria-label={batchSelection ? `${excluding ? 'Exclude' : 'Add note'} ${n} ${excluding ? 'from' : 'to'} ${selection.indices.length} selected cells` : numberFocus ? `Focus on ${n}` : `${excluding ? 'Rule out' : 'Enter'} ${n}${pencil ? ' as a note' : ''}${filtered ? ', unavailable: already in this row, column, or box' : ''}`} disabled={(!editable && !(numberFocus && game && !busy && !paused && !complete)) || filtered} onClick={() => input(n)}><span>{n}</span>{!batchSelection && <small aria-hidden="true">{remaining || <Icon name="check" size={10}/>}</small>}</button>;
           })}
         </div>
-        <p className="input-hint" role="status">{batchSelection ? excluding ? 'Tap a number to exclude from all selected cells.' : 'Tap a number to add a note to all selected cells.' : blockedEntry && blockedEntry.index === selected && !pencil && !excluding && (blockedEntry.kind === 'constraint' ? filtering : preferences.blockIncorrectAnswers) ? blockedEntry.kind === 'constraint' ? `${blockedEntry.value} is already in this row, column, or box.` : `${blockedEntry.value} is incorrect for this cell. Answer blocked.` : excluding ? 'Exclude on. Tap a number to rule it out or restore it.' : pencil ? 'Notes on. Tap a number to add or remove a note.' : numberFocus ? 'Tap a number to focus it. Select an empty cell to enter a value.' : filtering ? entryDigits.length ? 'Dimmed numbers already appear in this row, column, or box.' : 'No numbers available here. Check nearby entries or undo.' : 'Select a cell, then a number. Drag across empty cells to select.'}</p>
+        <p className="input-hint" role="status">{batchSelection ? excluding ? 'Tap a number to exclude from all selected cells.' : 'Tap a number to add a note to all selected cells.' : excluding ? 'Exclude on. Tap a number to rule it out or restore it.' : pencil ? 'Notes on. Tap a number to add or remove a note.' : numberFocus ? 'Tap a number to focus it. Select an empty cell to enter a value.' : filtering ? entryDigits.length ? 'Dimmed numbers already appear in this row, column, or box.' : 'No numbers available here. Check nearby entries or undo.' : 'Select a cell, then a number. Drag across empty cells to select.'}</p>
+        <p className="sr-only" role="status">{rejection ? `${rejection.value} rejected, ${rejection.kind === 'constraint' ? `already in this ${rejection.unit}` : 'incorrect for this cell'}` : ''}</p>
         </div>
       </>}
 
