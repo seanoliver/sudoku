@@ -48,3 +48,8 @@ export function getPlayableCandidates({ values, exclusions }: { values: number[]
   for (let i = 0; i < 81; i++) for (const digit of exclusions[i]) candidates[i].delete(digit);
   return candidates;
 }
+
+/** Cells the rules allow for a digit that the player has excluded. */
+export function excludedCells({ values, exclusions, digit }: { values: number[]; exclusions: number[][]; digit: number }): Set<number> {
+  return new Set([...possibleCells(values, digit)].filter(i => exclusions[i]?.includes(digit)));
+}
