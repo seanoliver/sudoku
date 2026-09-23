@@ -72,6 +72,16 @@ test('value entry clears peer notes without taking ownership; erase does not ref
   assert.deepEqual({ ...gameEngine.undo(filled), redoHistory: [] }, generated);
 });
 
+test('value entry clears the digit from peer exclusions and keeps unrelated ones', () => {
+  let game = blank();
+  for (const index of [1, 9, 10, 80]) game = gameEngine.enter(game, { index, value: 3, exclude: true });
+  game = gameEngine.enter(game, { index: 1, value: 5, exclude: true });
+  const filled = gameEngine.enter(game, { index: 0, value: 3 });
+  assert.deepEqual([1, 9, 10].map(i => filled.exclusions[i]), [[5], [], []]);
+  assert.deepEqual(filled.exclusions[80], [3]);
+  assert.deepEqual({ ...gameEngine.undo(filled), redoHistory: [] }, game);
+});
+
 test('annotations and ownership round-trip; legacy saves and history migrate to manual', () => {
   const noted = gameEngine.enter(blank(), { index: 0, value: 4, pencil: true });
   const excluded = gameEngine.enter(noted, { index: 1, value: 5, exclude: true });
