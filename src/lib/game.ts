@@ -1,4 +1,4 @@
-import { conflicts, peers, getEntryDigits, type Puzzle } from './sudoku.ts';
+import { conflicts, peers, type Puzzle } from './sudoku.ts';
 import { getPlayableCandidates } from './candidates.ts';
 export type NoteOrigin = 'manual' | 'generated' | null;
 const emptyNotes = (): number[][] => Array.from({ length: 81 }, () => []);
@@ -7,6 +7,18 @@ export type GameState = Puzzle & Snapshot & { version: 1; history: Snapshot[]; r
 export const SAVE_KEY = 'sudoku.game.v1';
 export function createGame(puzzle: Puzzle): GameState {
   return { ...puzzle, version: 1, values: [...puzzle.givens], notes: emptyNotes(), exclusions: emptyNotes(), noteOrigins: Array(81).fill(null), history: [], redoHistory: [] };
+}
+export type Rejection = { kind: 'constraint' | 'answer'; sources: number[]; unit: 'row' | 'column' | 'box' | null };
+const unitOf = (a: number, b: number): Rejection['unit'] => Math.floor(a / 9) === Math.floor(b / 9) ? 'row' : a % 9 === b % 9 ? 'column' : 'box';
+/** Why a value entry would be refused, or null. Notes, exclusions, erasing and givens are never rejected. */
+export function rejectEntry(game: GameState, { index, value, pencil = false, exclude = false, blockIncorrectAnswers = false, filterNumberKeys = false }: { index: number; value: number; pencil?: boolean; exclude?: boolean; blockIncorrectAnswers?: boolean; filterNumberKeys?: boolean }): Rejection | null {
+  if (!Number.isInteger(index) || index < 0 || index >= 81 || game.givens[index] || pencil || exclude || !value) return null;
+  if (filterNumberKeys) {
+    const sources = peers(index).filter(peer => game.values[peer] === value);
+    if (sources.length) return { kind: 'constraint', sources, unit: unitOf(index, sources[0]) };
+  }
+  if (blockIncorrectAnswers && value !== game.solution[index]) return { kind: 'answer', sources: [], unit: null };
+  return null;
 }
 export function restartGame({ id, difficulty, givens, solution }: GameState): GameState {
   return createGame({ id, difficulty, givens, solution });
@@ -60,8 +72,7 @@ export function addExclusions(game: GameState, { indices, value }: { indices: re
 }
 export function enter(game: GameState, { index, value, pencil = false, exclude = false, blockIncorrectAnswers = false, filterNumberKeys = false }: { index: number; value: number; pencil?: boolean; exclude?: boolean; blockIncorrectAnswers?: boolean; filterNumberKeys?: boolean }): GameState {
   if (!Number.isInteger(index) || index < 0 || index >= 81 || !Number.isInteger(value) || value < 0 || value > 9 || game.givens[index] || isComplete(game)) return game;
-  if (filterNumberKeys && !pencil && !exclude && value !== 0 && !getEntryDigits({ values: game.values, index }).includes(value)) return game;
-  if (blockIncorrectAnswers && !pencil && !exclude && value !== 0 && value !== game.solution[index]) return game;
+  if (rejectEntry(game, { index, value, pencil, exclude, blockIncorrectAnswers, filterNumberKeys })) return game;
   if ((pencil || exclude) && game.values[index] && value !== 0) return game;
   if ((value === 0 || (!pencil && !exclude)) && game.values[index] === value && !game.notes[index].length && !game.exclusions[index].length) return game;
   const values = [...game.values];
