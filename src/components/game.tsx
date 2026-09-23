@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react';
 import { createGame, restartGame, enter, addNotes, addExclusions, fillNotes, undo, redo, restore, isComplete, rejectEntry, SAVE_KEY, type GameState, type Rejection } from '@/lib/game';
-import { peers, getEntryDigits, type Difficulty, type Puzzle } from '@/lib/sudoku';
+import { peers, getEntryDigits, completedUnits, type Difficulty, type Puzzle } from '@/lib/sudoku';
 import { candidateCells, excludedCells, getPlayableCandidates } from '@/lib/candidates';
 import { useNoteSelection } from './use-note-selection';
 import { CellNotes } from './cell-notes';
@@ -17,6 +17,10 @@ const EMPTY_NOTES: number[] = [];
 const FOCUS_HINT_KEY = 'sudoku.focus-hold-learned.v1';
 const LEVELS: Difficulty[] = ['easy','medium','hard'];
 const REJECTION_MS = 800;
+const CELEBRATION_STEP_MS = 45;
+const CELEBRATION_MS = 520;
+/** Manhattan distance between two cells on the 9x9 grid. */
+const distance = (a: number, b: number) => Math.abs(Math.floor(a / 9) - Math.floor(b / 9)) + Math.abs(a % 9 - b % 9);
 
 export default function SudokuGame() {
   const [game, setGame] = useState<GameState | null>(null);
@@ -41,6 +45,8 @@ export default function SudokuGame() {
   const dialog = useRef<HTMLDialogElement>(null);
   const board = useRef<HTMLDivElement>(null);
   const rejectionId = useRef(0);
+  const [celebration, setCelebration] = useState<{ id: number; origin: number; cells: number[]; label: string } | null>(null);
+  const celebrationId = useRef(0);
   const complete = game ? isComplete(game) : false;
   const selectCell = (index: number) => {
     setSelected(index); setBlockedEntry(null);
@@ -68,7 +74,7 @@ export default function SudokuGame() {
 
   const requestPuzzle = useCallback((level: Difficulty) => {
     resetSelection(); setFocusedDigit(null);
-    setBusy(true); setError(''); setBlockedEntry(null);
+    setBusy(true); setError(''); setBlockedEntry(null); setCelebration(null);
     try {
       // Lazy construction keeps the worker available for retry if startup fails.
       if (!worker.current) {
@@ -151,20 +157,28 @@ export default function SudokuGame() {
     return () => window.clearTimeout(timer);
   }, [blockedEntry]);
   const rejection = blockedEntry && !paused && !sheet && !complete ? blockedEntry : null;
+  useEffect(() => {
+    if (!celebration) return;
+    const reach = Math.max(...celebration.cells.map(i => distance(i, celebration.origin)));
+    const timer = window.setTimeout(() => setCelebration(null), reach * CELEBRATION_STEP_MS + CELEBRATION_MS);
+    return () => window.clearTimeout(timer);
+  }, [celebration]);
+  const celebrating = celebration && !paused && !sheet ? celebration : null;
+  const celebratedCells = useMemo(() => new Set(celebrating?.cells), [celebrating]);
 
   const updatePreferences = (patch: Partial<Preferences>) => {
     const next = { ...preferences, ...patch };
     setPreferences(next); document.documentElement.setAttribute('data-theme', next.theme);
     try { localStorage.setItem(PREFS_KEY, JSON.stringify(next)); } catch { setStorageError(true); }
   };
-  const openSheet = (next: Sheet) => { resetSelection(); setBlockedEntry(null); setSheet(next); dialog.current?.showModal(); };
+  const openSheet = (next: Sheet) => { resetSelection(); setBlockedEntry(null); setCelebration(null); setSheet(next); dialog.current?.showModal(); };
   const closeSheet = () => dialog.current?.close();
   const focusSelectedCell = () => board.current?.querySelector<HTMLButtonElement>(`[data-index="${selected}"]`)?.focus();
   const restartPuzzle = () => {
     if (!game || busy) return;
     setGame(restartGame(game)); resetSelection(); setFocusedDigit(null);
     setSelected(game.givens.indexOf(0)); setNoteMode('value'); setBatchMode('note');
-    setBlockedEntry(null); setPaused(false); setClockResetRevision(value => value + 1);
+    setBlockedEntry(null); setCelebration(null); setPaused(false); setClockResetRevision(value => value + 1);
     closeSheet();
   };
   const toggleNotes = () => {
@@ -194,10 +208,23 @@ export default function SudokuGame() {
       const applyBatch = batchMode === 'exclude' ? addExclusions : addNotes;
       setGame(current => current ? applyBatch(current, { indices: selection.indices, value }) : current);
       clearSelection();
-    } else setGame(current => current ? enter(current, { index: selected, value, pencil, exclude: excluding, blockIncorrectAnswers: preferences.blockIncorrectAnswers, filterNumberKeys: preferences.filterNumberKeys }) : current);
+    } else {
+      const next = enter(game, { index: selected, value, pencil, exclude: excluding, blockIncorrectAnswers: preferences.blockIncorrectAnswers, filterNumberKeys: preferences.filterNumberKeys });
+      if (next === game) return;
+      setGame(next);
+      if (!pencil && !excluding && value) {
+        const units = completedUnits({ before: game.values, after: next.values, index: selected });
+        const finished = isComplete(next);
+        if (finished || units.length) {
+          const label = finished ? 'Puzzle complete' : units.map(({ kind, number }, i) => `${i ? kind : kind[0].toUpperCase() + kind.slice(1)} ${number}`).join(' and ') + ' complete';
+          const cells = finished ? [...Array(81).keys()] : [...new Set(units.flatMap(unit => unit.cells))];
+          setCelebration({ id: ++celebrationId.current, origin: selected, cells, label });
+        }
+      }
+    }
   };
-  const doUndo = () => { if (!paused && !busy) { resetSelection(); setBlockedEntry(null); setGame(current => current ? undo(current) : current); } };
-  const doRedo = () => { if (!paused && !busy) { resetSelection(); setBlockedEntry(null); setGame(current => current ? redo(current) : current); } };
+  const doUndo = () => { if (!paused && !busy) { resetSelection(); setBlockedEntry(null); setCelebration(null); setGame(current => current ? undo(current) : current); } };
+  const doRedo = () => { if (!paused && !busy) { resetSelection(); setBlockedEntry(null); setCelebration(null); setGame(current => current ? redo(current) : current); } };
   const handleKey = (event: KeyboardEvent) => {
     if (sheet || paused || busy || !game || (event.target as HTMLElement).closest('dialog')) return;
     if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'z') { event.preventDefault(); if (event.shiftKey) doRedo(); else doUndo(); focusSelectedCell(); return; }
@@ -242,7 +269,7 @@ export default function SudokuGame() {
     <main className="game">
       <div className="game-meta">
         <button className="difficulty-button" disabled={busy} onClick={() => { setDifficulty(game?.difficulty ?? 'easy'); openSheet('new'); }} aria-label={`Difficulty: ${game?.difficulty ?? 'easy'}. Start a new puzzle`}><span className="level-mark"><i/><i className={game?.difficulty !== 'easy' ? 'active' : ''}/><i className={game?.difficulty === 'hard' ? 'active' : ''}/></span><span className="capitalize">{game?.difficulty ?? 'easy'}</span><Icon name="chevron" size={14}/></button>
-        <div className="time-controls">{game ? <Clock key={game.id} id={game.id} resetRevision={clockResetRevision} hidden={preferences.hideTimer} running={!paused && !sheet && !busy && !complete}/> : <span className="clock">00:00</span>}<button className="pause-button" aria-label={paused ? 'Resume game' : 'Pause game'} disabled={busy || complete || !game} onClick={() => { resetSelection(); setBlockedEntry(null); setPaused(value => !value); }}><Icon name={paused ? 'play' : 'pause'} size={15}/></button></div>
+        <div className="time-controls">{game ? <Clock key={game.id} id={game.id} resetRevision={clockResetRevision} hidden={preferences.hideTimer} running={!paused && !sheet && !busy && !complete}/> : <span className="clock">00:00</span>}<button className="pause-button" aria-label={paused ? 'Resume game' : 'Pause game'} disabled={busy || complete || !game} onClick={() => { resetSelection(); setBlockedEntry(null); setCelebration(null); setPaused(value => !value); }}><Icon name={paused ? 'play' : 'pause'} size={15}/></button></div>
       </div>
 
       <div className="puzzle-panel">
@@ -269,6 +296,7 @@ export default function SudokuGame() {
               const same = value > 0 && selectedValue === value;
               const classes = ['cell', given ? 'given' : 'entered', selectedCell ? 'selected' : '', !selectedCell && related.has(i) && preferences.highlightPeers && !complete ? 'related' : '', same && !selectedCell && !complete ? 'matching' : '', possible.has(i) ? 'possible' : '', excludedPossible.has(i) ? 'excluded-possible' : '', badCells.has(i) ? 'conflict' : '', rejection?.index === i ? 'rejecting' : ''].filter(Boolean).join(' ');
               return <div role="gridcell" aria-selected={selectedCell} aria-readonly={given} aria-rowindex={row+1} aria-colindex={col+1} key={i} className="cell-slot"><button className={classes} data-index={i} data-given={given} tabIndex={selected === i ? 0 : -1} aria-label={`Row ${row+1}, column ${col+1}, ${value ? `${value}${given ? ', given' : ''}` : notes.length ? `${generated ? 'generated notes' : 'notes'} ${notes.join(', ')}` : 'empty'}${!value && ruledOut.length ? `, ruled out ${ruledOut.join(', ')}` : ''}${possible.has(i) ? `, possible placement for ${selectedValue}` : ''}${excludedPossible.has(i) ? `, excluded placement for ${selectedValue}` : ''}${badCells.has(i) ? ', incorrect answer' : ''}`} aria-disabled={complete} onClick={event => selection.clickCell(event, i)}>
+                {celebrating && celebratedCells.has(i) && <span key={`celebrate-${celebrating.id}`} className="unit-celebration" style={{ animationDelay: `${distance(i, celebrating.origin) * CELEBRATION_STEP_MS}ms` }} aria-hidden="true"/>}
                 {value ? <span className="cell-number">{value}</span> : null}
                 <CellNotes key={game?.id} focusedDigit={complete ? null : focusedDigit} filled={Boolean(value)} manual={generated ? EMPTY_NOTES : notes} automatic={generated ? notes : EMPTY_NOTES} excluded={ruledOut} boardKey={boardKey}/>
                 {rejection?.index === i && <span key={`rejected-${rejection.id}`} className="rejected-digit" aria-hidden="true">{rejection.value}</span>}
@@ -282,6 +310,7 @@ export default function SudokuGame() {
           {busy ? <><span className="spinner"/><h2>Getting your puzzle ready</h2></> : paused ? <><span className="pause-emblem"><Icon name="pause" size={28}/></span><h2>Take a break</h2><p>Your puzzle will be right here.</p><button className="primary-button" onClick={() => setPaused(false)}><Icon name="play" size={17}/>Resume puzzle</button></> : <><h2>Let’s try that again</h2><button className="primary-button" onClick={() => requestPuzzle(difficulty)}>Create puzzle</button></>}
         </div>}
       </div>
+      <p className="sr-only" role="status">{celebrating?.label ?? ''}</p>
 
       </div>
 
