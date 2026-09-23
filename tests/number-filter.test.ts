@@ -33,7 +33,7 @@ test('filtering ignores the replaced value and respects erase, undo and restart'
   assert.equal(enter(filled, { index: 0, value: 4, filterNumberKeys: true }), filled);
   const replaced = enter(filled, { index: 0, value: 5, filterNumberKeys: true });
   assert.equal(replaced.values[0], 5);
-  assert.deepEqual(undo(replaced), filled);
+  assert.deepEqual({ ...undo(replaced), redoHistory: [] }, filled);
   assert.equal(enter(filled, { index: 1, value: 4, filterNumberKeys: true }), filled);
   const erased = enter(filled, { index: 0, value: 0, filterNumberKeys: true });
   assert.equal(enter(erased, { index: 1, value: 4, filterNumberKeys: true }).values[1], 4);

@@ -3,17 +3,19 @@ import { getPlayableCandidates } from './candidates.ts';
 export type NoteOrigin = 'manual' | 'generated' | null;
 const emptyNotes = (): number[][] => Array.from({ length: 81 }, () => []);
 type Snapshot = { values: number[]; notes: number[][]; exclusions: number[][]; noteOrigins: NoteOrigin[] };
-export type GameState = Puzzle & Snapshot & { version: 1; history: Snapshot[] };
+export type GameState = Puzzle & Snapshot & { version: 1; history: Snapshot[]; redoHistory: Snapshot[] };
 export const SAVE_KEY = 'sudoku.game.v1';
 export function createGame(puzzle: Puzzle): GameState {
-  return { ...puzzle, version: 1, values: [...puzzle.givens], notes: emptyNotes(), exclusions: emptyNotes(), noteOrigins: Array(81).fill(null), history: [] };
+  return { ...puzzle, version: 1, values: [...puzzle.givens], notes: emptyNotes(), exclusions: emptyNotes(), noteOrigins: Array(81).fill(null), history: [], redoHistory: [] };
 }
 export function restartGame({ id, difficulty, givens, solution }: GameState): GameState {
   return createGame({ id, difficulty, givens, solution });
 }
+function snapshot({ values, notes, exclusions, noteOrigins }: GameState): Snapshot {
+  return { values, notes, exclusions, noteOrigins };
+}
 function record(game: GameState, next: Snapshot): GameState {
-  const { values, notes, exclusions, noteOrigins } = game;
-  return { ...game, ...next, history: [...game.history.slice(-199), { values, notes, exclusions, noteOrigins }] };
+  return { ...game, ...next, history: [...game.history.slice(-199), snapshot(game)], redoHistory: [] };
 }
 export function fillNotes(game: GameState): GameState {
   if (isComplete(game)) return game;
@@ -61,7 +63,7 @@ export function enter(game: GameState, { index, value, pencil = false, exclude =
   if (filterNumberKeys && !pencil && !exclude && value !== 0 && !getEntryDigits({ values: game.values, index }).includes(value)) return game;
   if (blockIncorrectAnswers && !pencil && !exclude && value !== 0 && value !== game.solution[index]) return game;
   if ((pencil || exclude) && game.values[index] && value !== 0) return game;
-  if (!pencil && !exclude && game.values[index] === value && !game.notes[index].length && !game.exclusions[index].length) return game;
+  if ((value === 0 || (!pencil && !exclude)) && game.values[index] === value && !game.notes[index].length && !game.exclusions[index].length) return game;
   const values = [...game.values];
   const notes = game.notes.map(n => [...n]);
   const exclusions = game.exclusions.map(n => [...n]);
@@ -81,7 +83,11 @@ export function enter(game: GameState, { index, value, pencil = false, exclude =
 }
 export function undo(game: GameState): GameState {
   const previous = game.history.at(-1);
-  return previous ? { ...game, ...previous, history: game.history.slice(0, -1) } : game;
+  return previous ? { ...game, ...previous, history: game.history.slice(0, -1), redoHistory: [...game.redoHistory, snapshot(game)] } : game;
+}
+export function redo(game: GameState): GameState {
+  const next = game.redoHistory.at(-1);
+  return next ? { ...game, ...next, history: [...game.history, snapshot(game)], redoHistory: game.redoHistory.slice(0, -1) } : game;
 }
 export function isComplete(game: GameState): boolean {
   return game.values.length === 81 && game.values.every((n,i) => n === game.solution[i]);
@@ -114,8 +120,11 @@ export function restore(raw: string): GameState | null {
     const current = migrateSnapshot(game);
     if (!game.givens.every((n,i) => !n || n === game.solution[i]) || !current) return null;
     if (!Array.isArray(game.history) || game.history.length > 200) return null;
+    const savedRedo = Object.hasOwn(game, 'redoHistory') ? game.redoHistory : [];
+    if (!Array.isArray(savedRedo) || game.history.length + savedRedo.length > 200) return null;
     const history = game.history.map(migrateSnapshot);
-    if (history.some(s => s === null)) return null;
-    return { ...game, ...current, history: history as Snapshot[] };
+    const redoHistory = savedRedo.map(migrateSnapshot);
+    if (history.some(s => s === null) || redoHistory.some(s => s === null)) return null;
+    return { ...game, ...current, history: history as Snapshot[], redoHistory: redoHistory as Snapshot[] };
   } catch { return null; }
 }

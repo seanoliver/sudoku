@@ -19,7 +19,7 @@ test('Fill notes adds all legal candidates once and undo restores the entire boa
   }
   assert.equal(filled.history.length, 1);
   assert.equal(gameEngine.fillNotes(filled), filled);
-  assert.deepEqual(gameEngine.undo(filled), game);
+  assert.deepEqual({ ...gameEngine.undo(filled), redoHistory: [] }, game);
   assert.ok(filled.notes.some(notes => notes.length > 2), 'must not apply hidden singles or the old box threshold');
 });
 
@@ -31,7 +31,7 @@ test('Fill notes rebuilds manually edited and cleared cells', () => {
   const cleared = gameEngine.enter(edited, { index: 0, value: 0 });
   assert.equal(cleared.noteOrigins[0], 'manual');
   assert.deepEqual(gameEngine.fillNotes(cleared).notes[0], [1,2,3,4,5,6,7,8,9]);
-  assert.deepEqual(gameEngine.undo(edited), generated);
+  assert.deepEqual({ ...gameEngine.undo(edited), redoHistory: [] }, generated);
 });
 
 test('exclusions toggle, suppress highlights, and never propagate deductions', () => {
@@ -46,7 +46,7 @@ test('exclusions toggle, suppress highlights, and never propagate deductions', (
   const restored = gameEngine.enter(excluded, { index: 0, value: 4, exclude: true });
   assert.deepEqual(restored.exclusions[0], []);
   assert.ok(candidates.getPlayableCandidates(restored)[0].has(4));
-  assert.deepEqual(gameEngine.undo(excluded), game);
+  assert.deepEqual({ ...gameEngine.undo(excluded), redoHistory: [] }, game);
 });
 
 test('positive notes and exclusions are mutually exclusive and Fill replaces manual notes', () => {
@@ -69,7 +69,7 @@ test('value entry clears peer notes without taking ownership; erase does not ref
   const erased = gameEngine.enter(filled, { index: 0, value: 0 });
   assert.equal(erased.notes[1].includes(4), false);
   assert.equal(gameEngine.fillNotes(erased).notes[1].includes(4), true);
-  assert.deepEqual(gameEngine.undo(filled), generated);
+  assert.deepEqual({ ...gameEngine.undo(filled), redoHistory: [] }, generated);
 });
 
 test('annotations and ownership round-trip; legacy saves and history migrate to manual', () => {
@@ -83,7 +83,7 @@ test('annotations and ownership round-trip; legacy saves and history migrate to 
   assert.equal(restored.noteOrigins[0], 'manual');
   assert.deepEqual(restored.exclusions, Array.from({ length: 81 }, () => []));
   assert.deepEqual(gameEngine.fillNotes(restored).notes[0], [1,2,3,4,5,6,7,8,9]);
-  assert.deepEqual(gameEngine.undo(restored), blank());
+  assert.deepEqual({ ...gameEngine.undo(restored), redoHistory: [] }, blank());
 });
 
 test('malformed annotation state is rejected, including undo snapshots', () => {
@@ -109,7 +109,7 @@ test('generated ownership persists through reload, undo, and peer cleanup', () =
   assert.deepEqual(gameEngine.restore(JSON.stringify(generated)), generated);
   const entered = gameEngine.enter(generated, { index: 0, value: 4 });
   const restored = gameEngine.restore(JSON.stringify(entered))!;
-  assert.deepEqual(gameEngine.undo(restored), generated);
+  assert.deepEqual({ ...gameEngine.undo(restored), redoHistory: [] }, generated);
 });
 
 test('givens, occupied cells, invalid inputs, and completed games reject annotation changes', () => {
@@ -142,7 +142,7 @@ test('Fill notes replaces stale notes, retains all exclusions and survives reloa
   assert.equal(gameEngine.fillNotes(after), after);
   const reopened = gameEngine.restore(JSON.stringify(after));
   assert.deepEqual(reopened, after);
-  assert.deepEqual(gameEngine.undo(reopened!), before);
+  assert.deepEqual({ ...gameEngine.undo(reopened!), redoHistory: [] }, before);
 });
 
 test('Fill notes includes blank cells after empty erasure or removing an exclusion', () => {

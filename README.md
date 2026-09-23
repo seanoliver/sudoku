@@ -29,7 +29,7 @@ The build generates `public/sw.js` after Next.js finishes, precaching the comple
 - Erase appears only for a selected user-entered number or annotations and clears that cell. It stays hidden for givens, empty cells, and batch selections.
 - Fill notes in Settings replaces notes in every empty cell with all candidates allowed by placed numbers, preserving crossed-out exclusions and omitting those digits. Generated notes are blue. One undo restores the previous annotations. Entering a number removes matching peer notes.
 - Deduction detection is retained for future hints and does not change notes or highlighting.
-- Undo in Settings restores the previous number and note state (up to 200 actions).
+- Undo and Redo in Settings restore values, notes and exclusions (up to 200 actions total). Both persist across reopening. A new edit clears Redo. Use ⌘/Ctrl+Z to undo and ⌘/Ctrl+Shift+Z to redo, including the final placement.
 - Pause hides the board and stops the clock. The clock also pauses in dialogs and background tabs.
 - Progress saves automatically on this device, including undo history.
 - Choose a new easy, medium, or hard puzzle. Each generated puzzle has exactly one solution.

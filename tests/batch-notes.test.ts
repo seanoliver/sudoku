@@ -16,7 +16,7 @@ test('batch notes add rather than toggle, clear exclusions, and undo as one acti
   assert.deepEqual(after.notes[3], []);
   assert.deepEqual(after.values, before.values);
   assert.equal(after.history.length, before.history.length + 1);
-  assert.deepEqual(engine.undo(after), before);
+  assert.deepEqual({ ...engine.undo(after), redoHistory: [] }, before);
   assert.deepEqual(before.exclusions[1], [4]);
   assert.deepEqual(engine.restore(JSON.stringify(after)), after);
 });
@@ -28,7 +28,7 @@ test('batch notes claim generated notes without dropping other digits', () => {
   assert.equal(after.noteOrigins[0], 'manual');
   assert.equal(after.noteOrigins[1], 'manual');
   assert.equal(after.noteOrigins[2], 'generated');
-  assert.deepEqual(engine.undo(after), before);
+  assert.deepEqual({ ...engine.undo(after), redoHistory: [] }, before);
 });
 
 test('batch notes ignore protected cells and invalid indices', () => {

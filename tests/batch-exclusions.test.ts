@@ -24,7 +24,7 @@ test('batch exclusions are additive across mixed cells and undo atomically', () 
   assert.equal(after.noteOrigins[3], 'generated');
   assert.deepEqual(after.values, before.values);
   assert.equal(after.history.length, before.history.length + 1);
-  assert.deepEqual(engine.undo(after), before);
+  assert.deepEqual({ ...engine.undo(after), redoHistory: [] }, before);
   assert.equal(JSON.stringify(before), saved);
   assert.deepEqual(engine.restore(JSON.stringify(after)), after);
   assert.equal(engine.addExclusions(after, { indices: [0, 1, 2, 80], value: 4 }), after);
@@ -51,7 +51,7 @@ test('batch exclusions preserve other exclusions and empty manual ownership thro
   assert.deepEqual(after.exclusions[1], [4]);
   assert.deepEqual(after.notes[1], []);
   assert.equal(after.noteOrigins[1], 'manual');
-  assert.deepEqual(engine.undo(after), before);
+  assert.deepEqual({ ...engine.undo(after), redoHistory: [] }, before);
   const noted = engine.addNotes(after, { indices: [0, 1], value: 4 });
   assert.deepEqual(noted.exclusions[0], [2]);
   assert.deepEqual(noted.exclusions[1], []);
