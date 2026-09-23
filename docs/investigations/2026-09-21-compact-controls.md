@@ -21,7 +21,7 @@ X does nothing outside Notes mode. Erase remains hidden during batch selection b
 
 ## September 22 release verification
 
-- Fixed keyboard focus loss when N hides Exclude and when keyboard deletion hides Erase; see the [bug journal](../bugs/2026-09-22-compact-controls-keyboard-focus.md).
+- Fixed keyboard focus loss when N hides Exclude and when keyboard deletion, Undo or note toggling hides Erase; see the [bug journal](../bugs/2026-09-22-compact-controls-keyboard-focus.md).
 - Rebuilt production browser checks confirmed focus restoration and subsequent keyboard input, Settings Undo and Fill notes, and System appearance reacting to emulated light/dark changes.
 - All 69 tests, lint, typecheck and production build passed after the fix.
 - The [release phone capture](../screenshots/compact-controls-release-phone.png) uses 390 × 844 CSS pixels, 17px board margins on both sides, Smart highlighting and no viewport-width loss. Physical iOS testing remains outstanding.

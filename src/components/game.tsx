@@ -149,6 +149,7 @@ export default function SudokuGame() {
   };
   const openSheet = (next: Sheet) => { resetSelection(); setSheet(next); dialog.current?.showModal(); };
   const closeSheet = () => dialog.current?.close();
+  const focusSelectedCell = () => board.current?.querySelector<HTMLButtonElement>(`[data-index="${selected}"]`)?.focus();
   const restartPuzzle = () => {
     if (!game || busy) return;
     setGame(restartGame(game)); resetSelection(); setFocusedDigit(null);
@@ -160,7 +161,7 @@ export default function SudokuGame() {
     setBlockedEntry(null);
     resetSelection();
     setNoteMode(notesActive ? 'value' : 'note');
-    board.current?.querySelector<HTMLButtonElement>(`[data-index="${selected}"]`)?.focus();
+    focusSelectedCell();
   };
   const toggleExclusions = () => {
     if (!notesActive) return;
@@ -170,7 +171,7 @@ export default function SudokuGame() {
   };
   const clearSelection = () => {
     resetSelection(); setNoteMode('value');
-    board.current?.querySelector<HTMLButtonElement>(`[data-index="${selected}"]`)?.focus();
+    focusSelectedCell();
   };
   const input = (value: number) => {
     if (paused || busy || sheet || complete) return;
@@ -193,7 +194,7 @@ export default function SudokuGame() {
   const doUndo = () => { if (!paused && !busy && !complete) { resetSelection(); setBlockedEntry(null); setGame(current => current ? undo(current) : current); } };
   const handleKey = (event: KeyboardEvent) => {
     if (sheet || paused || busy || !game || (event.target as HTMLElement).closest('dialog')) return;
-    if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'z') { event.preventDefault(); doUndo(); return; }
+    if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'z') { event.preventDefault(); doUndo(); focusSelectedCell(); return; }
     if (event.metaKey || event.ctrlKey || event.altKey) return;
     const movement: Record<string, number> = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -9, ArrowDown: 9 };
     if (event.key === 'Escape') { event.preventDefault(); clearSelection(); return; }
@@ -201,8 +202,8 @@ export default function SudokuGame() {
       event.preventDefault();
       const next = (selected + movement[event.key] + 81) % 81;
       resetSelection(); selectCell(next); board.current?.querySelector<HTMLButtonElement>(`[data-index="${next}"]`)?.focus();
-    } else if (/^[1-9]$/.test(event.key)) { event.preventDefault(); input(Number(event.key)); }
-    else if (['Backspace','Delete','0'].includes(event.key)) { event.preventDefault(); input(0); board.current?.querySelector<HTMLButtonElement>(`[data-index="${selected}"]`)?.focus(); }
+    } else if (/^[1-9]$/.test(event.key)) { event.preventDefault(); input(Number(event.key)); focusSelectedCell(); }
+    else if (['Backspace','Delete','0'].includes(event.key)) { event.preventDefault(); input(0); focusSelectedCell(); }
     else if (event.key.toLowerCase() === 'x') { event.preventDefault(); toggleExclusions(); }
     else if (event.key.toLowerCase() === 'n') { event.preventDefault(); toggleNotes(); }
   };
@@ -240,7 +241,7 @@ export default function SudokuGame() {
       <div className="digit-focus-bar" role="group" aria-label="Digit focus" inert={paused || busy || complete || !game}>
         {focusedDigit !== null ? <>
           <span className="digit-focus-label" role="status"><span className="focus-indicator" aria-hidden="true"/><span>Focus <strong>{focusedDigit}</strong></span></span>
-          <button className="clear-focus-button" aria-label="Clear focus" title="Clear focus" onClick={() => { setFocusedDigit(null); board.current?.querySelector<HTMLButtonElement>(`[data-index="${selected}"]`)?.focus(); }}><Icon name="close" size={16}/></button>
+          <button className="clear-focus-button" aria-label="Clear focus" title="Clear focus" onClick={() => { setFocusedDigit(null); focusSelectedCell(); }}><Icon name="close" size={16}/></button>
         </> : <button className="focus-button" disabled={!selectedCellValue || batchSelection} onClick={() => setFocusedDigit(selectedCellValue)} aria-label={selectedCellValue ? `Focus on ${selectedCellValue}` : 'Focus on a number'} aria-describedby={selectedCellValue && !focusHoldLearned ? 'focus-hold-hint' : undefined}>
           <Icon name="focus" size={18}/><span className="focus-copy"><span>{selectedCellValue ? <>Focus on <strong>{selectedCellValue}</strong></> : 'Select a number to focus'}</span><span id="focus-hold-hint" className="focus-hint" hidden={!selectedCellValue || focusHoldLearned}>Or hold a filled cell</span></span>
         </button>}
@@ -281,7 +282,7 @@ export default function SudokuGame() {
           <div className="note-controls" aria-label="Puzzle tools">
             <button className="notes-toggle" role="switch" aria-checked={notesActive} disabled={paused || busy} onClick={toggleNotes} title="Notes (N)"><Icon name="pencil" size={19}/><span>Notes</span><span className="notes-switch-track" aria-hidden="true"><span/></span></button>
             {notesActive && <button className="exclude-chip" aria-pressed={excluding} disabled={paused || busy} onClick={toggleExclusions} title="Exclude (X)"><span className="exclude-chip-label"><Icon name="check" size={12}/><span>Exclude</span></span></button>}
-            {!batchSelection && editable && Boolean(game.values[selected] || game.notes[selected].length || game.exclusions[selected].length) && <button className="erase-control" onClick={() => { input(0); board.current?.querySelector<HTMLButtonElement>(`[data-index="${selected}"]`)?.focus(); }} title="Erase (Backspace)"><Icon name="erase" size={18}/><span>Erase</span></button>}
+            {!batchSelection && editable && Boolean(game.values[selected] || game.notes[selected].length || game.exclusions[selected].length) && <button className="erase-control" onClick={() => { input(0); focusSelectedCell(); }} title="Erase (Backspace)"><Icon name="erase" size={18}/><span>Erase</span></button>}
           </div>
         <div className={`number-pad ${pencil || excluding ? 'pencil-mode' : ''}`} aria-label="Number pad">
           {DIGITS.map(n => {
