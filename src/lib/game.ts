@@ -88,7 +88,7 @@ export function enter(game: GameState, { index, value, pencil = false, exclude =
   } else {
     noteOrigins[index] = value || game.values[index] ? null : 'manual';
     values[index] = value; notes[index] = []; exclusions[index] = [];
-    if (value) for (const peer of peers(index)) notes[peer] = notes[peer].filter(n => n !== value);
+    if (value) for (const peer of peers(index)) { notes[peer] = notes[peer].filter(n => n !== value); exclusions[peer] = exclusions[peer].filter(n => n !== value); }
   }
   return record(game, { values, notes, exclusions, noteOrigins });
 }
