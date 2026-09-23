@@ -42,3 +42,20 @@ test('enter still refuses rejected entries without touching history', () => {
   const game = blank();
   assert.equal(enter(game, { index: 0, value: wrong(game, 0), blockIncorrectAnswers: true }), game);
 });
+
+test('unit prefers row over column over box regardless of peer order', () => {
+  let game = enter(blank(), { index: 4, value: 7 });   // same column as 40, above it
+  game = enter(game, { index: 36, value: 7 });         // same row as 40
+  assert.deepEqual(rejectEntry(game, { index: 40, value: 7, filterNumberKeys: true }), { kind: 'constraint', sources: [4, 36], unit: 'row' });
+});
+
+test('a filled cell ignores its own value but still rejects digits held by peers', () => {
+  let game = enter(blank(), { index: 0, value: 7 });
+  assert.equal(rejectEntry(game, { index: 0, value: 7, filterNumberKeys: true }), null);
+  game = enter(game, { index: 4, value: 3 });
+  assert.equal(rejectEntry(game, { index: 0, value: 3, filterNumberKeys: true })?.kind, 'constraint');
+});
+
+test('out-of-range values are never rejected', () => {
+  assert.equal(rejectEntry(blank(), { index: 0, value: 10, blockIncorrectAnswers: true }), null);
+});

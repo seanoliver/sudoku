@@ -25,7 +25,7 @@ When the game rejects an entry, the only feedback is a line of hint text under t
 
 ## Implementation
 
-- Add a pure helper in `src/lib`: `rejectEntry(game, { index, value, filterNumberKeys, blockIncorrectAnswers })` returns `null` or `{ kind: 'constraint' | 'answer', sources: number[], unit?: 'row' | 'column' | 'box' }`. `input()` in `game.tsx` uses it in place of its two inline checks, keeping the existing precedence (constraint before answer).
+- Add a pure helper in `src/lib`: `rejectEntry(game, { index, value, filterNumberKeys, blockIncorrectAnswers })` returns `null` or `{ kind: 'constraint' | 'answer', sources: number[], unit: 'row' | 'column' | 'box' | null }`. `input()` in `game.tsx` uses it in place of its two inline checks, keeping the existing precedence (constraint before answer).
 - Extend the `blockedEntry` state with `sources` and an incrementing `id`. The id keys the animated elements so a repeat restarts the animation.
 - Render a `.rejected-digit` span in the cell, a `rejecting` class on the cell and `rejection-source` on source cells. Keyframes live in `globals.css`, reusing `--red` and `--red-soft`.
 

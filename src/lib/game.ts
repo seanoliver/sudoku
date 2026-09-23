@@ -9,13 +9,13 @@ export function createGame(puzzle: Puzzle): GameState {
   return { ...puzzle, version: 1, values: [...puzzle.givens], notes: emptyNotes(), exclusions: emptyNotes(), noteOrigins: Array(81).fill(null), history: [], redoHistory: [] };
 }
 export type Rejection = { kind: 'constraint' | 'answer'; sources: number[]; unit: 'row' | 'column' | 'box' | null };
-const unitOf = (a: number, b: number): Rejection['unit'] => Math.floor(a / 9) === Math.floor(b / 9) ? 'row' : a % 9 === b % 9 ? 'column' : 'box';
+const unitOf = (index: number, sources: number[]): Rejection['unit'] => sources.some(s => Math.floor(s / 9) === Math.floor(index / 9)) ? 'row' : sources.some(s => s % 9 === index % 9) ? 'column' : 'box';
 /** Why a value entry would be refused, or null. Notes, exclusions, erasing and givens are never rejected. */
 export function rejectEntry(game: GameState, { index, value, pencil = false, exclude = false, blockIncorrectAnswers = false, filterNumberKeys = false }: { index: number; value: number; pencil?: boolean; exclude?: boolean; blockIncorrectAnswers?: boolean; filterNumberKeys?: boolean }): Rejection | null {
-  if (!Number.isInteger(index) || index < 0 || index >= 81 || game.givens[index] || pencil || exclude || !value) return null;
+  if (!Number.isInteger(index) || index < 0 || index >= 81 || game.givens[index] || pencil || exclude || !Number.isInteger(value) || value < 1 || value > 9) return null;
   if (filterNumberKeys) {
     const sources = peers(index).filter(peer => game.values[peer] === value);
-    if (sources.length) return { kind: 'constraint', sources, unit: unitOf(index, sources[0]) };
+    if (sources.length) return { kind: 'constraint', sources, unit: unitOf(index, sources) };
   }
   if (blockIncorrectAnswers && value !== game.solution[index]) return { kind: 'answer', sources: [], unit: null };
   return null;
