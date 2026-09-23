@@ -12,7 +12,7 @@ Roadmap item: "Small celebrations for completed units". Sean approved this desig
 
 ## Visual
 
-- Pale green flash (`--possible`) in an overlay span inside each cell: 45ms delay per distance step, 520ms per cell. The digit sits above the overlay; selection, highlights and values are unchanged.
+- Pale green flash (`--possible`) in an overlay span inside each cell: 45ms delay per distance step, 520ms per cell. The digit sits above the overlay, and on the selected or focused cell the overlay is inset 2px so the ring stays visible. Values and highlights are unchanged.
 - Reduced motion: no ripple or fade. The same cells show a static pale green tint until the timer clears it.
 - A visually hidden live region announces the result, e.g. "Row 4 and column 5 complete" or "Puzzle complete".
 - Pause, opening a sheet, undo, redo, restart and new puzzle clear it immediately. Selecting another cell does not.

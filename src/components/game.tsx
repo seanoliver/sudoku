@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react';
 import { createGame, restartGame, enter, addNotes, addExclusions, fillNotes, undo, redo, restore, isComplete, rejectEntry, SAVE_KEY, type GameState, type Rejection } from '@/lib/game';
-import { peers, getEntryDigits, completedUnits, type Difficulty, type Puzzle } from '@/lib/sudoku';
+import { peers, getEntryDigits, completedUnits, celebrationLabel, type Difficulty, type Puzzle } from '@/lib/sudoku';
 import { candidateCells, excludedCells, getPlayableCandidates } from '@/lib/candidates';
 import { useNoteSelection } from './use-note-selection';
 import { CellNotes } from './cell-notes';
@@ -216,7 +216,7 @@ export default function SudokuGame() {
         const units = completedUnits({ before: game.values, after: next.values, index: selected });
         const finished = isComplete(next);
         if (finished || units.length) {
-          const label = finished ? 'Puzzle complete' : units.map(({ kind, number }, i) => `${i ? kind : kind[0].toUpperCase() + kind.slice(1)} ${number}`).join(', ').replace(/, ([^,]*)$/, ' and $1') + ' complete';
+          const label = finished ? 'Puzzle complete' : celebrationLabel(units);
           const cells = finished ? [...Array(81).keys()] : [...new Set(units.flatMap(unit => unit.cells))];
           setCelebration({ id: ++celebrationId.current, origin: selected, cells, label });
         }

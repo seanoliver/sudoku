@@ -17,6 +17,11 @@ export function completedUnits({ before, after, index }: { before: readonly numb
   if (!Number.isInteger(index) || index < 0 || index >= 81) return [];
   return unitsOf(index).filter(unit => isUnitComplete(after, unit.cells) && !isUnitComplete(before, unit.cells));
 }
+/** Screen-reader text such as "Row 5, column 5 and box 5 complete". */
+export function celebrationLabel(units: readonly Unit[]): string {
+  const names = units.map(({ kind, number }, i) => `${i ? kind : kind[0].toUpperCase() + kind.slice(1)} ${number}`);
+  return `${names.length > 1 ? `${names.slice(0, -1).join(', ')} and ${names.at(-1)}` : names[0] ?? ''} complete`;
+}
 export function getEntryDigits({ values, index }: { values: readonly number[]; index: number }): number[] {
   if (!Number.isInteger(index) || index < 0 || index >= 81) return [];
   const occupied = new Set(peers(index).map(peer => values[peer]));

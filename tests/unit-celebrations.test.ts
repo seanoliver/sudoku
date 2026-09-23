@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { completedUnits, generatePuzzle } from '../src/lib/sudoku.ts';
+import { celebrationLabel, completedUnits, generatePuzzle } from '../src/lib/sudoku.ts';
 
 const solution = generatePuzzle('hard', 19).solution;
 const without = (cells: number[]) => solution.map((v, i) => cells.includes(i) ? 0 : v);
@@ -25,7 +25,14 @@ test('duplicates, already complete units and erasing never count', () => {
   const before = without([0, 1]);
   const duplicate = before.map((v, i) => i === 0 ? solution[1] : v); // row 1 filled except cell 1
   const filledDup = duplicate.map((v, i) => i === 1 ? solution[1] : v); // nine cells, one digit twice
-  assert.deepEqual(summary(completedUnits({ before: duplicate, after: filledDup, index: 1 })).includes('row 1'), false);
+  assert.equal(summary(completedUnits({ before: duplicate, after: filledDup, index: 1 })).includes('row 1'), false);
   assert.deepEqual(completedUnits({ before: solution, after: solution, index: 0 }), []);
   assert.deepEqual(completedUnits({ before: solution, after: without([0]), index: 0 }), []);
+});
+
+test('celebration labels list units in reading order', () => {
+  const unit = (kind: 'row' | 'column' | 'box', number: number) => ({ kind, number, cells: [] });
+  assert.equal(celebrationLabel([unit('row', 4)]), 'Row 4 complete');
+  assert.equal(celebrationLabel([unit('row', 4), unit('column', 5)]), 'Row 4 and column 5 complete');
+  assert.equal(celebrationLabel([unit('row', 5), unit('column', 5), unit('box', 5)]), 'Row 5, column 5 and box 5 complete');
 });
