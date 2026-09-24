@@ -4,7 +4,7 @@ import { applyStep, baseCandidates, findStep, TECHNIQUES } from '../src/lib/step
 import { applyHint, nextHint } from '../src/lib/hints.ts';
 import { buildPuzzle } from '../src/lib/sudoku.ts';
 import { EXPERT_BANK } from '../src/lib/expert-bank.ts';
-import { createGame, enter, undo } from '../src/lib/game.ts';
+import { createGame, enter, excludeCandidates, undo } from '../src/lib/game.ts';
 import { solveWithTechniques } from '../src/lib/difficulty.ts';
 
 /** Walks a puzzle move by move, checking every reported move against the solution. */
@@ -60,11 +60,11 @@ test('elimination hints apply as exclusions and the next hint builds on correct 
         for (const { cell, digit } of hint.step.eliminations) assert.ok(applied.exclusions[cell].includes(digit));
         assert.equal(applied.history.length, game.history.length + 1);
         const next = nextHint(applied);
-        assert.ok(next.kind === 'step' && JSON.stringify(next.step) !== JSON.stringify(hint.step), 'applied exclusions advance the hint');
-        // A wrong exclusion (of the answer) is ignored rather than trusted.
-        const cell = givens.findIndex((v, i) => !applied.values[i]);
+        assert.ok(next.kind === 'step' && !(next.step.eliminations.length && next.step.eliminations.every(e => hint.step.eliminations.some(h => h.cell === e.cell && h.digit === e.digit))), 'applied exclusions advance the hint');
+        // Excluding a cell's answer is reported as a mistake before any move.
+        const cell = applied.values.findIndex(value => !value);
         const misled = { ...applied, exclusions: applied.exclusions.map((x, i) => i === cell ? [...x, solution[cell]] : x) };
-        assert.deepEqual(nextHint(misled), nextHint(applied));
+        assert.deepEqual(nextHint(misled), { kind: 'mistake', cell, digit: solution[cell] });
         return;
       }
       game = applyHint(game, hint.step);
@@ -86,4 +86,30 @@ test('a solved board and a position beyond these techniques report distinctly', 
     return;
   }
   assert.fail('no beyond puzzle in the sample');
+});
+
+test('single hints list the exclusions they rely on, so every ruled-out cell is explained', () => {
+  const p = buildPuzzle({ difficulty: 'hard', seed: 5, clueTarget: 0 });
+  let game = createGame(p);
+  for (let guard = 0; guard < 300; guard++) {
+    const hint = nextHint(game);
+    if (hint.kind !== 'step') break;
+    const { step } = hint;
+    if (step.technique === 'hidden-single') {
+      const others = step.area.filter(i => !game.values[i] && i !== step.placement!.cell);
+      for (const i of others) assert.ok(step.pattern.some(b => game.values[b] === step.placement!.digit && [Math.floor(b / 9) === Math.floor(i / 9), b % 9 === i % 9, Math.floor(b / 27) * 3 + Math.floor(b % 9 / 3) === Math.floor(i / 27) * 3 + Math.floor(i % 9 / 3)].some(Boolean)) || step.relies.some(r => r.cell === i), `cell ${i} unexplained`);
+    }
+    game = applyHint(game, step);
+  }
+});
+
+test('excludeCandidates records several exclusions as one step and skips no-ops', () => {
+  const game = enter(createGame(buildPuzzle({ difficulty: 'easy', seed: 4, clueTarget: 42 })), { index: 0, value: 0 });
+  const empty = game.values.findIndex(v => !v);
+  const noted = enter(game, { index: empty, value: 3, pencil: true });
+  const next = excludeCandidates(noted, { eliminations: [{ cell: empty, digit: 3 }, { cell: empty, digit: 3 }, { cell: empty, digit: 5 }, { cell: game.values.findIndex(Boolean), digit: 2 }] });
+  assert.deepEqual(next.exclusions[empty], [3, 5]);
+  assert.deepEqual(next.notes[empty], []);
+  assert.equal(next.history.length, noted.history.length + 1);
+  assert.equal(excludeCandidates(next, { eliminations: [{ cell: empty, digit: 3 }] }), next);
 });

@@ -16,6 +16,12 @@ export type Step = {
   digits: number[];
   placement?: { cell: number; digit: number };
   eliminations: { cell: number; digit: number }[];
+  /** Naked or hidden sets; pointing (box to line) or claiming (line to box) locked candidates. */
+  variant?: 'naked' | 'hidden' | 'pointing' | 'claiming';
+  /** Candidates already removed by an exclusion or earlier elimination that the move relies on, so a hint can point at them. */
+  relies: { cell: number; digit: number }[];
+  /** Coloring's two shades: one of them holds the digit, the other does not. */
+  shades?: [number[], number[]];
 };
 
 const boxOf = (i: number) => Math.floor(i / 27) * 3 + Math.floor((i % 9) / 3);
@@ -38,7 +44,9 @@ function nakedSingle(values: readonly number[], candidates: Candidates): Step | 
   const cell = candidates.findIndex((set, i) => !values[i] && set.size === 1);
   if (cell < 0) return null;
   const digit = [...candidates[cell]][0];
-  return { technique: 'naked-single', area: [cell], pattern: peers(cell).filter(peer => values[peer]), digits: [digit], placement: { cell, digit }, eliminations: [] };
+  const seen = new Set(peers(cell).map(peer => values[peer]));
+  const relies = DIGITS.filter(d => d !== digit && !seen.has(d)).map(d => ({ cell, digit: d }));
+  return { technique: 'naked-single', area: [cell], pattern: peers(cell).filter(peer => values[peer]), digits: [digit], placement: { cell, digit }, eliminations: [], relies };
 }
 
 function hiddenSingle(values: readonly number[], candidates: Candidates): Step | null {
@@ -47,8 +55,10 @@ function hiddenSingle(values: readonly number[], candidates: Candidates): Step |
     const cells = house.filter(i => candidates[i].has(digit));
     if (cells.length !== 1) continue;
     // The placed copies of the digit that rule out the other empty cells.
-    const blockers = [...new Set(house.filter(i => !values[i] && i !== cells[0]).flatMap(i => peers(i).filter(peer => values[peer] === digit).slice(0, 1)))];
-    return { technique: 'hidden-single', area: house, pattern: blockers, digits: [digit], placement: { cell: cells[0], digit }, eliminations: [] };
+    const others = house.filter(i => !values[i] && i !== cells[0]);
+    const blockers = [...new Set(others.flatMap(i => peers(i).filter(peer => values[peer] === digit).slice(0, 1)))];
+    const relies = others.filter(i => !peers(i).some(peer => values[peer] === digit)).map(cell => ({ cell, digit }));
+    return { technique: 'hidden-single', area: house, pattern: blockers, digits: [digit], placement: { cell: cells[0], digit }, eliminations: [], relies };
   }
   return null;
 }
@@ -60,7 +70,7 @@ function lockedCandidates(_: readonly number[], candidates: Candidates): Step | 
     const rows = new Set(cells.map(i => Math.floor(i / 9))), columns = new Set(cells.map(i => i % 9));
     const line = rows.size === 1 ? ROWS[[...rows][0]] : columns.size === 1 ? COLUMNS[[...columns][0]] : null;
     const eliminations = line ? removable(candidates, line.filter(i => !box.includes(i)), digit) : [];
-    if (eliminations.length) return { technique: 'locked-candidates', area: box, pattern: cells, digits: [digit], eliminations };
+    if (eliminations.length) return { technique: 'locked-candidates', variant: 'pointing', area: box, pattern: cells, digits: [digit], eliminations, relies: [] };
   }
   for (const line of [...ROWS, ...COLUMNS]) for (const digit of DIGITS) {
     const cells = line.filter(i => candidates[i].has(digit));
@@ -68,7 +78,7 @@ function lockedCandidates(_: readonly number[], candidates: Candidates): Step | 
     if (cells.length < 2 || cells.length > 3 || boxes.size !== 1) continue;
     const box = BOXES[[...boxes][0]];
     const eliminations = removable(candidates, box.filter(i => !line.includes(i)), digit);
-    if (eliminations.length) return { technique: 'locked-candidates', area: line, pattern: cells, digits: [digit], eliminations };
+    if (eliminations.length) return { technique: 'locked-candidates', variant: 'claiming', area: line, pattern: cells, digits: [digit], eliminations, relies: [] };
   }
   return null;
 }
@@ -80,14 +90,14 @@ function sets(candidates: Candidates, size: number, technique: 'pair' | 'triple'
       const digits = [...new Set(cells.flatMap(i => [...candidates[i]]))];
       if (digits.length !== size) continue;
       const eliminations = house.filter(i => !cells.includes(i)).flatMap(i => digits.filter(digit => candidates[i].has(digit)).map(digit => ({ cell: i, digit })));
-      if (eliminations.length) return { technique, area: house, pattern: cells, digits: digits.sort(), eliminations };
+      if (eliminations.length) return { technique, variant: 'naked', area: house, pattern: cells, digits: digits.sort(), eliminations, relies: [] };
     }
     for (const digits of subsets(DIGITS, size)) {
       if (digits.some(digit => !house.some(i => candidates[i].has(digit)))) continue;
       const cells = [...new Set(digits.flatMap(digit => house.filter(i => candidates[i].has(digit))))];
       if (cells.length !== size) continue;
       const eliminations = cells.flatMap(i => [...candidates[i]].filter(digit => !digits.includes(digit)).map(digit => ({ cell: i, digit })));
-      if (eliminations.length) return { technique, area: house, pattern: cells, digits, eliminations };
+      if (eliminations.length) return { technique, variant: 'hidden', area: house, pattern: cells, digits, eliminations, relies: [] };
     }
   }
   return null;
@@ -102,7 +112,7 @@ function fish(candidates: Candidates, size: 2 | 3): Step | null {
       const crossing = [...new Set(lines.flatMap(a => positions[a]))];
       if (crossing.length !== size) continue;
       const eliminations = crossing.flatMap(k => removable(candidates, cover[k].filter(i => !lines.some(a => base[a].includes(i))), digit));
-      if (eliminations.length) return { technique: size === 2 ? 'x-wing' : 'swordfish', area: lines.flatMap(a => base[a]), pattern: lines.flatMap(a => base[a].filter(i => candidates[i].has(digit))), digits: [digit], eliminations };
+      if (eliminations.length) return { technique: size === 2 ? 'x-wing' : 'swordfish', area: lines.flatMap(a => base[a]), pattern: lines.flatMap(a => base[a].filter(i => candidates[i].has(digit))), digits: [digit], eliminations, relies: [] };
     }
   }
   return null;
@@ -120,7 +130,7 @@ function xyWing(candidates: Candidates): Step | null {
         const c = [...candidates[x]].find(d => d !== p);
         if (c === undefined || !candidates[y].has(c) || c === a || c === b) continue;
         const eliminations = removable(candidates, [...Array(81).keys()].filter(i => i !== x && i !== y && i !== pivot && sees(i, x) && sees(i, y)), c);
-        if (eliminations.length) return { technique: 'xy-wing', area: [pivot, x, y], pattern: [pivot, x, y], digits: [a, b, c].sort(), eliminations };
+        if (eliminations.length) return { technique: 'xy-wing', area: [pivot, x, y], pattern: [pivot, x, y], digits: [a, b, c].sort(), eliminations, relies: [] };
       }
     }
   }
@@ -139,7 +149,8 @@ function coloring(candidates: Candidates): Step | null {
       const component: number[] = []; const queue = [start]; color.set(start, 0);
       while (queue.length) { const cell = queue.shift()!; component.push(cell); for (const next of links.get(cell) ?? []) if (!color.has(next)) { color.set(next, 1 - color.get(cell)!); queue.push(next); } }
       if (component.length < 4) continue;
-      const step = (eliminations: { cell: number; digit: number }[]): Step => ({ technique: 'coloring', area: component, pattern: component, digits: [digit], eliminations });
+      const shades: [number[], number[]] = [component.filter(i => color.get(i) === 0), component.filter(i => color.get(i) === 1)];
+      const step = (eliminations: { cell: number; digit: number }[]): Step => ({ technique: 'coloring', area: component, pattern: component, digits: [digit], eliminations, relies: [], shades });
       for (const shade of [0, 1]) {
         const same = component.filter(i => color.get(i) === shade);
         if (same.some((i, k) => same.slice(k + 1).some(j => sees(i, j)))) { const eliminations = removable(candidates, same, digit); if (eliminations.length) return step(eliminations); }
