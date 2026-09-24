@@ -5,6 +5,7 @@ import { createGame, restartGame, enter, addNotes, addExclusions, fillNotes, und
 import { peers, getEntryDigits, completedUnits, celebrationLabel, type Difficulty, type Puzzle } from '@/lib/sudoku';
 import { candidateCells, excludedCells, getPlayableCandidates } from '@/lib/candidates';
 import { useNoteSelection } from './use-note-selection';
+import { activeMode, beginBatch, selectMode, toggleMode, INITIAL_ENTRY_MODE, type EntryMode, type EntryModeState } from '@/lib/entry-mode';
 import { CellNotes } from './cell-notes';
 import { AppMark, Icon } from './icons';
 import { Clock } from './clock';
@@ -27,8 +28,7 @@ export default function SudokuGame() {
   const [selected, setSelected] = useState(0);
   const [focusedDigit, setFocusedDigit] = useState<number | null>(null);
   const [focusHoldLearned, setFocusHoldLearned] = useState(false);
-  const [noteMode, setNoteMode] = useState<'value' | 'note' | 'exclude'>('value');
-  const [batchMode, setBatchMode] = useState<'note' | 'exclude'>('note');
+  const [entry, setEntry] = useState<EntryModeState>(INITIAL_ENTRY_MODE);
   const [clockResetRevision, setClockResetRevision] = useState(0);
   const [paused, setPaused] = useState(false);
   const [busy, setBusy] = useState(true);
@@ -54,7 +54,7 @@ export default function SudokuGame() {
   };
   const selection = useNoteSelection({
     values: game?.values, enabled: Boolean(game) && !paused && !busy && !sheet && !complete,
-    onSelect: selectCell, onBegin: () => { setBatchMode(noteMode === 'exclude' ? 'exclude' : 'note'); setNoteMode('value'); setBlockedEntry(null); },
+    onSelect: selectCell, onBegin: () => { setEntry(beginBatch); setBlockedEntry(null); },
     onFocus: ({ index, hasSelection }) => {
       const digit = game?.values[index];
       if (!digit) return;
@@ -64,9 +64,10 @@ export default function SudokuGame() {
     },
   });
   const batchSelection = selection.indices.length > 0;
-  const notesActive = batchSelection || noteMode !== 'value';
-  const pencil = batchSelection ? batchMode === 'note' : noteMode === 'note';
-  const excluding = batchSelection ? batchMode === 'exclude' : noteMode === 'exclude';
+  const mode = activeMode(entry, { batch: batchSelection });
+  const notesActive = mode !== 'value';
+  const pencil = mode === 'note';
+  const excluding = mode === 'exclude';
   const resetSelection = selection.reset;
   const entryDigits = useMemo(() => game ? getEntryDigits({ values: game.values, index: selected }) : [], [game, selected]);
   const numberFocus = !notesActive && (!game || selected < 0 || Boolean(game.values[selected]));
@@ -84,7 +85,7 @@ export default function SudokuGame() {
             setGame(createGame(data.puzzle));
             setSelected(data.puzzle.givens.indexOf(0));
             setDifficulty(data.puzzle.difficulty);
-            setPaused(false); setNoteMode('value');
+            setPaused(false); setEntry(INITIAL_ENTRY_MODE);
           } else setError(data.error ?? 'Could not create a puzzle. Please try again.');
           setBusy(false);
         };
@@ -177,24 +178,24 @@ export default function SudokuGame() {
   const restartPuzzle = () => {
     if (!game || busy) return;
     setGame(restartGame(game)); resetSelection(); setFocusedDigit(null);
-    setSelected(game.givens.indexOf(0)); setNoteMode('value'); setBatchMode('note');
+    setSelected(game.givens.indexOf(0)); setEntry(INITIAL_ENTRY_MODE);
     setBlockedEntry(null); setCelebration(null); setPaused(false); setClockResetRevision(value => value + 1);
     closeSheet();
   };
-  const toggleNotes = () => {
+  const chooseMode = (next: EntryMode) => {
     setBlockedEntry(null);
-    resetSelection();
-    setNoteMode(notesActive ? 'value' : 'note');
+    if (batchSelection && next === 'value') resetSelection();
+    setEntry(state => selectMode(state, { mode: next, batch: batchSelection }));
     focusSelectedCell();
   };
-  const toggleExclusions = () => {
-    if (!notesActive) return;
+  /** Keyboard N and X: switch to the mode, or back to Numbers when it is already active. */
+  const toggleEntryMode = (target: EntryMode) => {
     setBlockedEntry(null);
-    if (batchSelection) setBatchMode(mode => mode === 'exclude' ? 'note' : 'exclude');
-    else setNoteMode(mode => mode === 'exclude' ? 'note' : 'exclude');
+    if (batchSelection && mode === target) resetSelection();
+    setEntry(state => toggleMode(state, { mode: target, batch: batchSelection }));
   };
   const clearSelection = () => {
-    resetSelection(); setNoteMode('value');
+    resetSelection();
     focusSelectedCell();
   };
   const input = (value: number) => {
@@ -205,7 +206,7 @@ export default function SudokuGame() {
     setBlockedEntry(null);
     if (batchSelection) {
       if (!value) { clearSelection(); return; }
-      const applyBatch = batchMode === 'exclude' ? addExclusions : addNotes;
+      const applyBatch = excluding ? addExclusions : addNotes;
       setGame(current => current ? applyBatch(current, { indices: selection.indices, value }) : current);
       clearSelection();
     } else {
@@ -237,8 +238,8 @@ export default function SudokuGame() {
       resetSelection(); selectCell(next); board.current?.querySelector<HTMLButtonElement>(`[data-index="${next}"]`)?.focus();
     } else if (/^[1-9]$/.test(event.key)) { event.preventDefault(); input(Number(event.key)); focusSelectedCell(); }
     else if (['Backspace','Delete','0'].includes(event.key)) { event.preventDefault(); input(0); focusSelectedCell(); }
-    else if (event.key.toLowerCase() === 'x') { event.preventDefault(); toggleExclusions(); }
-    else if (event.key.toLowerCase() === 'n') { event.preventDefault(); toggleNotes(); }
+    else if (event.key.toLowerCase() === 'x') { event.preventDefault(); toggleEntryMode('exclude'); }
+    else if (event.key.toLowerCase() === 'n') { event.preventDefault(); toggleEntryMode('note'); }
   };
   const badCells = useMemo(() => game && preferences.blockIncorrectAnswers ? new Set(game.values.flatMap((value, i) => value && value !== game.solution[i] ? [i] : [])) : new Set<number>(), [game, preferences.blockIncorrectAnswers]);
   const related = useMemo(() => new Set(peers(selected)), [selected]);
@@ -256,6 +257,7 @@ export default function SudokuGame() {
   const filled = game ? game.values.filter(Boolean).length - game.givens.filter(Boolean).length : 0;
   const total = game ? game.givens.filter(n => !n).length : 1;
   const editable = game && !game.givens[selected] && !busy && !paused && !complete;
+  const canErase = Boolean(!batchSelection && editable && (game.values[selected] || game.notes[selected].length || game.exclusions[selected].length));
 
   return <div className="app" onKeyDown={handleKey}>
     <header className="app-bar">
@@ -319,18 +321,21 @@ export default function SudokuGame() {
         <div className={batchSelection ? 'batch-keypad' : undefined} role={batchSelection ? 'group' : undefined} aria-label={batchSelection ? 'Selected cells' : undefined}>
           {batchSelection && <div className="batch-heading"><span role="status">{selection.indices.length} {selection.indices.length === 1 ? 'cell' : 'cells'} selected</span><button className="batch-clear" onClick={clearSelection}>Clear selection</button></div>}
           <div className="note-controls" aria-label="Puzzle tools">
-            <button className="notes-toggle" role="switch" aria-checked={notesActive} disabled={paused || busy} onClick={toggleNotes} title="Notes (N)"><Icon name="pencil" size={19}/><span>Notes</span><span className="notes-switch-track" aria-hidden="true"><span/></span></button>
-            {notesActive && <button className="exclude-chip" aria-pressed={excluding} disabled={paused || busy} onClick={toggleExclusions} title="Exclude (X)"><span className="exclude-chip-label"><Icon name="check" size={12}/><span>Exclude</span></span></button>}
-            {!batchSelection && editable && Boolean(game.values[selected] || game.notes[selected].length || game.exclusions[selected].length) && <button className="erase-control" onClick={() => { input(0); focusSelectedCell(); }} title="Erase (Backspace)"><Icon name="erase" size={18}/><span>Erase</span></button>}
+            <div className="mode-switch" role="group" aria-label="Entry mode">
+              {(['value', 'note', 'exclude'] as const).map(option => <button key={option} className={`mode-option mode-${option}`} aria-pressed={mode === option} disabled={paused || busy} onClick={() => chooseMode(option)} title={{ value: 'Numbers', note: 'Notes (N)', exclude: 'Exclude (X)' }[option]}>
+                <Icon name={({ value: 'numbers', note: 'pencil', exclude: 'exclude' } as const)[option]} size={16}/><span>{{ value: 'Numbers', note: 'Notes', exclude: 'Exclude' }[option]}</span>
+              </button>)}
+            </div>
+            <button className="erase-control" style={{ visibility: canErase ? 'visible' : 'hidden' }} disabled={!canErase} onClick={() => { input(0); focusSelectedCell(); }} aria-label="Erase" title="Erase (Backspace)"><Icon name="erase" size={20}/></button>
           </div>
-        <div className={`number-pad ${pencil || excluding ? 'pencil-mode' : ''}`} aria-label="Number pad">
+        <div className={`number-pad mode-${mode}`} aria-label="Number pad">
           {DIGITS.map(n => {
             const remaining = Math.max(0, 9 - (game?.values.filter(v => v === n).length ?? 0));
             const filtered = Boolean(editable && filtering && !entryDigits.includes(n));
             return <button key={n} className={`number-key ${!remaining ? 'digit-finished' : ''} ${filtered ? 'digit-filtered' : ''}`} aria-label={batchSelection ? `${excluding ? 'Exclude' : 'Add note'} ${n} ${excluding ? 'from' : 'to'} ${selection.indices.length} selected cells` : numberFocus ? `Focus on ${n}` : `${excluding ? 'Rule out' : 'Enter'} ${n}${pencil ? ' as a note' : ''}${filtered ? ', unavailable: already in this row, column, or box' : ''}`} disabled={(!editable && !(numberFocus && game && !busy && !paused && !complete)) || filtered} onClick={() => input(n)}><span>{n}</span>{!batchSelection && <small aria-hidden="true">{remaining || <Icon name="check" size={10}/>}</small>}</button>;
           })}
         </div>
-        <p className="input-hint" role="status">{batchSelection ? excluding ? 'Tap a number to exclude from all selected cells.' : 'Tap a number to add a note to all selected cells.' : excluding ? 'Exclude on. Tap a number to rule it out or restore it.' : pencil ? 'Notes on. Tap a number to add or remove a note.' : numberFocus ? 'Tap a number to focus it. Select an empty cell to enter a value.' : filtering ? entryDigits.length ? 'Dimmed numbers already appear in this row, column, or box.' : 'No numbers available here. Check nearby entries or undo.' : 'Select a cell, then a number. Drag across empty cells to select.'}</p>
+        <p className="input-hint" role="status">{batchSelection ? excluding ? 'Tap a number to exclude from all selected cells.' : 'Tap a number to add a note to all selected cells.' : numberFocus ? 'Tap a number to focus it. Select an empty cell to enter a value.' : filtering ? entryDigits.length ? 'Dimmed numbers already appear in this row, column, or box.' : 'No numbers available here. Check nearby entries or undo.' : 'Select a cell, then a number. Drag across empty cells to select.'}</p>
         <p className="sr-only" role="status">{rejection ? `${rejection.value} rejected, ${rejection.kind === 'constraint' ? `already in this ${rejection.unit}` : 'incorrect for this cell'}${rejection.id % 2 ? '\u00a0' : ''}` : ''}</p>
         </div>
       </>}
