@@ -62,6 +62,7 @@ export function countSolutions(values: number[]): number {
   return count;
 }
 
+// Raw clue targets. generatePuzzle('expert') only yields a minimal puzzle; real Expert puzzles come from createPuzzle in difficulty.ts.
 export const CLUE_TARGETS: Record<Difficulty, number> = { easy: 42, medium: 34, hard: 28, expert: 0 };
 export function generatePuzzle(difficulty: Difficulty, seed = Math.floor(Math.random() * 0xffffffff)): Puzzle {
   return buildPuzzle({ difficulty, seed, clueTarget: CLUE_TARGETS[difficulty] });

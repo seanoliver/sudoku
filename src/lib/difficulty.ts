@@ -7,7 +7,7 @@ export const TECHNIQUES = ['naked-single', 'hidden-single', 'locked-candidates',
 export type Technique = typeof TECHNIQUES[number];
 export const DIFFICULTY_BANDS: Record<Difficulty, readonly Technique[]> = { easy: ['naked-single'], medium: ['hidden-single'], hard: ['locked-candidates', 'pair'], expert: ['triple', 'x-wing', 'quad', 'swordfish', 'xy-wing', 'coloring'] };
 // Hard removes every removable clue; the others keep their clue targets.
-const GRADED_CLUE_TARGETS: Record<Difficulty, number> = { ...CLUE_TARGETS, hard: 0 };
+const GRADED_CLUE_TARGETS: Record<Difficulty, number> = { ...CLUE_TARGETS, hard: 0 }; // expert never generates; it comes from EXPERT_BANK
 const MAX_ATTEMPTS = 60;
 
 const boxOf = (i: number) => Math.floor(i / 27) * 3 + Math.floor((i % 9) / 3);
@@ -104,6 +104,7 @@ function xyWing(candidates: Candidates): boolean {
   return false;
 }
 /** Single-digit coloring over conjugate pairs (houses with exactly two cells for the digit). */
+// Exactly one cell of each conjugate pair holds the digit, so a sound board always 2-colors cleanly; the search can skip already-colored cells without checking for clashes.
 function coloring(candidates: Candidates): boolean {
   for (const digit of DIGITS) {
     const links = new Map<number, number[]>();
