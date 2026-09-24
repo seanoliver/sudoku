@@ -11,6 +11,8 @@ export function createGame(puzzle: Puzzle): GameState {
 export type Rejection = { kind: 'constraint' | 'answer'; sources: number[]; unit: 'row' | 'column' | 'box' | null };
 const unitOf = (index: number, sources: number[]): Rejection['unit'] => sources.some(s => Math.floor(s / 9) === Math.floor(index / 9)) ? 'row' : sources.some(s => s % 9 === index % 9) ? 'column' : 'box';
 /** Why a value entry would be refused, or null. Notes, exclusions, erasing and givens are never rejected. */
+/** True when a peer already holds the digit, so filtered notes and exclusions refuse it. */
+const heldByPeer = (game: GameState, index: number, value: number) => peers(index).some(peer => game.values[peer] === value);
 export function rejectEntry(game: GameState, { index, value, pencil = false, exclude = false, blockIncorrectAnswers = false, filterNumberKeys = false }: { index: number; value: number; pencil?: boolean; exclude?: boolean; blockIncorrectAnswers?: boolean; filterNumberKeys?: boolean }): Rejection | null {
   if (!Number.isInteger(index) || index < 0 || index >= 81 || game.givens[index] || pencil || exclude || !Number.isInteger(value) || value < 1 || value > 9) return null;
   if (filterNumberKeys) {
@@ -39,10 +41,10 @@ export function fillNotes(game: GameState): GameState {
     && noteOrigins[i] === game.noteOrigins[i])) return game;
   return record(game, { values: game.values, notes, exclusions: game.exclusions, noteOrigins });
 }
-export function addNotes(game: GameState, { indices, value }: { indices: readonly number[]; value: number }): GameState {
+export function addNotes(game: GameState, { indices, value, filterNumberKeys = false }: { indices: readonly number[]; value: number; filterNumberKeys?: boolean }): GameState {
   if (!Number.isInteger(value) || value < 1 || value > 9 || isComplete(game)) return game;
   const targets = [...new Set(indices)].filter(index => Number.isInteger(index) && index >= 0 && index < 81
-    && !game.givens[index] && !game.values[index]
+    && !game.givens[index] && !game.values[index] && !(filterNumberKeys && heldByPeer(game, index, value))
     && (!game.notes[index].includes(value) || game.noteOrigins[index] !== 'manual'));
   if (!targets.length) return game;
   const notes = [...game.notes];
@@ -55,10 +57,10 @@ export function addNotes(game: GameState, { indices, value }: { indices: readonl
   }
   return record(game, { values: game.values, notes, exclusions, noteOrigins });
 }
-export function addExclusions(game: GameState, { indices, value }: { indices: readonly number[]; value: number }): GameState {
+export function addExclusions(game: GameState, { indices, value, filterNumberKeys = false }: { indices: readonly number[]; value: number; filterNumberKeys?: boolean }): GameState {
   if (!Number.isInteger(value) || value < 1 || value > 9 || isComplete(game)) return game;
   const targets = [...new Set(indices)].filter(index => Number.isInteger(index) && index >= 0 && index < 81
-    && !game.givens[index] && !game.values[index] && !game.exclusions[index].includes(value));
+    && !game.givens[index] && !game.values[index] && !(filterNumberKeys && heldByPeer(game, index, value)) && !game.exclusions[index].includes(value));
   if (!targets.length) return game;
   const notes = [...game.notes];
   const exclusions = [...game.exclusions];
@@ -74,6 +76,7 @@ export function enter(game: GameState, { index, value, pencil = false, exclude =
   if (!Number.isInteger(index) || index < 0 || index >= 81 || !Number.isInteger(value) || value < 0 || value > 9 || game.givens[index] || isComplete(game)) return game;
   if (rejectEntry(game, { index, value, pencil, exclude, blockIncorrectAnswers, filterNumberKeys })) return game;
   if ((pencil || exclude) && game.values[index] && value !== 0) return game;
+  if ((pencil || exclude) && value && filterNumberKeys && !(exclude ? game.exclusions : game.notes)[index].includes(value) && heldByPeer(game, index, value)) return game;
   if ((value === 0 || (!pencil && !exclude)) && game.values[index] === value && !game.notes[index].length && !game.exclusions[index].length) return game;
   const values = [...game.values];
   const notes = game.notes.map(n => [...n]);
