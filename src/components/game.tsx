@@ -19,6 +19,7 @@ type InstallEvent = Event & { prompt: () => Promise<void>; userChoice: Promise<{
 const DIGITS = [1,2,3,4,5,6,7,8,9];
 const EMPTY_NOTES: number[] = [];
 const FOCUS_HINT_KEY = 'sudoku.focus-hold-learned.v1';
+const HINT_STRIP_FOCUS = '.hint-strip .hint-action, .hint-strip .clear-focus-button';
 /** Reads, updates and saves play history; storage failures only lose history, never the game. */
 const updateHistory = (change: (history: PuzzleHistory) => PuzzleHistory) => { try { localStorage.setItem(HISTORY_KEY, JSON.stringify(change(readHistory(localStorage.getItem(HISTORY_KEY))))); } catch { /* History is optional. */ } };
 const seenPuzzles = () => { try { return readHistory(localStorage.getItem(HISTORY_KEY)).seen; } catch { return []; } };
@@ -57,6 +58,7 @@ export default function SudokuGame() {
   // Keep `game` in this state: it hides the hint after any board change, so Apply never writes a stale move.
   const [hintState, setHintState] = useState<{ game: GameState; level: HintLevel; hint: Hint } | null>(null);
   const focusAfterRender = useRef<string | null>(null);
+  const hintAdvancedAt = useRef(-Infinity);
   const [celebration, setCelebration] = useState<{ id: number; origin: number; cells: number[]; label: string } | null>(null);
   const celebrationId = useRef(0);
   const complete = game ? isComplete(game) : false;
@@ -283,7 +285,7 @@ export default function SudokuGame() {
       resetSelection(); selectCell(next); board.current?.querySelector<HTMLButtonElement>(`[data-index="${next}"]`)?.focus();
     } else if (/^[1-9]$/.test(event.key)) { event.preventDefault(); input(Number(event.key)); focusSelectedCell(); }
     else if (['Backspace','Delete','0'].includes(event.key)) { event.preventDefault(); input(0); focusSelectedCell(); }
-    else if (event.key.toLowerCase() === 'h') { event.preventDefault(); showHint(); }
+    else if (event.key.toLowerCase() === 'h') { event.preventDefault(); if ((event.target as Element).closest('.digit-focus-bar')) focusAfterRender.current = HINT_STRIP_FOCUS; showHint(); }
     else if (event.key.toLowerCase() === 'x') { event.preventDefault(); toggleEntryMode('exclude'); }
     else if (event.key.toLowerCase() === 'n') { event.preventDefault(); toggleEntryMode('note'); }
   };
@@ -333,8 +335,8 @@ export default function SudokuGame() {
         {hintDisplay ? <>
           <span className="hint-copy" aria-hidden="true"><Icon name="bulb" size={18}/><span>{hintDisplay.text}</span></span>
           {hintDisplay.levels > 1 && <span className="hint-dots" aria-hidden="true">{[1, 2, 3].map(step => <i key={step} className={step <= activeHint!.level ? 'on' : ''}/>)}</span>}
-          {/* detail < 2: Next becomes Apply in place, so a double-tap on Next would otherwise make the move. */}
-          {hintDisplay.action !== 'none' && <button className="hint-action" onClick={event => { if (hintDisplay.action === 'next') showHint(); else if (event.detail < 2) applyActiveHint(); }}>{hintDisplay.action === 'apply' ? 'Apply' : 'Next'}</button>}
+          {/* Next becomes Apply in place, so Apply ignores taps just after Next; a double-tap on Next would otherwise make the move. */}
+          {hintDisplay.action !== 'none' && <button className="hint-action" onClick={event => { if (hintDisplay.action === 'next') { hintAdvancedAt.current = event.timeStamp; showHint(); } else if (event.timeStamp - hintAdvancedAt.current > 350) applyActiveHint(); }}>{hintDisplay.action === 'apply' ? 'Apply' : 'Next'}</button>}
           <button className="clear-focus-button" aria-label="Close hint" title="Close hint" onClick={() => { setHintState(null); focusSelectedCell(); }}><Icon name="close" size={16}/></button>
         </> : <>
         {focusedDigit !== null ? <>
@@ -343,7 +345,7 @@ export default function SudokuGame() {
         </> : <button className="focus-button" disabled={!selectedCellValue || batchSelection} onClick={() => setFocusedDigit(selectedCellValue)} aria-label={selectedCellValue ? `Focus on ${selectedCellValue}` : 'Focus on a number'} aria-describedby={selectedCellValue && !focusHoldLearned ? 'focus-hold-hint' : undefined}>
           <Icon name="focus" size={18}/><span className="focus-copy"><span>{selectedCellValue ? <>Focus on <strong>{selectedCellValue}</strong></> : 'Select a number to focus'}</span><span id="focus-hold-hint" className="focus-hint" hidden={!selectedCellValue || focusHoldLearned}>Or hold a filled cell</span></span>
         </button>}
-          <button className="hint-button" aria-label="Show a hint" title="Hint (H)" disabled={!game || complete} onClick={() => { focusAfterRender.current = '.hint-strip .hint-action, .hint-strip .clear-focus-button'; showHint(); }}><Icon name="bulb" size={19}/></button>
+          <button className="hint-button" aria-label="Show a hint" title="Hint (H)" disabled={!game || complete} onClick={() => { focusAfterRender.current = HINT_STRIP_FOCUS; showHint(); }}><Icon name="bulb" size={19}/></button>
         </>}
       </div>
 
