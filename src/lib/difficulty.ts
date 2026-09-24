@@ -1,11 +1,12 @@
-import { buildPuzzle, peers, type Difficulty, type Puzzle } from './sudoku.ts';
+import { buildPuzzle, CLUE_TARGETS, peers, type Difficulty, type Puzzle } from './sudoku.ts';
 import { BOXES, COLUMNS, DIGITS, HOUSES, ROWS, type Candidates } from './deductions.ts';
 
 /** Human solving techniques, easiest first. A puzzle is rated by the hardest one it needs. */
 export const TECHNIQUES = ['naked-single', 'hidden-single', 'locked-candidates', 'pair', 'triple', 'x-wing', 'beyond'] as const;
 export type Technique = typeof TECHNIQUES[number];
 export const DIFFICULTY_BANDS: Record<Difficulty, readonly Technique[]> = { easy: ['naked-single'], medium: ['hidden-single'], hard: ['locked-candidates', 'pair'] };
-const GRADED_CLUE_TARGETS: Record<Difficulty, number> = { easy: 42, medium: 34, hard: 0 };
+// Hard removes every removable clue; the others keep their clue targets.
+const GRADED_CLUE_TARGETS: Record<Difficulty, number> = { ...CLUE_TARGETS, hard: 0 };
 const MAX_ATTEMPTS = 60;
 
 const boxOf = (i: number) => Math.floor(i / 27) * 3 + Math.floor((i % 9) / 3);
@@ -67,8 +68,8 @@ function xWing(candidates: Candidates): boolean {
   return changed;
 }
 
-/** The hardest technique a person needs, always trying easier techniques first. 'beyond' means these techniques cannot finish it. */
-export function ratePuzzle(givens: readonly number[]): Technique {
+/** Solves with the easiest technique first, returning the hardest one used ('beyond' if these techniques cannot finish) and the board reached. */
+export function solveWithTechniques(givens: readonly number[]): { technique: Technique; values: number[] } {
   const values = [...givens];
   const candidates: Candidates = values.map((value, i) => new Set(value ? [] : DIGITS.filter(digit => !peers(i).some(peer => values[peer] === digit))));
   const place = (index: number, digit: number) => { values[index] = digit; candidates[index].clear(); for (const peer of peers(index)) candidates[peer].delete(digit); };
@@ -87,21 +88,27 @@ export function ratePuzzle(givens: readonly number[]): Technique {
     if (!step) break;
     hardest = Math.max(hardest, step[0]);
   }
-  return values.every(Boolean) ? TECHNIQUES[hardest] : 'beyond';
+  return { technique: values.every(Boolean) ? TECHNIQUES[hardest] : 'beyond', values };
+}
+/** The hardest technique a person needs to solve the puzzle. */
+export function ratePuzzle(givens: readonly number[]): Technique {
+  return solveWithTechniques(givens).technique;
 }
 
 /** A uniquely solvable puzzle whose rating falls in the difficulty's band, drawing seeded candidates until one fits. */
 export function createPuzzle(difficulty: Difficulty, seed = Math.floor(Math.random() * 0xffffffff)): Puzzle {
   const band = DIFFICULTY_BANDS[difficulty];
   const ceiling = TECHNIQUES.indexOf(band[band.length - 1]);
+  let first: Puzzle | null = null;
   let fallback: { puzzle: Puzzle; rank: number } | null = null;
   for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
     const puzzle = buildPuzzle({ difficulty, seed: (seed + Math.imul(attempt, 0x9e3779b9)) >>> 0, clueTarget: GRADED_CLUE_TARGETS[difficulty] });
+    first ??= puzzle;
     const rating = ratePuzzle(puzzle.givens);
     if (band.includes(rating)) return { ...puzzle, id: `${seed}-${difficulty}` };
     // Otherwise keep the hardest puzzle that does not exceed the band.
     const rank = TECHNIQUES.indexOf(rating);
     if (rank <= ceiling && (!fallback || rank > fallback.rank)) fallback = { puzzle, rank };
   }
-  return { ...(fallback?.puzzle ?? buildPuzzle({ difficulty, seed, clueTarget: GRADED_CLUE_TARGETS[difficulty] })), id: `${seed}-${difficulty}` };
+  return { ...(fallback?.puzzle ?? first!), id: `${seed}-${difficulty}` };
 }

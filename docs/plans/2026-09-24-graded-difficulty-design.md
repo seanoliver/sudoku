@@ -8,7 +8,7 @@ Roadmap R2, part 1 of 2. Sean chose, on September 24, to first make the existing
   - Easy: naked singles only.
   - Medium: needs hidden singles.
   - Hard: needs locked candidates (pointing or claiming) or a naked or hidden pair.
-- Puzzles still have exactly one solution. Clue counts vary: Easy about 42, Medium about 34, Hard as few as the generator can remove (about 24).
+- Puzzles still have exactly one solution. Clue counts vary: Easy about 42, Medium about 34, Hard as few as the generator can remove (21–27 observed).
 - No UI change. The New puzzle sheet keeps its three options and descriptions.
 
 ## Implementation

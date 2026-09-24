@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { createPuzzle, ratePuzzle, TECHNIQUES, DIFFICULTY_BANDS } from '../src/lib/difficulty.ts';
-import { countSolutions, conflicts, generatePuzzle } from '../src/lib/sudoku.ts';
+import { createPuzzle, ratePuzzle, solveWithTechniques, TECHNIQUES, DIFFICULTY_BANDS } from '../src/lib/difficulty.ts';
+import { buildPuzzle, countSolutions, conflicts, generatePuzzle } from '../src/lib/sudoku.ts';
 
 test('a solved board and a one-gap board need only naked singles', () => {
   const { solution } = generatePuzzle('easy', 3);
@@ -35,4 +35,13 @@ test('graded generation stays fast enough for the puzzle worker', () => {
   const start = performance.now();
   for (let seed = 100; seed < 110; seed++) createPuzzle('hard', seed);
   assert.ok((performance.now() - start) / 10 < 1500);
+});
+
+test('technique solving never contradicts the solution, including on the hardest puzzles', () => {
+  for (let seed = 1; seed <= 40; seed++) {
+    const puzzle = buildPuzzle({ difficulty: 'hard', seed, clueTarget: 0 });
+    const { technique, values } = solveWithTechniques(puzzle.givens);
+    assert.ok(values.every((v, i) => v === 0 || v === puzzle.solution[i]), `seed ${seed} placed a wrong digit`);
+    if (technique !== 'beyond') assert.deepEqual(values, puzzle.solution);
+  }
 });

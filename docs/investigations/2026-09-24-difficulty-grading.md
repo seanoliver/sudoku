@@ -13,11 +13,11 @@ Grading 150 generated puzzles per level with a human-style solver (easiest techn
 | Easy | 42 | 100% | 0% | 0% | 0% | 0% | 0% |
 | Medium | 34 | 72% | 23% | 1% | 0% | 0% | 4% |
 | Hard | 28 | 13% | 64% | 5% | 2% | 0% | 16% |
-| Minimal (~24) | 24 | 4% | 41% | 15% | 7% | 0% | 33% |
+| Minimal (~24, repro removal order) | 24 | 4% | 41% | 15% | 7% | 0% | 33% |
 
 - Difficulty is set only by clue count, so levels overlap heavily. 13% of Hard puzzles need nothing beyond naked singles, and 4% of Medium puzzles need techniques beyond X-wing.
 - Removing every removable clue only reaches about 24 clues with this generator, and 45% of those puzzles still solve with singles.
-- No puzzle in any sample needed triples or X-wing as its hardest step. Puzzles either solve with pairs or less, or need something beyond X-wing (for example chains or swordfish), or require trial and error. The grader does not yet tell these apart.
+- Triples and X-wing are rare as the hardest step: none in these 150-puzzle samples, and one each in a separate 300-puzzle check. Puzzles either solve with pairs or less, or need something beyond X-wing (for example chains or swordfish), or require trial and error. The grader does not yet tell these apart.
 - Generation time: about 7ms per Hard puzzle and about 37ms per minimal puzzle (max about 210ms), so generating several candidates per request is affordable in the worker.
 
 ## How it works
