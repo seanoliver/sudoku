@@ -62,7 +62,12 @@ export function countSolutions(values: number[]): number {
   return count;
 }
 
+export const CLUE_TARGETS: Record<Difficulty, number> = { easy: 42, medium: 34, hard: 28 };
 export function generatePuzzle(difficulty: Difficulty, seed = Math.floor(Math.random() * 0xffffffff)): Puzzle {
+  return buildPuzzle({ difficulty, seed, clueTarget: CLUE_TARGETS[difficulty] });
+}
+/** Removes clues in seeded random order while the solution stays unique, stopping at `clueTarget` (0 removes every removable clue). */
+export function buildPuzzle({ difficulty, seed, clueTarget }: { difficulty: Difficulty; seed: number; clueTarget: number }): Puzzle {
   let state = seed >>> 0;
   function random() {
     state += 0x6D2B79F5;
@@ -80,7 +85,7 @@ export function generatePuzzle(difficulty: Difficulty, seed = Math.floor(Math.ra
   const rows = groups(), cols = groups(), digits = shuffle([1,2,3,4,5,6,7,8,9]);
   const solution = rows.flatMap(r => cols.map(c => digits[(r * 3 + Math.floor(r / 3) + c) % 9]));
   const givens = [...solution];
-  const target = { easy: 42, medium: 34, hard: 28 }[difficulty];
+  const target = clueTarget;
   let remaining = 81;
   for (const i of shuffle(indexes)) {
     if (remaining <= target) break;
