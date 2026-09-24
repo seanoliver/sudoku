@@ -258,6 +258,12 @@ Status: queued for research. The feature outcomes below are uncommitted. Complet
 - **Research:** Compare a 3 × 3 grid with the current row on a 390px-wide phone: key size, reach, how the grid sits beside or below the board, and how entry modes (Numbers, Notes, Exclude), Erase, digit focus, number filtering, and the batch keypad fit. Check how the grid mirrors a cell's note layout.
 - **Output:** Three rendered layout directions for Sean, then a scope proposal. Coordinate with the entry mode switch (R3) and the number-row presentation (R4).
 
+### R10. Puzzle history
+
+- **Idea:** Show players the puzzles they have completed, as Good Sudoku does. Sean raised this on September 24.
+- **Data:** Expert already records seen and completed bank puzzles on the device (`sudoku.puzzle-history.v1`). Other levels are generated and would need their own record, such as a board key or completion stats.
+- **Output:** Three rendered directions for a history or stats view, then a scope proposal.
+
 ### R9. Native iOS app
 
 - **Idea:** Turn Sudoku into a native iOS app once the web app is settled. Sean added this on September 23 as a later goal, after the current web work.

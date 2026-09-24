@@ -22,8 +22,8 @@ export function rejectEntry(game: GameState, { index, value, pencil = false, exc
   if (blockIncorrectAnswers && value !== game.solution[index]) return { kind: 'answer', sources: [], unit: null };
   return null;
 }
-export function restartGame({ id, difficulty, givens, solution }: GameState): GameState {
-  return createGame({ id, difficulty, givens, solution });
+export function restartGame({ id, difficulty, givens, solution, source }: GameState): GameState {
+  return createGame({ id, difficulty, givens, solution, ...(source === undefined ? {} : { source }) });
 }
 function snapshot({ values, notes, exclusions, noteOrigins }: GameState): Snapshot {
   return { values, notes, exclusions, noteOrigins };
@@ -159,6 +159,7 @@ export function restore(raw: string): GameState | null {
     const history = game.history.map(migrateSnapshot);
     const redoHistory = savedRedo.map(migrateSnapshot);
     if (history.some(s => s === null) || redoHistory.some(s => s === null)) return null;
-    return { ...game, ...current, history: history as Snapshot[], redoHistory: redoHistory as Snapshot[] };
+    const { source, ...rest } = game;
+    return { ...rest, ...(typeof source === 'string' && source.length <= 40 ? { source } : {}), ...current, history: history as Snapshot[], redoHistory: redoHistory as Snapshot[] };
   } catch { return null; }
 }

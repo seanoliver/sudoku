@@ -1,5 +1,6 @@
 export type Difficulty = 'easy' | 'medium' | 'hard' | 'expert';
-export type Puzzle = { id: string; difficulty: Difficulty; givens: number[]; solution: number[] };
+/** `source` identifies a bank puzzle (see expertKey) so play history can avoid repeats. */
+export type Puzzle = { id: string; difficulty: Difficulty; givens: number[]; solution: number[]; source?: string };
 const indexes = Array.from({ length: 81 }, (_, i) => i);
 const row = (i: number) => Math.floor(i / 9);
 const box = (i: number) => Math.floor(row(i) / 3) * 3 + Math.floor((i % 9) / 3);

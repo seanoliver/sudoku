@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { createPuzzle, ratePuzzle, solveWithTechniques, transformPuzzle, TECHNIQUES, DIFFICULTY_BANDS } from '../src/lib/difficulty.ts';
+import { createPuzzle, isExpert, ratePuzzle, solveWithTechniques, transformPuzzle, TECHNIQUES, DIFFICULTY_BANDS } from '../src/lib/difficulty.ts';
 import { EXPERT_BANK } from '../src/lib/expert-bank.ts';
 import { buildPuzzle, countSolutions, conflicts, generatePuzzle } from '../src/lib/sudoku.ts';
 
@@ -64,11 +64,12 @@ test('symmetry transforms keep a puzzle valid, unique, and equally hard, and var
 });
 
 test('every banked expert puzzle is unique and rates in the expert band', () => {
-  assert.ok(EXPERT_BANK.length >= 100);
+  assert.ok(EXPERT_BANK.length >= 150);
   for (const entry of EXPERT_BANK) {
     const givens = [...entry].map(Number);
     assert.equal(countSolutions(givens), 1);
     assert.ok(DIFFICULTY_BANDS.expert.includes(ratePuzzle(givens)), entry);
+    assert.ok(isExpert(givens), `${entry} needs too few advanced steps or needs them too late`);
   }
 });
 
@@ -84,4 +85,8 @@ test('expert puzzles come from the bank, solved and transformed, and never need 
     boards.add(puzzle.givens.join(''));
   }
   assert.equal(boards.size, 12);
+});
+
+test('served expert variants still meet the expert rule', () => {
+  for (let seed = 1; seed <= 40; seed++) assert.ok(isExpert(createPuzzle('expert', seed).givens), `seed ${seed}`);
 });
