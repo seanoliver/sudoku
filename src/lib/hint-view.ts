@@ -32,7 +32,6 @@ export function techniqueName(step: Step): string {
   }
 }
 
-/** The area as a house name ("row 3") when it is exactly one row, column or box. */
 function houseOf(area: readonly number[]): { kind: 'row' | 'column' | 'box'; number: number } | null {
   if (area.length !== 9) return null;
   const rows = new Set(area.map(i => Math.floor(i / 9))), columns = new Set(area.map(i => i % 9)), boxes = new Set(area.map(i => Math.floor(i / 27) * 3 + Math.floor((i % 9) / 3)));

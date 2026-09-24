@@ -54,7 +54,7 @@ export default function SudokuGame() {
   const dialog = useRef<HTMLDialogElement>(null);
   const board = useRef<HTMLDivElement>(null);
   const rejectionId = useRef(0);
-  // A hint belongs to the exact board it was computed for; any change to the game object retires it.
+  // Keep `game` in this state: it hides the hint after any board change, so Apply never writes a stale move.
   const [hintState, setHintState] = useState<{ game: GameState; level: HintLevel; hint: Hint } | null>(null);
   const focusAfterRender = useRef<number | null>(null);
   const [celebration, setCelebration] = useState<{ id: number; origin: number; cells: number[]; label: string } | null>(null);
@@ -218,7 +218,6 @@ export default function SudokuGame() {
     resetSelection();
     focusSelectedCell();
   };
-  // After Apply the affected cell takes keyboard focus once it has re-rendered.
   useEffect(() => {
     if (focusAfterRender.current === null) return;
     board.current?.querySelector<HTMLButtonElement>(`[data-index="${focusAfterRender.current}"]`)?.focus();
