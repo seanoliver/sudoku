@@ -10,9 +10,9 @@ export function createGame(puzzle: Puzzle): GameState {
 }
 export type Rejection = { kind: 'constraint' | 'answer'; sources: number[]; unit: 'row' | 'column' | 'box' | null };
 const unitOf = (index: number, sources: number[]): Rejection['unit'] => sources.some(s => Math.floor(s / 9) === Math.floor(index / 9)) ? 'row' : sources.some(s => s % 9 === index % 9) ? 'column' : 'box';
-/** Why a value entry would be refused, or null. Notes, exclusions, erasing and givens are never rejected. */
 /** True when a peer already holds the digit, so filtered notes and exclusions refuse it. */
 const heldByPeer = (game: GameState, index: number, value: number) => peers(index).some(peer => game.values[peer] === value);
+/** Why a value entry would be refused, or null. Notes, exclusions, erasing and givens are never rejected. */
 export function rejectEntry(game: GameState, { index, value, pencil = false, exclude = false, blockIncorrectAnswers = false, filterNumberKeys = false }: { index: number; value: number; pencil?: boolean; exclude?: boolean; blockIncorrectAnswers?: boolean; filterNumberKeys?: boolean }): Rejection | null {
   if (!Number.isInteger(index) || index < 0 || index >= 81 || game.givens[index] || pencil || exclude || !Number.isInteger(value) || value < 1 || value > 9) return null;
   if (filterNumberKeys) {

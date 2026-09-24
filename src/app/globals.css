@@ -150,8 +150,6 @@ h1,h2,h3,p { margin: 0; }
 @media (hover: hover) { .focus-button:not(:disabled):hover,.clear-focus-button:hover { background: var(--peer); } }
 .notes .note-digit.note-focused { background: var(--blue-soft); color: var(--blue-strong); border-radius: 3px; font-weight: 750; box-shadow: inset 0 0 0 1px var(--blue); }
 
-
-
 .puzzle-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 24px; }
 .puzzle-action { display: flex; align-items: center; justify-content: center; gap: 9px; padding: 12px 8px; min-height: 64px; border: 1px solid var(--line); border-radius: 10px; background: var(--canvas); font-size: 13px; font-weight: 550; color: var(--ink); }
 .puzzle-action.new-puzzle-action { background: var(--blue-soft); color: var(--blue-strong); }
