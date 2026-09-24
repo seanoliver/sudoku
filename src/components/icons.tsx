@@ -1,5 +1,5 @@
 import type { CSSProperties } from 'react';
-export type IconName = 'clock' | 'filter' | 'restart' | 'shield' | 'sparkles' | 'focus' | 'fill' | 'undo' | 'erase' | 'pencil' | 'pause' | 'play' | 'plus' | 'chevron' | 'settings' | 'download' | 'check' | 'close' | 'help' | 'sun' | 'moon';
+export type IconName = 'clock' | 'filter' | 'restart' | 'shield' | 'sparkles' | 'focus' | 'fill' | 'undo' | 'erase' | 'pencil' | 'pause' | 'play' | 'plus' | 'chevron' | 'settings' | 'download' | 'check' | 'close' | 'help' | 'sun' | 'moon' | 'numbers' | 'exclude';
 const paths: Record<IconName, React.ReactNode> = {
   clock: <><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></>,
   filter: <path d="M3 4h18l-7 8v8l-4-2v-6L3 4Z"/>,
@@ -22,6 +22,8 @@ const paths: Record<IconName, React.ReactNode> = {
   help: <><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 4.3 1.7c-1.3.7-1.8 1.1-1.8 2.8M12 17h.01"/></>,
   sun: <><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5m11 11L19 19M5 19l1.5-1.5m11-11L19 5"/></>,
   moon: <path d="M20 14A9 9 0 0 1 10 3a9 9 0 1 0 10 11Z"/>,
+  numbers: <path d="M2.5 8.5 4.5 7v10M8 9.5a2 2 0 1 1 3.4 1.5L8 17h4.2M15.5 7h4l-2.5 3.5a3 3 0 1 1-2 5.3"/>,
+  exclude: <><circle cx="12" cy="12" r="8"/><path d="m6.5 6.5 11 11"/></>,
 };
 export function Icon({ name, size = 22, style }: { name: IconName; size?: number; style?: CSSProperties }) {
   return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={style}>{paths[name]}</svg>;

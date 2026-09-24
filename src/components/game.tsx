@@ -5,6 +5,7 @@ import { createGame, restartGame, enter, addNotes, addExclusions, fillNotes, und
 import { peers, getEntryDigits, completedUnits, celebrationLabel, type Difficulty, type Puzzle } from '@/lib/sudoku';
 import { candidateCells, excludedCells, getPlayableCandidates } from '@/lib/candidates';
 import { useNoteSelection } from './use-note-selection';
+import { activeMode, beginBatch, selectMode, toggleMode, INITIAL_ENTRY_MODE, type EntryMode, type EntryModeState } from '@/lib/entry-mode';
 import { CellNotes } from './cell-notes';
 import { AppMark, Icon } from './icons';
 import { Clock } from './clock';
@@ -27,8 +28,7 @@ export default function SudokuGame() {
   const [selected, setSelected] = useState(0);
   const [focusedDigit, setFocusedDigit] = useState<number | null>(null);
   const [focusHoldLearned, setFocusHoldLearned] = useState(false);
-  const [noteMode, setNoteMode] = useState<'value' | 'note' | 'exclude'>('value');
-  const [batchMode, setBatchMode] = useState<'note' | 'exclude'>('note');
+  const [entry, setEntry] = useState<EntryModeState>(INITIAL_ENTRY_MODE);
   const [clockResetRevision, setClockResetRevision] = useState(0);
   const [paused, setPaused] = useState(false);
   const [busy, setBusy] = useState(true);
@@ -54,7 +54,7 @@ export default function SudokuGame() {
   };
   const selection = useNoteSelection({
     values: game?.values, enabled: Boolean(game) && !paused && !busy && !sheet && !complete,
-    onSelect: selectCell, onBegin: () => { setBatchMode(noteMode === 'exclude' ? 'exclude' : 'note'); setNoteMode('value'); setBlockedEntry(null); },
+    onSelect: selectCell, onBegin: () => { setEntry(beginBatch); setBlockedEntry(null); },
     onFocus: ({ index, hasSelection }) => {
       const digit = game?.values[index];
       if (!digit) return;
@@ -64,9 +64,10 @@ export default function SudokuGame() {
     },
   });
   const batchSelection = selection.indices.length > 0;
-  const notesActive = batchSelection || noteMode !== 'value';
-  const pencil = batchSelection ? batchMode === 'note' : noteMode === 'note';
-  const excluding = batchSelection ? batchMode === 'exclude' : noteMode === 'exclude';
+  const mode = activeMode(entry, { batch: batchSelection });
+  const notesActive = mode !== 'value';
+  const pencil = mode === 'note';
+  const excluding = mode === 'exclude';
   const resetSelection = selection.reset;
   const entryDigits = useMemo(() => game ? getEntryDigits({ values: game.values, index: selected }) : [], [game, selected]);
   const numberFocus = !notesActive && (!game || selected < 0 || Boolean(game.values[selected]));
@@ -84,7 +85,7 @@ export default function SudokuGame() {
             setGame(createGame(data.puzzle));
             setSelected(data.puzzle.givens.indexOf(0));
             setDifficulty(data.puzzle.difficulty);
-            setPaused(false); setNoteMode('value');
+            setPaused(false); setEntry(INITIAL_ENTRY_MODE);
           } else setError(data.error ?? 'Could not create a puzzle. Please try again.');
           setBusy(false);
         };
@@ -177,24 +178,24 @@ export default function SudokuGame() {
   const restartPuzzle = () => {
     if (!game || busy) return;
     setGame(restartGame(game)); resetSelection(); setFocusedDigit(null);
-    setSelected(game.givens.indexOf(0)); setNoteMode('value'); setBatchMode('note');
+    setSelected(game.givens.indexOf(0)); setEntry(INITIAL_ENTRY_MODE);
     setBlockedEntry(null); setCelebration(null); setPaused(false); setClockResetRevision(value => value + 1);
     closeSheet();
   };
-  const toggleNotes = () => {
+  const chooseMode = (next: EntryMode) => {
     setBlockedEntry(null);
-    resetSelection();
-    setNoteMode(notesActive ? 'value' : 'note');
+    if (batchSelection && next === 'value') resetSelection();
+    setEntry(state => selectMode(state, { mode: next, batch: batchSelection }));
     focusSelectedCell();
   };
-  const toggleExclusions = () => {
-    if (!notesActive) return;
+  /** Keyboard N and X: switch to the mode, or back to Numbers when it is already active. */
+  const toggleEntryMode = (target: EntryMode) => {
     setBlockedEntry(null);
-    if (batchSelection) setBatchMode(mode => mode === 'exclude' ? 'note' : 'exclude');
-    else setNoteMode(mode => mode === 'exclude' ? 'note' : 'exclude');
+    if (batchSelection && mode === target) resetSelection();
+    setEntry(state => toggleMode(state, { mode: target, batch: batchSelection }));
   };
   const clearSelection = () => {
-    resetSelection(); setNoteMode('value');
+    resetSelection();
     focusSelectedCell();
   };
   const input = (value: number) => {
@@ -205,7 +206,7 @@ export default function SudokuGame() {
     setBlockedEntry(null);
     if (batchSelection) {
       if (!value) { clearSelection(); return; }
-      const applyBatch = batchMode === 'exclude' ? addExclusions : addNotes;
+      const applyBatch = excluding ? addExclusions : addNotes;
       setGame(current => current ? applyBatch(current, { indices: selection.indices, value }) : current);
       clearSelection();
     } else {
@@ -237,8 +238,8 @@ export default function SudokuGame() {
       resetSelection(); selectCell(next); board.current?.querySelector<HTMLButtonElement>(`[data-index="${next}"]`)?.focus();
     } else if (/^[1-9]$/.test(event.key)) { event.preventDefault(); input(Number(event.key)); focusSelectedCell(); }
     else if (['Backspace','Delete','0'].includes(event.key)) { event.preventDefault(); input(0); focusSelectedCell(); }
-    else if (event.key.toLowerCase() === 'x') { event.preventDefault(); toggleExclusions(); }
-    else if (event.key.toLowerCase() === 'n') { event.preventDefault(); toggleNotes(); }
+    else if (event.key.toLowerCase() === 'x') { event.preventDefault(); toggleEntryMode('exclude'); }
+    else if (event.key.toLowerCase() === 'n') { event.preventDefault(); toggleEntryMode('note'); }
   };
   const badCells = useMemo(() => game && preferences.blockIncorrectAnswers ? new Set(game.values.flatMap((value, i) => value && value !== game.solution[i] ? [i] : [])) : new Set<number>(), [game, preferences.blockIncorrectAnswers]);
   const related = useMemo(() => new Set(peers(selected)), [selected]);
@@ -256,6 +257,7 @@ export default function SudokuGame() {
   const filled = game ? game.values.filter(Boolean).length - game.givens.filter(Boolean).length : 0;
   const total = game ? game.givens.filter(n => !n).length : 1;
   const editable = game && !game.givens[selected] && !busy && !paused && !complete;
+  const canErase = Boolean(!batchSelection && editable && (game.values[selected] || game.notes[selected].length || game.exclusions[selected].length));
 
   return <div className="app" onKeyDown={handleKey}>
     <header className="app-bar">
@@ -319,18 +321,22 @@ export default function SudokuGame() {
         <div className={batchSelection ? 'batch-keypad' : undefined} role={batchSelection ? 'group' : undefined} aria-label={batchSelection ? 'Selected cells' : undefined}>
           {batchSelection && <div className="batch-heading"><span role="status">{selection.indices.length} {selection.indices.length === 1 ? 'cell' : 'cells'} selected</span><button className="batch-clear" onClick={clearSelection}>Clear selection</button></div>}
           <div className="note-controls" aria-label="Puzzle tools">
-            <button className="notes-toggle" role="switch" aria-checked={notesActive} disabled={paused || busy} onClick={toggleNotes} title="Notes (N)"><Icon name="pencil" size={19}/><span>Notes</span><span className="notes-switch-track" aria-hidden="true"><span/></span></button>
-            {notesActive && <button className="exclude-chip" aria-pressed={excluding} disabled={paused || busy} onClick={toggleExclusions} title="Exclude (X)"><span className="exclude-chip-label"><Icon name="check" size={12}/><span>Exclude</span></span></button>}
-            {!batchSelection && editable && Boolean(game.values[selected] || game.notes[selected].length || game.exclusions[selected].length) && <button className="erase-control" onClick={() => { input(0); focusSelectedCell(); }} title="Erase (Backspace)"><Icon name="erase" size={18}/><span>Erase</span></button>}
+            <div className="mode-switch" role="group" aria-label="Entry mode">
+              <span className={`mode-indicator mode-indicator-${mode}`} aria-hidden="true"/>
+              {(['value', 'note', 'exclude'] as const).map(option => <button key={option} className={`mode-option mode-${option}`} aria-pressed={mode === option} disabled={paused || busy} onClick={() => chooseMode(option)} title={{ value: 'Numbers', note: 'Notes (N)', exclude: 'Exclude (X)' }[option]}>
+                <Icon name={({ value: 'numbers', note: 'pencil', exclude: 'exclude' } as const)[option]} size={16}/><span>{{ value: 'Numbers', note: 'Notes', exclude: 'Exclude' }[option]}</span>
+              </button>)}
+            </div>
+            <button className="erase-control" disabled={!canErase} onClick={() => { input(0); focusSelectedCell(); }} aria-label="Erase" title="Erase (Backspace)"><Icon name="erase" size={20}/></button>
           </div>
-        <div className={`number-pad ${pencil || excluding ? 'pencil-mode' : ''}`} aria-label="Number pad">
+        <div className={`number-pad mode-${mode}`} aria-label="Number pad">
           {DIGITS.map(n => {
             const remaining = Math.max(0, 9 - (game?.values.filter(v => v === n).length ?? 0));
             const filtered = Boolean(editable && filtering && !entryDigits.includes(n));
             return <button key={n} className={`number-key ${!remaining ? 'digit-finished' : ''} ${filtered ? 'digit-filtered' : ''}`} aria-label={batchSelection ? `${excluding ? 'Exclude' : 'Add note'} ${n} ${excluding ? 'from' : 'to'} ${selection.indices.length} selected cells` : numberFocus ? `Focus on ${n}` : `${excluding ? 'Rule out' : 'Enter'} ${n}${pencil ? ' as a note' : ''}${filtered ? ', unavailable: already in this row, column, or box' : ''}`} disabled={(!editable && !(numberFocus && game && !busy && !paused && !complete)) || filtered} onClick={() => input(n)}><span>{n}</span>{!batchSelection && <small aria-hidden="true">{remaining || <Icon name="check" size={10}/>}</small>}</button>;
           })}
         </div>
-        <p className="input-hint" role="status">{batchSelection ? excluding ? 'Tap a number to exclude from all selected cells.' : 'Tap a number to add a note to all selected cells.' : excluding ? 'Exclude on. Tap a number to rule it out or restore it.' : pencil ? 'Notes on. Tap a number to add or remove a note.' : numberFocus ? 'Tap a number to focus it. Select an empty cell to enter a value.' : filtering ? entryDigits.length ? 'Dimmed numbers already appear in this row, column, or box.' : 'No numbers available here. Check nearby entries or undo.' : 'Select a cell, then a number. Drag across empty cells to select.'}</p>
+        <p className="input-hint" role="status">{batchSelection ? excluding ? 'Tap a number to exclude from all selected cells.' : 'Tap a number to add a note to all selected cells.' : numberFocus ? 'Tap a number to focus it. Select an empty cell to enter a value.' : filtering ? entryDigits.length ? 'Dimmed numbers already appear in this row, column, or box.' : 'No numbers available here. Check nearby entries or undo.' : 'Select a cell, then a number. Drag across empty cells to select.'}</p>
         <p className="sr-only" role="status">{rejection ? `${rejection.value} rejected, ${rejection.kind === 'constraint' ? `already in this ${rejection.unit}` : 'incorrect for this cell'}${rejection.id % 2 ? '\u00a0' : ''}` : ''}</p>
         </div>
       </>}
@@ -354,7 +360,7 @@ export default function SudokuGame() {
             <button className="puzzle-action secondary-puzzle-action" disabled={!game || paused || busy || complete} onClick={() => { setGame(current => current ? fillNotes(current) : current); closeSheet(); }}><Icon name="fill" size={20}/><span>Fill notes</span></button>
           </div>
           <p className="puzzle-actions-hint">Choose a new puzzle or start this one over.</p><div className="setting-section"><h3>Appearance</h3><div className="segmented">{(['system','light','dark'] as Theme[]).map(theme => <button key={theme} aria-pressed={preferences.theme === theme} className={preferences.theme === theme ? 'active' : ''} onClick={() => updatePreferences({ theme })}><span className="capitalize">{theme}</span></button>)}</div></div><div className="setting-row"><Icon name="shield" size={21}/><div className="setting-copy"><strong>Block incorrect answers</strong><p>Only accept answers that match the solution</p></div><button className="switch" role="switch" aria-checked={preferences.blockIncorrectAnswers} aria-label="Block incorrect answers" onClick={() => updatePreferences({ blockIncorrectAnswers: !preferences.blockIncorrectAnswers })}><span/></button></div><div className="setting-row"><Icon name="fill" size={21}/><div className="setting-copy"><strong>Highlight related cells</strong><p>Follow the row, column, and box</p></div><button className="switch" role="switch" aria-checked={preferences.highlightPeers} aria-label="Highlight related cells" onClick={() => updatePreferences({ highlightPeers: !preferences.highlightPeers })}><span/></button></div><div className="setting-row"><Icon name="sparkles" size={21}/><div className="setting-copy"><strong>Smart highlighting</strong><p>Select a filled cell to see where its number could go</p></div><button className="switch" role="switch" aria-checked={preferences.smartHighlighting} aria-label="Smart highlighting" onClick={() => updatePreferences({ smartHighlighting: !preferences.smartHighlighting })}><span/></button></div><div className="setting-row"><Icon name="filter" size={21}/><div className="setting-copy"><strong>Filter number keys</strong><p id="filter-setting-description">Disable numbers already in this row, column, or box.</p></div><button className="switch" role="switch" aria-checked={preferences.filterNumberKeys} aria-label="Filter number keys" aria-describedby="filter-setting-description" onClick={() => { setBlockedEntry(null); updatePreferences({ filterNumberKeys: !preferences.filterNumberKeys }); }}><span/></button></div><div className="setting-row"><Icon name="clock" size={21}/><div className="setting-copy"><strong>Hide timer</strong><p id="hide-timer-description">Keep tracking time without showing it.</p></div><button className="switch" role="switch" aria-checked={preferences.hideTimer} aria-label="Hide timer" aria-describedby="hide-timer-description" onClick={() => updatePreferences({ hideTimer: !preferences.hideTimer })}><span/></button></div><p className="privacy-note">Your puzzles and preferences stay on this device.</p></>}
-        {sheet === 'help' && <><div className="sheet-symbol"><Icon name="help" size={28}/></div><h2 id="sheet-title">Nine numbers. One rule.</h2><p className="sheet-subtitle">Fill every row, column, and 3 × 3 box with the numbers 1–9, using each number just once.</p><div className="help-row"><Icon name="pencil"/><div><h3>Room for a possibility</h3><p>Drag from an empty cell to select cells immediately, or hold an empty cell to begin. Drag across other empty cells, or tap them to add or remove them from your selection. Notes turns on for your selection. Toggle Exclude to choose exclusions, then tap a number to apply it to all selected cells and return to normal entry. Exclude keeps already-excluded digits excluded. Tap a filled cell to finish selecting, or use Clear selection or Escape. These actions leave your notes unchanged. For repeated note entry in one cell, use the Notes switch. Entering a number clears that note from related cells.</p></div></div><div className="help-row"><Icon name="undo"/><div><h3>Try things out</h3><p>Undo in Settings takes back your last change, including notes. Redo restores an undone change. Both survive reopening; a new edit clears Redo. Erase appears when the selected cell contains your number or annotations and clears that cell. The darker starting numbers stay in place.</p></div></div><div className="help-row"><Icon name="help"/><div><h3>Smart highlighting</h3><p>Enable Smart highlighting in Settings, then select a filled cell. Green cells show where its number is allowed by the current row, column, and box, excluding digits you have ruled out. Cells where you ruled it out turn faded red. These are possible placements, not guaranteed answers. Select an empty cell to clear the highlights when no digit is focused.</p></div></div><div className="help-row"><Icon name="help"/><div><h3>Keep a number in focus</h3><p>With a filled cell selected, tap a number in the number row to focus that digit. With an empty cell selected, the number row enters a value. You can also choose Focus on its number or hold a filled cell. Matching numbers and notes stay highlighted while you select empty cells or add notes. With Smart highlighting enabled, possible cells stay green too. Select another filled number to switch. Clear focus stops focusing; Clear selection only clears your batch. Focus resets for a new puzzle or when you reopen the app.</p></div></div><div className="help-row"><Icon name="pencil"/><div><h3>Fill notes when you want</h3><p>Fill notes in Settings replaces notes in every empty cell with all possibilities allowed by placed numbers. Your crossed-out exclusions stay in place and are left out of the generated notes. Generated notes are blue; notes you edit use the normal text color. Undo restores the previous notes. Entering a number clears matching notes and exclusions from related cells. Notes do not otherwise update automatically.</p></div></div><div className="help-row"><Icon name="pencil"/><div><h3>Record what you rule out</h3><p>Turn on Notes, then Exclude, and tap a number to cross it out in a cell. Tap again to clear it. Exclusions also remove that cell from Smart highlighting for that number. They never trigger deductions in other cells.</p></div></div><div className="help-row"><Icon name="filter"/><div><h3>Filter number keys</h3><p>Enable Filter number keys in Settings to dim and disable numbers already in the selected cell’s row, column, or box. Keyboard entry follows the same rule. Notes and exclusions stay unrestricted. Available numbers are possibilities; Block incorrect answers checks them against the solution separately.</p></div></div><div className="keyboard-help"><h3>Using a keyboard?</h3><p><kbd>↑ ↓ ← →</kbd> Move between cells</p><p><kbd>1–9</kbd> Enter a number <kbd>N</kbd> Toggle notes</p><p><kbd>X</kbd> Toggle exclusions while Notes is on</p><p><kbd>⌫</kbd> Erase <kbd>⌘ / Ctrl Z</kbd> Undo</p><p><kbd>⌘ / Ctrl Shift Z</kbd> Redo</p></div><button className="primary-button full-width" onClick={closeSheet}>Got it</button></>}
+        {sheet === 'help' && <><div className="sheet-symbol"><Icon name="help" size={28}/></div><h2 id="sheet-title">Nine numbers. One rule.</h2><p className="sheet-subtitle">Fill every row, column, and 3 × 3 box with the numbers 1–9, using each number just once.</p><div className="help-row"><Icon name="pencil"/><div><h3>Room for a possibility</h3><p>Drag from an empty cell to select cells immediately, or hold an empty cell to begin. Drag across other empty cells, or tap them to add or remove them from your selection. A selection uses Notes, or Exclude when Exclude is chosen. Tap a number to apply it to every selected cell. Afterward you stay in Notes or Exclude, or return to Numbers if you started there. Choosing Numbers cancels the selection. Exclude keeps already-excluded digits excluded. Tap a filled cell to finish selecting, or use Clear selection or Escape. These actions leave your notes unchanged. For repeated note entry in one cell, choose Notes. Entering a number clears that note from related cells.</p></div></div><div className="help-row"><Icon name="undo"/><div><h3>Try things out</h3><p>Undo in Settings takes back your last change, including notes. Redo restores an undone change. Both survive reopening; a new edit clears Redo. Erase appears when the selected cell contains your number or annotations and clears that cell. The darker starting numbers stay in place.</p></div></div><div className="help-row"><Icon name="help"/><div><h3>Smart highlighting</h3><p>Enable Smart highlighting in Settings, then select a filled cell. Green cells show where its number is allowed by the current row, column, and box, excluding digits you have ruled out. Cells where you ruled it out turn faded red. These are possible placements, not guaranteed answers. Select an empty cell to clear the highlights when no digit is focused.</p></div></div><div className="help-row"><Icon name="help"/><div><h3>Keep a number in focus</h3><p>With a filled cell selected, tap a number in the number row to focus that digit. With an empty cell selected, the number row enters a value. You can also choose Focus on its number or hold a filled cell. Matching numbers and notes stay highlighted while you select empty cells or add notes. With Smart highlighting enabled, possible cells stay green too. Select another filled number to switch. Clear focus stops focusing; Clear selection only clears your batch. Focus resets for a new puzzle or when you reopen the app.</p></div></div><div className="help-row"><Icon name="pencil"/><div><h3>Fill notes when you want</h3><p>Fill notes in Settings replaces notes in every empty cell with all possibilities allowed by placed numbers. Your crossed-out exclusions stay in place and are left out of the generated notes. Generated notes are blue; notes you edit use the normal text color. Undo restores the previous notes. Entering a number clears matching notes and exclusions from related cells. Notes do not otherwise update automatically.</p></div></div><div className="help-row"><Icon name="pencil"/><div><h3>Record what you rule out</h3><p>Choose Exclude and tap a number to cross it out in a cell. Tap again to clear it. Exclusions also remove that cell from Smart highlighting for that number. They never trigger deductions in other cells.</p></div></div><div className="help-row"><Icon name="filter"/><div><h3>Filter number keys</h3><p>Enable Filter number keys in Settings to dim and disable numbers already in the selected cell’s row, column, or box. Keyboard entry follows the same rule. Notes and exclusions stay unrestricted. Available numbers are possibilities; Block incorrect answers checks them against the solution separately.</p></div></div><div className="keyboard-help"><h3>Using a keyboard?</h3><p><kbd>↑ ↓ ← →</kbd> Move between cells</p><p><kbd>1–9</kbd> Enter a number <kbd>N</kbd> Notes</p><p><kbd>X</kbd> Exclude. Press the same key again for Numbers.</p><p><kbd>⌫</kbd> Erase <kbd>⌘ / Ctrl Z</kbd> Undo</p><p><kbd>⌘ / Ctrl Shift Z</kbd> Redo</p></div><button className="primary-button full-width" onClick={closeSheet}>Got it</button></>}
         {sheet === 'install' && <><AppMark/><h2 id="sheet-title">A place on your home screen</h2><p className="sheet-subtitle">Open straight into your puzzle, with more space to play. Once ready, Sudoku works offline too.</p>{installed ? <p className="install-instructions">Sudoku is already installed.</p> : installEvent ? <button className="primary-button full-width" onClick={async () => { try { await installEvent.prompt(); const choice = await installEvent.userChoice; if (choice.outcome === 'accepted') closeSheet(); setInstallEvent(null); } catch { setInstallEvent(null); } }}>Install Sudoku</button> : <div className="install-instructions"><h3>On iPhone or iPad</h3><p>Open in Safari, tap the Share button, then choose <strong>Add to Home Screen</strong>.</p><h3>On Android or desktop</h3><p>Open your browser menu and choose <strong>Install app</strong> or <strong>Add to Home screen</strong>, when available.</p></div>}<p className="privacy-note">{offlineReady ? 'Your app is ready for offline play.' : 'Connect to the internet for the first visit. Offline play becomes available after the app finishes downloading.'}</p><button className="text-button full-width" onClick={closeSheet}>Done</button></>}
       </div>
     </dialog>
