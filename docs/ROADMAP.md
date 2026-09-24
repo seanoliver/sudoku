@@ -40,7 +40,7 @@ Captured from Sean's September 20 feedback and the [September 21 playtest](playt
 
 ### Optional constraint-aware number picker
 
-**Status:** Shipped as Filter number keys in [PR #14](https://github.com/seanoliver/sudoku/pull/14).
+**Status:** Shipped as Filter number keys in [PR #14](https://github.com/seanoliver/sudoku/pull/14). On September 23 the filter was extended to Notes and Exclude, so those modes also dim and refuse digits already in the row, column, or box (keypad cleanup).
 
 **Playtest follow-up (September 21):** Disable impossible numbers when an empty cell is selected, with a configurable setting. This request is covered by the shipped setting.
 
@@ -255,6 +255,12 @@ Status: queued for research. The feature outcomes below are uncommitted. Complet
 - **Idea:** Replace the one-row number pad with a 3 × 3 number grid, as Good Sudoku does. Sean asked on September 23 to keep this as a separate, larger redesign.
 - **Research:** Compare a 3 × 3 grid with the current row on a 390px-wide phone: key size, reach, how the grid sits beside or below the board, and how entry modes (Numbers, Notes, Exclude), Erase, digit focus, number filtering, and the batch keypad fit. Check how the grid mirrors a cell's note layout.
 - **Output:** Three rendered layout directions for Sean, then a scope proposal. Coordinate with the entry mode switch (R3) and the number-row presentation (R4).
+
+### R9. Native iOS app
+
+- **Idea:** Turn Sudoku into a native iOS app once the web app is settled. Sean added this on September 23 as a later goal, after the current web work.
+- **Research:** Compare a full native rewrite in Swift/SwiftUI with wrapping the existing web app. List what must carry over: saved games and preferences, offline play, haptics, and App Store requirements.
+- **Output:** A recommended approach and a scope proposal. Start only after Sean confirms the web version is where he wants it.
 
 ## 1. Digit locking
 
