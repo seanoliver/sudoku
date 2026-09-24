@@ -229,7 +229,7 @@ Status: queued for research. The feature outcomes below are uncommitted. Complet
 
 - **Observations:** Remaining-number counts look messy; consider the Good Sudoku style number row.
 - **Research:** Inspect the referenced app's number-row behavior and identify which aspects address the playtest problem. Compare count presentation, completion states, focus, entry and annotations within the available phone width. Clarify whether “remaining” counts placements, correct placements or another measure.
-- **Output:** A number-row recommendation with count semantics and interaction tradeoffs, coordinated with the requested focus and constraint-aware picker changes. The number-row design remains undecided.
+- **Output:** A number-row recommendation with count semantics and interaction tradeoffs, coordinated with the requested focus and constraint-aware picker changes.
 
 ### R5. Deduction scoring
 

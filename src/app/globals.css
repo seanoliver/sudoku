@@ -194,3 +194,4 @@ h1,h2,h3,p { margin: 0; }
 .secondary-puzzle-action { min-height: 44px; background: transparent; }
 @media (max-height: 760px) { .note-controls { height: 62px; } }
 .number-pad .number-key.digit-finished { background: transparent; box-shadow: none; }.number-pad .number-key.digit-finished>span { color: var(--secondary); opacity: .35; }
+@media (hover: hover) { .number-pad .number-key.digit-finished:hover { background: transparent; } }

@@ -5,7 +5,7 @@ Roadmap item: R4, number-row presentation. Sean's playtest note said the remaini
 ## Behavior
 
 - The small remaining count and the finished check under each number key are removed in every mode.
-- A digit with nine placements on the board is finished: its key loses its fill and shadow, and the digit fades to secondary gray at 35% opacity. The key stays enabled, so digit focus and annotation behavior are unchanged.
+- A digit with nine placements on the board is finished: its key loses its fill and shadow, and the digit fades to secondary gray at 35% opacity. The key stays enabled (unless Filter number keys disables it for the selected cell), so digit focus and annotation behavior are unchanged. Finished keys fade in the batch keypad too, and show no hover fill.
 - "Placed" counts every entry on the board, correct or not. With Block incorrect answers on (the default) the two are the same; with it off, counting only correct entries would reveal correctness.
 - Erasing or undoing a placement restores the key.
 - Number keys add ", all placed" to their accessible name when finished.
