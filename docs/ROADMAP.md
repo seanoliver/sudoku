@@ -225,6 +225,8 @@ Status: queued for research. The feature outcomes below are uncommitted. Complet
 
 ### R4. Number-row presentation
 
+**Status:** Implemented on `feat/number-row-counts` ([design](plans/2026-09-23-number-row-counts-design.md)). Remaining counts are removed; a digit with all nine placed fades out. Sean chose this over a progress bar and remaining-count dots on September 23.
+
 - **Observations:** Remaining-number counts look messy; consider the Good Sudoku style number row.
 - **Research:** Inspect the referenced app's number-row behavior and identify which aspects address the playtest problem. Compare count presentation, completion states, focus, entry and annotations within the available phone width. Clarify whether “remaining” counts placements, correct placements or another measure.
 - **Output:** A number-row recommendation with count semantics and interaction tradeoffs, coordinated with the requested focus and constraint-aware picker changes. The number-row design remains undecided.
@@ -247,6 +249,12 @@ Status: queued for research. The feature outcomes below are uncommitted. Complet
 - **Research:** Define meaningful accomplishments and the solve evidence needed to preserve them. Explore local storage and retrieval, completion/replay integration, and story composition and export/share feasibility on phones.
 - **Output:** An accomplishment model and a proposed save-to-share flow, including what “Instagram-native” means for delivery. Capture current platform requirements during the spike and propose story design directions before implementation.
 - **Relationship:** Coordinate with existing unit celebrations and speed replay. Persistent accomplishments and external sharing require their own scope decision.
+
+### R8. Number grid keypad
+
+- **Idea:** Replace the one-row number pad with a 3 × 3 number grid, as Good Sudoku does. Sean asked on September 23 to keep this as a separate, larger redesign.
+- **Research:** Compare a 3 × 3 grid with the current row on a 390px-wide phone: key size, reach, how the grid sits beside or below the board, and how entry modes (Numbers, Notes, Exclude), Erase, digit focus, number filtering, and the batch keypad fit. Check how the grid mirrors a cell's note layout.
+- **Output:** Three rendered layout directions for Sean, then a scope proposal. Coordinate with the entry mode switch (R3) and the number-row presentation (R4).
 
 ## 1. Digit locking
 
