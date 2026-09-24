@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { createPuzzle, isExpert, ratePuzzle, solveWithTechniques, transformPuzzle, EXPERT_RULE, TECHNIQUES, DIFFICULTY_BANDS } from '../src/lib/difficulty.ts';
+import { createPuzzle, isExpert, ratePuzzle, solveWithTechniques, transformPuzzle, TECHNIQUES, DIFFICULTY_BANDS } from '../src/lib/difficulty.ts';
 import { EXPERT_BANK } from '../src/lib/expert-bank.ts';
 import { buildPuzzle, countSolutions, conflicts, generatePuzzle } from '../src/lib/sudoku.ts';
 
@@ -87,10 +87,6 @@ test('expert puzzles come from the bank, solved and transformed, and never need 
   assert.equal(boards.size, 12);
 });
 
-test('expert puzzles need several advanced steps, starting early', () => {
-  for (let seed = 1; seed <= 12; seed++) {
-    const { advancedSteps, filledAtFirstAdvanced } = solveWithTechniques(createPuzzle('expert', seed).givens);
-    assert.ok(advancedSteps >= EXPERT_RULE.minAdvancedSteps);
-    assert.ok(filledAtFirstAdvanced !== null && filledAtFirstAdvanced <= EXPERT_RULE.maxFilledAtFirstAdvanced);
-  }
+test('served expert variants still meet the expert rule', () => {
+  for (let seed = 1; seed <= 40; seed++) assert.ok(isExpert(createPuzzle('expert', seed).givens), `seed ${seed}`);
 });

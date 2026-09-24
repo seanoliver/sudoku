@@ -13,5 +13,5 @@ Sean finished an Expert puzzle on September 24 and found it easy. With Block inc
 
 - Each bank puzzle has a stable key, `expertKey` (FNV-1a of its 81 givens), stored on the puzzle as `source`. It survives saves, restores and restarts.
 - `sudoku.puzzle-history.v1` in localStorage holds `seen` and `completed` keys (`src/lib/history.ts`).
-- New Expert puzzles skip seen keys. Once every bank puzzle has been seen, a new cycle starts. Completing a bank puzzle records it in `completed`, for a future history view (roadmap R10).
-- The worker cannot read localStorage, so the page sends the seen list with each Expert request and the worker returns the bank size. The bank stays out of the main page bundle.
+- New Expert puzzles skip seen keys, and a puzzle counts as seen as soon as it is served. When every current bank puzzle has been seen, the worker flags a new cycle and the seen list restarts with that puzzle, dropping keys from older banks. Completing a bank puzzle records it in `completed`, for a future history view (roadmap R10).
+- The worker cannot read localStorage, so the page sends the seen list with each Expert request and the worker reports whether the request starts a new cycle. The bank stays out of the main page bundle.

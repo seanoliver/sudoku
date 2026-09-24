@@ -190,6 +190,8 @@ export function expertKey(entry: string): string {
   for (let i = 0; i < entry.length; i++) hash = Math.imul(hash ^ entry.charCodeAt(i), 0x01000193);
   return (hash >>> 0).toString(36);
 }
+/** True when every current bank puzzle is in `avoid`, so the next Expert puzzle starts a new cycle. */
+export const expertCycleComplete = (avoid: readonly string[]) => EXPERT_BANK.every(entry => avoid.includes(expertKey(entry)));
 /** An expert puzzle from the precomputed bank, skipping ones in `avoid` until every entry has been seen, solved by technique and given a seeded symmetry so it looks new. */
 function createExpertPuzzle(seed: number, avoid: readonly string[]): Puzzle {
   const unseen = EXPERT_BANK.filter(entry => !avoid.includes(expertKey(entry)));

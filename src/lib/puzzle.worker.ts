@@ -1,7 +1,7 @@
 import { type Difficulty } from './sudoku';
-import { createPuzzle } from './difficulty';
-import { EXPERT_BANK } from './expert-bank';
+import { createPuzzle, expertCycleComplete } from './difficulty';
 self.onmessage = (event: MessageEvent<{ difficulty: Difficulty; avoid?: string[] }>) => {
-  try { self.postMessage({ puzzle: createPuzzle(event.data.difficulty, undefined, { avoid: event.data.avoid ?? [] }), bankSize: EXPERT_BANK.length }); }
+  try { const avoid = event.data.avoid ?? [];
+    self.postMessage({ puzzle: createPuzzle(event.data.difficulty, undefined, { avoid }), newCycle: event.data.difficulty === 'expert' && expertCycleComplete(avoid) }); }
   catch { self.postMessage({ error: 'This puzzle could not be created. Please try again.' }); }
 };

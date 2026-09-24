@@ -1,4 +1,4 @@
-/** Bank puzzles a player has started and completed, so Expert avoids repeats and completions can be shown later. */
+/** Bank puzzles a player has been served and completed, so Expert avoids repeats and completions can be shown later. */
 export type PuzzleHistory = { seen: string[]; completed: string[] };
 export const HISTORY_KEY = 'sudoku.puzzle-history.v1';
 export const EMPTY_HISTORY: PuzzleHistory = { seen: [], completed: [] };
@@ -11,10 +11,10 @@ export function readHistory(raw: string | null): PuzzleHistory {
   } catch { /* History is optional; invalid data starts fresh. */ }
   return EMPTY_HISTORY;
 }
-/** Adds a started puzzle. Once every one of `total` puzzles has been seen, a new cycle starts with this one. */
-export function recordSeen(history: PuzzleHistory, { source, total }: { source: string; total: number }): PuzzleHistory {
-  if (history.seen.includes(source)) return history;
-  return { ...history, seen: history.seen.length >= total ? [source] : [...history.seen, source] };
+/** Adds a served puzzle. `newCycle` means every current bank puzzle was already seen, so the list restarts with this one (dropping keys from older banks). */
+export function recordSeen(history: PuzzleHistory, { source, newCycle }: { source: string; newCycle: boolean }): PuzzleHistory {
+  if (newCycle) return { ...history, seen: [source] };
+  return history.seen.includes(source) ? history : { ...history, seen: [...history.seen, source] };
 }
 export function recordCompleted(history: PuzzleHistory, source: string): PuzzleHistory {
   return history.completed.includes(source) ? history : { ...history, completed: [...history.completed, source] };

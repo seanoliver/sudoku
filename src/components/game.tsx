@@ -91,10 +91,10 @@ export default function SudokuGame() {
       // Lazy construction keeps the worker available for retry if startup fails.
       if (!worker.current) {
         const nextWorker = new Worker(new URL('../lib/puzzle.worker.ts', import.meta.url));
-        nextWorker.onmessage = ({ data }: MessageEvent<{ puzzle?: Puzzle; bankSize?: number; error?: string }>) => {
+        nextWorker.onmessage = ({ data }: MessageEvent<{ puzzle?: Puzzle; newCycle?: boolean; error?: string }>) => {
           if (data.puzzle) {
             const { source } = data.puzzle;
-            if (source && data.bankSize) { const total = data.bankSize; updateHistory(history => recordSeen(history, { source, total })); }
+            if (source) { const newCycle = Boolean(data.newCycle); updateHistory(history => recordSeen(history, { source, newCycle })); }
             setGame(createGame(data.puzzle));
             setSelected(data.puzzle.givens.indexOf(0));
             setDifficulty(data.puzzle.difficulty);
