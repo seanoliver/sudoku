@@ -1,5 +1,5 @@
 import type { CSSProperties } from 'react';
-export type IconName = 'clock' | 'filter' | 'restart' | 'shield' | 'sparkles' | 'focus' | 'fill' | 'undo' | 'erase' | 'pencil' | 'pause' | 'play' | 'plus' | 'chevron' | 'settings' | 'download' | 'check' | 'close' | 'help' | 'sun' | 'moon' | 'numbers' | 'exclude';
+export type IconName = 'clock' | 'filter' | 'restart' | 'shield' | 'sparkles' | 'focus' | 'fill' | 'undo' | 'erase' | 'pencil' | 'pause' | 'play' | 'plus' | 'chevron' | 'settings' | 'download' | 'check' | 'close' | 'help' | 'sun' | 'moon' | 'numbers' | 'exclude' | 'bulb';
 const paths: Record<IconName, React.ReactNode> = {
   clock: <><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></>,
   filter: <path d="M3 4h18l-7 8v8l-4-2v-6L3 4Z"/>,
@@ -19,6 +19,7 @@ const paths: Record<IconName, React.ReactNode> = {
   download: <><path d="M12 3v12m-4-4 4 4 4-4M5 16v4h14v-4"/></>,
   check: <path d="m5 12 4 4L19 6"/>,
   close: <path d="m6 6 12 12M6 18 18 6"/>,
+  bulb: <path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.6.4 1 1.1 1 1.8V16h5v-.3c0-.7.4-1.4 1-1.8A6 6 0 0 0 12 3z"/>,
   help: <><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 4.3 1.7c-1.3.7-1.8 1.1-1.8 2.8M12 17h.01"/></>,
   sun: <><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5m11 11L19 19M5 19l1.5-1.5m11-11L19 5"/></>,
   moon: <path d="M20 14A9 9 0 0 1 10 3a9 9 0 1 0 10 11Z"/>,

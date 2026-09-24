@@ -15,7 +15,14 @@ Roadmap milestone 6. Sean asked for hints on September 24 while stuck on an Expe
 - When these techniques find no move, the strip says "No hint available for this position".
 - "Learn this" joins the strip when the Learn module (milestone 8) exists.
 
-## Engine (this PR)
+## UI
+
+- `src/lib/hint-view.ts` turns a hint and level into the strip's one line (`text`), a screen-reader line with exact positions (`label`), the Next/Apply action, the cells' hint roles (area, supporting cells, answer, exclusions relied on, struck candidates, mistake, coloring shades), and the ghost digit.
+- The hint is tied to the exact game object it was computed for, so any board change retires it. `H` opens or advances a hint.
+- A naked single underlines one placed copy of each other digit (8 cells), not every placed neighbor.
+- In the browser, an Expert puzzle was solved start to finish with 70 hints, including pointing and claiming, naked and hidden pairs, a swordfish and coloring, with the board and keypad never moving.
+
+## Engine
 
 - `src/lib/steps.ts`: each technique is a detector that returns its first move as a `Step`: technique, variant (naked or hidden sets, pointing or claiming), area, supporting cells, digits, placement or eliminations, the exclusions the move relies on (`relies`, so every ruled-out cell can be explained), and coloring's two shades. `findStep` tries them easiest first; `applyStep` applies one.
 - `src/lib/difficulty.ts`: `solveWithTechniques` is now a loop over `findStep`, so grading and hints share one implementation and count one human-sized move at a time. Every Expert bank entry still meets `isExpert`.

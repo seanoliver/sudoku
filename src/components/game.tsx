@@ -11,6 +11,8 @@ import { AppMark, Icon } from './icons';
 import { Clock } from './clock';
 import { restorePreferences, DEFAULT_PREFS, PREFS_KEY, type Theme, type Preferences } from '@/lib/preferences';
 import { HISTORY_KEY, readHistory, recordCompleted, recordSeen, type PuzzleHistory } from '@/lib/history';
+import { applyHint, nextHint, type Hint } from '@/lib/hints';
+import { hintView, type HintLevel } from '@/lib/hint-view';
 
 type Sheet = 'restart' | 'new' | 'settings' | 'help' | 'install' | null;
 type InstallEvent = Event & { prompt: () => Promise<void>; userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }> };
@@ -52,9 +54,13 @@ export default function SudokuGame() {
   const dialog = useRef<HTMLDialogElement>(null);
   const board = useRef<HTMLDivElement>(null);
   const rejectionId = useRef(0);
+  // A hint belongs to the exact board it was computed for; any change to the game object retires it.
+  const [hintState, setHintState] = useState<{ game: GameState; level: HintLevel; hint: Hint } | null>(null);
   const [celebration, setCelebration] = useState<{ id: number; origin: number; cells: number[]; label: string } | null>(null);
   const celebrationId = useRef(0);
   const complete = game ? isComplete(game) : false;
+  const activeHint = hintState && hintState.game === game && !paused && !sheet && !busy && !complete ? hintState : null;
+  const hintDisplay = activeHint ? hintView(activeHint.hint, activeHint.level) : null;
   const completedSource = complete ? game?.source : undefined;
   useEffect(() => { if (completedSource) updateHistory(history => recordCompleted(history, completedSource)); }, [completedSource]);
   const selectCell = (index: number) => {
@@ -211,6 +217,21 @@ export default function SudokuGame() {
     resetSelection();
     focusSelectedCell();
   };
+  const showHint = () => {
+    if (!game || paused || busy || sheet || complete) return;
+    if (!activeHint) { setHintState({ game, level: 1, hint: nextHint(game) }); return; }
+    if (hintDisplay && activeHint.level < hintDisplay.levels) setHintState({ ...activeHint, level: (activeHint.level + 1) as HintLevel });
+  };
+  const applyActiveHint = () => {
+    if (!game || !activeHint) return;
+    const { hint } = activeHint;
+    const next = hint.kind === 'step' ? applyHint(game, hint.step)
+      : hint.kind === 'mistake' ? enter(game, hint.digit ? { index: hint.cell, value: hint.digit, exclude: true } : { index: hint.cell, value: 0 }) : game;
+    setHintState(null); setBlockedEntry(null);
+    if (next !== game) setGame(next);
+    if (hint.kind === 'step' && hint.step.placement) setSelected(hint.step.placement.cell);
+    else if (hint.kind === 'mistake') setSelected(hint.cell);
+  };
   const input = (value: number) => {
     if (!game || paused || busy || sheet || complete) return;
     if (value !== 0 && (numberFocus || keyState(value).focusOnly)) { setFocusedDigit(value); setBlockedEntry(null); return; }
@@ -255,6 +276,7 @@ export default function SudokuGame() {
       resetSelection(); selectCell(next); board.current?.querySelector<HTMLButtonElement>(`[data-index="${next}"]`)?.focus();
     } else if (/^[1-9]$/.test(event.key)) { event.preventDefault(); input(Number(event.key)); focusSelectedCell(); }
     else if (['Backspace','Delete','0'].includes(event.key)) { event.preventDefault(); input(0); focusSelectedCell(); }
+    else if (event.key.toLowerCase() === 'h') { event.preventDefault(); showHint(); }
     else if (event.key.toLowerCase() === 'x') { event.preventDefault(); toggleEntryMode('exclude'); }
     else if (event.key.toLowerCase() === 'n') { event.preventDefault(); toggleEntryMode('note'); }
   };
@@ -300,13 +322,22 @@ export default function SudokuGame() {
       </div>
 
       <div className="puzzle-panel">
-      <div className="digit-focus-bar" role="group" aria-label="Digit focus" inert={paused || busy || complete || !game}>
+      <div className={`digit-focus-bar ${hintDisplay ? 'hint-strip' : ''}`} role="group" aria-label={hintDisplay ? 'Hint' : 'Digit focus'} inert={paused || busy || complete || !game}>
+        {hintDisplay ? <>
+          <span className="hint-copy" role="status" aria-label={hintDisplay.label}><Icon name="bulb" size={18}/><span>{hintDisplay.text}</span></span>
+          {hintDisplay.levels > 1 && <span className="hint-dots" aria-hidden="true">{[1, 2, 3].map(step => <i key={step} className={step <= activeHint!.level ? 'on' : ''}/>)}</span>}
+          {hintDisplay.action === 'next' && <button className="hint-action" onClick={showHint}>Next</button>}
+          {hintDisplay.action === 'apply' && <button className="hint-action" onClick={applyActiveHint}>Apply</button>}
+          <button className="clear-focus-button" aria-label="Close hint" title="Close hint" onClick={() => { setHintState(null); focusSelectedCell(); }}><Icon name="close" size={16}/></button>
+        </> : <>
         {focusedDigit !== null ? <>
           <span className="digit-focus-label" role="status"><span className="focus-indicator" aria-hidden="true"/><span>Focus <strong>{focusedDigit}</strong></span></span>
           <button className="clear-focus-button" aria-label="Clear focus" title="Clear focus" onClick={() => { setFocusedDigit(null); focusSelectedCell(); }}><Icon name="close" size={16}/></button>
         </> : <button className="focus-button" disabled={!selectedCellValue || batchSelection} onClick={() => setFocusedDigit(selectedCellValue)} aria-label={selectedCellValue ? `Focus on ${selectedCellValue}` : 'Focus on a number'} aria-describedby={selectedCellValue && !focusHoldLearned ? 'focus-hold-hint' : undefined}>
           <Icon name="focus" size={18}/><span className="focus-copy"><span>{selectedCellValue ? <>Focus on <strong>{selectedCellValue}</strong></> : 'Select a number to focus'}</span><span id="focus-hold-hint" className="focus-hint" hidden={!selectedCellValue || focusHoldLearned}>Or hold a filled cell</span></span>
         </button>}
+          <button className="hint-button" aria-label="Show a hint" title="Hint (H)" disabled={!game || complete} onClick={showHint}><Icon name="bulb" size={19}/></button>
+        </>}
       </div>
 
       <div className={`board-wrap ${complete ? 'is-complete' : ''}`}>
@@ -321,10 +352,12 @@ export default function SudokuGame() {
               const generated = game?.noteOrigins[i] === 'generated';
               const selectedCell = (batchSelection ? selection.indices.includes(i) : selected === i) && !complete;
               const same = value > 0 && selectedValue === value;
-              const classes = ['cell', given ? 'given' : 'entered', selectedCell ? 'selected' : '', !selectedCell && related.has(i) && preferences.highlightPeers && !complete ? 'related' : '', same && !selectedCell && !complete ? 'matching' : '', possible.has(i) ? 'possible' : '', excludedPossible.has(i) ? 'excluded-possible' : '', badCells.has(i) ? 'conflict' : '', rejection?.index === i ? 'rejecting' : ''].filter(Boolean).join(' ');
+              const classes = ['cell', given ? 'given' : 'entered', selectedCell ? 'selected' : '', !selectedCell && related.has(i) && preferences.highlightPeers && !complete ? 'related' : '', same && !selectedCell && !complete ? 'matching' : '', possible.has(i) ? 'possible' : '', excludedPossible.has(i) ? 'excluded-possible' : '', badCells.has(i) ? 'conflict' : '', rejection?.index === i ? 'rejecting' : '', ...[...(hintDisplay?.cells.get(i) ?? [])].map(role => `hint-${role}`)].filter(Boolean).join(' ');
               return <div role="gridcell" aria-selected={selectedCell} aria-readonly={given} aria-rowindex={row+1} aria-colindex={col+1} key={i} className="cell-slot"><button className={classes} data-index={i} data-given={given} tabIndex={selected === i ? 0 : -1} aria-label={`Row ${row+1}, column ${col+1}, ${value ? `${value}${given ? ', given' : ''}` : notes.length ? `${generated ? 'generated notes' : 'notes'} ${notes.join(', ')}` : 'empty'}${!value && ruledOut.length ? `, ruled out ${ruledOut.join(', ')}` : ''}${possible.has(i) ? `, possible placement for ${selectedValue}` : ''}${excludedPossible.has(i) ? `, excluded placement for ${selectedValue}` : ''}${badCells.has(i) ? ', incorrect answer' : ''}`} aria-disabled={complete} onClick={event => selection.clickCell(event, i)}>
                 {celebrating && celebratedCells.has(i) && <span key={`celebrate-${celebrating.id}`} className="unit-celebration" style={{ animationDelay: `${distance(i, celebrating.origin) * CELEBRATION_STEP_MS}ms` }} aria-hidden="true"/>}
                 {value ? <span className="cell-number">{value}</span> : null}
+                {hintDisplay?.ghost?.cell === i && <span className="hint-ghost" aria-hidden="true">{hintDisplay.ghost.digit}</span>}
+                {hintDisplay?.struck.some(mark => mark.cell === i) && <span className="hint-struck-grid" aria-hidden="true">{hintDisplay.struck.filter(mark => mark.cell === i).map(mark => <span key={mark.digit} className="hint-struck" style={{ gridRow: Math.ceil(mark.digit / 3), gridColumn: (mark.digit - 1) % 3 + 1 }}>{mark.digit}</span>)}</span>}
                 <CellNotes key={game?.id} focusedDigit={complete ? null : focusedDigit} filled={Boolean(value)} manual={generated ? EMPTY_NOTES : notes} automatic={generated ? notes : EMPTY_NOTES} excluded={ruledOut} boardKey={boardKey}/>
                 {rejection?.index === i && <span key={`rejected-${rejection.id}`} className="rejected-digit" aria-hidden="true">{rejection.value}</span>}
                 {rejection?.sources.includes(i) && <span key={`source-${rejection.id}`} className="rejection-source" aria-hidden="true"/>}
