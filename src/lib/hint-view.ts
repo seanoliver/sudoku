@@ -48,13 +48,13 @@ export function hintView(hint: Hint, level: HintLevel): HintView {
   const mark = (cell: number, role: HintRole) => { if (!cells.has(cell)) cells.set(cell, new Set()); cells.get(cell)!.add(role); };
   const view = (text: string, label: string, action: HintView['action'], extra: Partial<HintView> = {}): HintView => ({ text, label, action, levels: 3, cells, struck: [], ...extra });
 
-  if (hint.kind === 'stuck') return view('No hint for this board', 'No hint is available for this board', 'none', { levels: 1 });
+  if (hint.kind === 'stuck') return view('No hint here', 'No hint is available for this board', 'none', { levels: 1 });
   if (hint.kind === 'solved') return view('Puzzle solved', 'The puzzle is solved', 'none', { levels: 1 });
   if (hint.kind === 'mistake') {
     if (level >= 2) mark(hint.cell, 'mistake');
-    if (level === 1) return view('Something’s not right', 'Something on the board is not right', 'next');
+    if (level === 1) return view('Something’s off', 'Something on the board is not right', 'next');
     if (level === 2) return view('Check this cell', `Check ${position(hint.cell)}`, 'next');
-    return hint.digit ? view(`The ${hint.digit} isn’t ruled out`, `The ${hint.digit} at ${position(hint.cell)} should not be ruled out`, 'apply')
+    return hint.digit ? view(`Don’t rule out ${hint.digit}`, `The ${hint.digit} at ${position(hint.cell)} should not be ruled out`, 'apply')
       : view('This number is wrong', `The number at ${position(hint.cell)} is wrong`, 'apply');
   }
 

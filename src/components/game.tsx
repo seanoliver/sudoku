@@ -56,6 +56,7 @@ export default function SudokuGame() {
   const rejectionId = useRef(0);
   // A hint belongs to the exact board it was computed for; any change to the game object retires it.
   const [hintState, setHintState] = useState<{ game: GameState; level: HintLevel; hint: Hint } | null>(null);
+  const focusAfterRender = useRef<number | null>(null);
   const [celebration, setCelebration] = useState<{ id: number; origin: number; cells: number[]; label: string } | null>(null);
   const celebrationId = useRef(0);
   const complete = game ? isComplete(game) : false;
@@ -217,8 +218,15 @@ export default function SudokuGame() {
     resetSelection();
     focusSelectedCell();
   };
+  // After Apply the affected cell takes keyboard focus once it has re-rendered.
+  useEffect(() => {
+    if (focusAfterRender.current === null) return;
+    board.current?.querySelector<HTMLButtonElement>(`[data-index="${focusAfterRender.current}"]`)?.focus();
+    focusAfterRender.current = null;
+  });
   const showHint = () => {
     if (!game || paused || busy || sheet || complete) return;
+    resetSelection();
     if (!activeHint) { setHintState({ game, level: 1, hint: nextHint(game) }); return; }
     if (hintDisplay && activeHint.level < hintDisplay.levels) setHintState({ ...activeHint, level: (activeHint.level + 1) as HintLevel });
   };
@@ -227,10 +235,10 @@ export default function SudokuGame() {
     const { hint } = activeHint;
     const next = hint.kind === 'step' ? applyHint(game, hint.step)
       : hint.kind === 'mistake' ? enter(game, hint.digit ? { index: hint.cell, value: hint.digit, exclude: true } : { index: hint.cell, value: 0 }) : game;
-    setHintState(null); setBlockedEntry(null);
+    setHintState(null); setBlockedEntry(null); resetSelection();
     if (next !== game) setGame(next);
-    if (hint.kind === 'step' && hint.step.placement) setSelected(hint.step.placement.cell);
-    else if (hint.kind === 'mistake') setSelected(hint.cell);
+    const cell = hint.kind === 'step' ? hint.step.placement?.cell ?? hint.step.eliminations[0]?.cell : hint.kind === 'mistake' ? hint.cell : undefined;
+    if (cell !== undefined) { setSelected(cell); focusAfterRender.current = cell; }
   };
   const input = (value: number) => {
     if (!game || paused || busy || sheet || complete) return;
@@ -269,7 +277,7 @@ export default function SudokuGame() {
     if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'z') { event.preventDefault(); if (event.shiftKey) doRedo(); else doUndo(); focusSelectedCell(); return; }
     if (event.metaKey || event.ctrlKey || event.altKey) return;
     const movement: Record<string, number> = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -9, ArrowDown: 9 };
-    if (event.key === 'Escape') { event.preventDefault(); clearSelection(); return; }
+    if (event.key === 'Escape') { event.preventDefault(); if (activeHint) setHintState(null); else clearSelection(); return; }
     if (event.key in movement) {
       event.preventDefault();
       const next = (selected + movement[event.key] + 81) % 81;
@@ -324,10 +332,9 @@ export default function SudokuGame() {
       <div className="puzzle-panel">
       <div className={`digit-focus-bar ${hintDisplay ? 'hint-strip' : ''}`} role="group" aria-label={hintDisplay ? 'Hint' : 'Digit focus'} inert={paused || busy || complete || !game}>
         {hintDisplay ? <>
-          <span className="hint-copy" role="status" aria-label={hintDisplay.label}><Icon name="bulb" size={18}/><span>{hintDisplay.text}</span></span>
+          <span className="hint-copy" aria-hidden="true"><Icon name="bulb" size={18}/><span>{hintDisplay.text}</span></span>
           {hintDisplay.levels > 1 && <span className="hint-dots" aria-hidden="true">{[1, 2, 3].map(step => <i key={step} className={step <= activeHint!.level ? 'on' : ''}/>)}</span>}
-          {hintDisplay.action === 'next' && <button className="hint-action" onClick={showHint}>Next</button>}
-          {hintDisplay.action === 'apply' && <button className="hint-action" onClick={applyActiveHint}>Apply</button>}
+          {hintDisplay.action !== 'none' && <button className="hint-action" onClick={hintDisplay.action === 'apply' ? applyActiveHint : showHint}>{hintDisplay.action === 'apply' ? 'Apply' : 'Next'}</button>}
           <button className="clear-focus-button" aria-label="Close hint" title="Close hint" onClick={() => { setHintState(null); focusSelectedCell(); }}><Icon name="close" size={16}/></button>
         </> : <>
         {focusedDigit !== null ? <>
@@ -340,6 +347,7 @@ export default function SudokuGame() {
         </>}
       </div>
 
+      <p className="sr-only" role="status">{hintDisplay?.label ?? ''}</p>
       <div className={`board-wrap ${complete ? 'is-complete' : ''}`}>
         <div className="board" role="grid" aria-label="Sudoku puzzle" aria-rowcount={9} aria-colcount={9} ref={board} {...selection.pointerHandlers} aria-multiselectable={batchSelection} aria-busy={busy} inert={paused || busy}>
           {Array.from({ length: 9 }, (_, row) => <div role="row" className="board-row" key={row}>

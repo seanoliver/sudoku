@@ -43,13 +43,28 @@ test('eliminations are shown as struck candidates at level 3', () => {
 });
 
 test('mistakes and dead ends have their own wording', () => {
-  assert.equal(hintView({ kind: 'mistake', cell: 40 }, 1).text, 'Something’s not right');
+  assert.equal(hintView({ kind: 'mistake', cell: 40 }, 1).text, 'Something’s off');
   assert.equal(hintView({ kind: 'mistake', cell: 40 }, 2).text, 'Check this cell');
   assert.ok(hintView({ kind: 'mistake', cell: 40 }, 2).cells.get(40)!.has('mistake'));
   assert.equal(hintView({ kind: 'mistake', cell: 40 }, 3).text, 'This number is wrong');
-  assert.equal(hintView({ kind: 'mistake', cell: 40, digit: 7 }, 3).text, 'The 7 isn’t ruled out');
+  assert.equal(hintView({ kind: 'mistake', cell: 40, digit: 7 }, 3).text, 'Don’t rule out 7');
   const stuck = hintView({ kind: 'stuck' }, 1);
-  assert.equal(stuck.text, 'No hint for this board');
+  assert.equal(stuck.text, 'No hint here');
   assert.equal(stuck.action, 'none');
   assert.equal(stuck.levels, 1);
+});
+
+test('every hint line fits the strip', () => {
+  const hints = [{ kind: 'step', step: hidden }, { kind: 'step', step: pointing }, { kind: 'mistake', cell: 1 }, { kind: 'mistake', cell: 1, digit: 7 }, { kind: 'stuck' }] as const;
+  for (const hint of hints) for (const level of [1, 2, 3] as const) assert.ok(hintView(hint, level).text.length <= 20, hintView(hint, level).text);
+});
+
+test('a naked single underlines one placed copy of each other digit', async () => {
+  const { baseCandidates, findStep } = await import('../src/lib/steps.ts');
+  const { solution } = (await import('../src/lib/sudoku.ts')).generatePuzzle('easy', 3);
+  const values = solution.map((v, i) => i === 40 ? 0 : v);
+  const step = findStep(values, baseCandidates(values))!;
+  assert.equal(step.technique, 'naked-single');
+  assert.equal(step.pattern.length, 8);
+  assert.deepEqual(new Set(step.pattern.map(i => values[i])).size, 8);
 });

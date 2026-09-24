@@ -9,10 +9,10 @@ Roadmap milestone 6. Sean asked for hints on September 24 while stuck on an Expe
   1. The technique, e.g. "Hidden single".
   2. Where to look, e.g. "Look in this box", with the area shaded.
   3. The move, e.g. "The 6 goes here": supporting cells underlined, a placement ghosted in its cell, eliminations shown as struck candidates. Next becomes Apply.
-- Apply makes the move as one undo step: a placement enters the digit; an elimination records exclusions.
-- ✕ closes the strip. Any board change, pause, sheet or new puzzle clears the hint.
+- Apply makes the move as one undo step: a placement enters the digit; an elimination records exclusions. The affected cell then takes selection and keyboard focus. Apply does not play unit celebrations.
+- ✕ or Escape closes the strip. Any board change (including a note) or new puzzle clears the hint; pausing or opening a sheet hides it until you return.
 - Mistakes come first: a wrong number, or an exclusion that crossed out a cell's answer. The strip says so and highlights that cell.
-- When these techniques find no move, the strip says "No hint available for this position".
+- When these techniques find no move, the strip says "No hint here".
 - "Learn this" joins the strip when the Learn module (milestone 8) exists.
 
 ## UI
