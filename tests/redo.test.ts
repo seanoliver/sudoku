@@ -7,7 +7,7 @@ const initial = () => engine.createGame(generatePuzzle('hard', 1));
 test('redo restores values and all annotations across saved undo/redo steps', () => {
   const start = initial();
   const noted = engine.fillNotes(start);
-  const excluded = engine.addExclusions(noted, { indices: [0, 1], value: 2 });
+  const excluded = engine.toggleExclusions(noted, { indices: [0, 1], value: 2 });
   const entered = engine.enter(excluded, { index: 0, value: 2 });
   const saved = JSON.stringify(entered);
   const twiceUndone = engine.undo(engine.undo(entered));
@@ -27,10 +27,10 @@ test('new edits discard redo, while rejected and unchanged actions preserve it',
   const undone = engine.undo(after);
   assert.equal(engine.enter(undone, { index: 2, value: 1 }), undone);
   assert.equal(engine.enter(undone, { index: 0, value: 3, blockIncorrectAnswers: true }), undone);
-  assert.deepEqual(engine.redo(engine.addNotes(undone, { indices: [], value: 2 })), after);
+  assert.deepEqual(engine.redo(engine.toggleNotes(undone, { indices: [], value: 2 })), after);
   assert.equal(engine.enter(undone, { index: 1, value: 4 }).redoHistory.length, 0);
   assert.equal(engine.fillNotes(undone).redoHistory.length, 0);
-  assert.equal(engine.addExclusions(undone, { indices: [1], value: 2 }).redoHistory.length, 0);
+  assert.equal(engine.toggleExclusions(undone, { indices: [1], value: 2 }).redoHistory.length, 0);
   assert.equal(engine.restartGame(undone).redoHistory.length, 0);
 });
 
