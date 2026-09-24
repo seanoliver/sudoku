@@ -333,7 +333,8 @@ export default function SudokuGame() {
         {hintDisplay ? <>
           <span className="hint-copy" aria-hidden="true"><Icon name="bulb" size={18}/><span>{hintDisplay.text}</span></span>
           {hintDisplay.levels > 1 && <span className="hint-dots" aria-hidden="true">{[1, 2, 3].map(step => <i key={step} className={step <= activeHint!.level ? 'on' : ''}/>)}</span>}
-          {hintDisplay.action !== 'none' && <button className="hint-action" onClick={hintDisplay.action === 'apply' ? applyActiveHint : showHint}>{hintDisplay.action === 'apply' ? 'Apply' : 'Next'}</button>}
+          {/* detail < 2: Next becomes Apply in place, so a double-tap on Next would otherwise make the move. */}
+          {hintDisplay.action !== 'none' && <button className="hint-action" onClick={event => { if (hintDisplay.action === 'next') showHint(); else if (event.detail < 2) applyActiveHint(); }}>{hintDisplay.action === 'apply' ? 'Apply' : 'Next'}</button>}
           <button className="clear-focus-button" aria-label="Close hint" title="Close hint" onClick={() => { setHintState(null); focusSelectedCell(); }}><Icon name="close" size={16}/></button>
         </> : <>
         {focusedDigit !== null ? <>
