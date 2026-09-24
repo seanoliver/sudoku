@@ -16,7 +16,10 @@ type InstallEvent = Event & { prompt: () => Promise<void>; userChoice: Promise<{
 const DIGITS = [1,2,3,4,5,6,7,8,9];
 const EMPTY_NOTES: number[] = [];
 const FOCUS_HINT_KEY = 'sudoku.focus-hold-learned.v1';
-const LEVELS: Difficulty[] = ['easy','medium','hard'];
+const LEVELS: Difficulty[] = ['easy','medium','hard','expert'];
+const LEVEL_NOTES: Record<Difficulty, string> = { easy: 'Ease into it', medium: 'A little more thought', hard: 'Take your time', expert: 'For seasoned solvers' };
+/** Bars filled up to the level, matching the header's difficulty mark. */
+const LevelBars = ({ level }: { level: Difficulty }) => <span className="level-mark" aria-hidden="true">{LEVELS.map((step, k) => <i key={step} className={k <= LEVELS.indexOf(level) ? 'active' : ''}/>)}</span>;
 const REJECTION_MS = 800;
 const CELEBRATION_STEP_MS = 45;
 const CELEBRATION_MS = 520;
@@ -284,7 +287,7 @@ export default function SudokuGame() {
 
     <main className="game">
       <div className="game-meta">
-        <button className="difficulty-button" disabled={busy} onClick={() => { setDifficulty(game?.difficulty ?? 'easy'); openSheet('new'); }} aria-label={`Difficulty: ${game?.difficulty ?? 'easy'}. Start a new puzzle`}><span className="level-mark"><i/><i className={game?.difficulty !== 'easy' ? 'active' : ''}/><i className={game?.difficulty === 'hard' ? 'active' : ''}/></span><span className="capitalize">{game?.difficulty ?? 'easy'}</span><Icon name="chevron" size={14}/></button>
+        <button className="difficulty-button" disabled={busy} onClick={() => { setDifficulty(game?.difficulty ?? 'easy'); openSheet('new'); }} aria-label={`Difficulty: ${game?.difficulty ?? 'easy'}. Start a new puzzle`}><LevelBars level={game?.difficulty ?? 'easy'}/><span className="capitalize">{game?.difficulty ?? 'easy'}</span><Icon name="chevron" size={14}/></button>
         <div className="time-controls">{game ? <Clock key={game.id} id={game.id} resetRevision={clockResetRevision} hidden={preferences.hideTimer} running={!paused && !sheet && !busy && !complete}/> : <span className="clock">00:00</span>}<button className="pause-button" aria-label={paused ? 'Resume game' : 'Pause game'} disabled={busy || complete || !game} onClick={() => { resetSelection(); setBlockedEntry(null); setCelebration(null); setPaused(value => !value); }}><Icon name={paused ? 'play' : 'pause'} size={15}/></button></div>
       </div>
 
@@ -360,7 +363,7 @@ export default function SudokuGame() {
 
     <dialog className="sheet" ref={dialog} onClose={() => setSheet(null)} onClick={event => { if (event.target === dialog.current) { const rect = dialog.current.getBoundingClientRect(); if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) closeSheet(); } }} aria-labelledby="sheet-title">
       <div className="sheet-content"><div className="sheet-handle"/><button className="sheet-close icon-button" onClick={closeSheet} aria-label="Close dialog"><Icon name="close" size={19}/></button>
-        {sheet === 'new' && <><div className="sheet-symbol"><Icon name="plus" size={28}/></div><h2 id="sheet-title">A fresh puzzle</h2><p className="sheet-subtitle">Choose how much of a challenge you’d like.</p><div className="difficulty-options" role="group" aria-label="Puzzle difficulty">{LEVELS.map(level => <button key={level} className={difficulty === level ? 'chosen' : ''} aria-pressed={difficulty === level} onClick={() => setDifficulty(level)}><span className="capitalize">{level}</span><small>{{ easy: 'Ease into it', medium: 'A little more thought', hard: 'Take your time' }[level]}</small><span className="radio-mark">{difficulty === level && <Icon name="check" size={12}/>}</span></button>)}</div>{game && !complete && <p className="replacement-note">This will replace your current puzzle.</p>}<button className="primary-button full-width" onClick={() => { closeSheet(); requestPuzzle(difficulty); }}>Start puzzle</button><button className="text-button full-width" onClick={closeSheet}>Keep playing</button></>}
+        {sheet === 'new' && <><div className="sheet-symbol"><Icon name="plus" size={28}/></div><h2 id="sheet-title">A fresh puzzle</h2><p className="sheet-subtitle">Choose how much of a challenge you’d like.</p><div className="difficulty-options" role="group" aria-label="Puzzle difficulty">{LEVELS.map(level => <button key={level} className={difficulty === level ? 'chosen' : ''} aria-pressed={difficulty === level} aria-label={`${level}: ${LEVEL_NOTES[level]}`} onClick={() => setDifficulty(level)}><LevelBars level={level}/><span className="capitalize">{level}</span></button>)}</div><p className="level-note" aria-hidden="true"><span className="capitalize">{difficulty}</span> · {LEVEL_NOTES[difficulty]}</p>{game && !complete && <p className="replacement-note">This will replace your current puzzle.</p>}<button className="primary-button full-width" onClick={() => { closeSheet(); requestPuzzle(difficulty); }}>Start puzzle</button><button className="text-button full-width" onClick={closeSheet}>Keep playing</button></>}
         {sheet === 'restart' && <><div className="sheet-symbol"><Icon name="restart" size={28}/></div><h2 id="sheet-title">Restart this puzzle?</h2><p className="sheet-subtitle">Start the same puzzle again with a fresh timer. Your entries, notes, exclusions, and undo history will be cleared.</p><p className="replacement-note">This cannot be undone.</p><button className="primary-button full-width" onClick={restartPuzzle}>Restart puzzle</button><button className="text-button full-width" onClick={closeSheet}>Keep playing</button></>}
         {sheet === 'settings' && <><h2 id="sheet-title">Settings</h2>
           <div className="puzzle-actions">

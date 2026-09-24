@@ -20,6 +20,12 @@ Grading 150 generated puzzles per level with a human-style solver (easiest techn
 - Triples and X-wing are rare as the hardest step: none in these 150-puzzle samples, and one each in a separate 300-puzzle check. Puzzles either solve with pairs or less, or need something beyond X-wing (for example chains or swordfish), or require trial and error. The grader does not yet tell these apart.
 - Generation time: about 7ms per Hard puzzle and about 37ms per minimal puzzle (max about 210ms), so generating several candidates per request is affordable in the worker.
 
+## Follow-up: advanced techniques and random grids (Expert)
+
+- Adding quads, swordfish, XY-wing and simple coloring to the grader moves about 8% of minimal puzzles out of `beyond`; 29% still need more (fixed-pattern grids, 150 puzzles).
+- Random solution grids made by seeded backtracking give a similar split: 8% need the new techniques and 37% still need more. The fixed pattern is not what makes Expert puzzles rare.
+- At about 8–11% per candidate, generating Expert on request would take several seconds on a phone, so Expert puzzles come from a precomputed bank (`scripts/build-expert-bank.ts`, about 80 seconds for 300 puzzles). The bank's hardest steps: 152 coloring, 128 XY-wing, 13 triples, 7 X-wing.
+
 ## How it works
 
 - `generatePuzzle` (`src/lib/sudoku.ts`) builds the solution from one fixed pattern, `digits[(r * 3 + floor(r / 3) + c) % 9]`, then shuffles bands, rows within bands, stacks, columns within stacks, and digit labels. Every solution is a transformation of the same grid.

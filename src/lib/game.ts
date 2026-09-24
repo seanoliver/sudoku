@@ -136,7 +136,7 @@ export function restore(raw: string): GameState | null {
   try {
     if (raw.length > 1_000_000) return null;
     const game = JSON.parse(raw) as GameState;
-    if (!game || game.version !== 1 || typeof game.id !== 'string' || game.id.length > 100 || !['easy','medium','hard'].includes(game.difficulty)) return null;
+    if (!game || game.version !== 1 || typeof game.id !== 'string' || game.id.length > 100 || !['easy','medium','hard','expert'].includes(game.difficulty)) return null;
     if (!isBoard(game.givens) || !isBoard(game.solution, 1) || conflicts(game.solution).size || !isBoard(game.values) || !isNotes(game.notes)) return null;
     const migrateSnapshot = (input: unknown): Snapshot | null => {
       if (!input || typeof input !== 'object') return null;
