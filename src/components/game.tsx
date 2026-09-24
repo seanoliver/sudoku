@@ -10,12 +10,16 @@ import { CellNotes } from './cell-notes';
 import { AppMark, Icon } from './icons';
 import { Clock } from './clock';
 import { restorePreferences, DEFAULT_PREFS, PREFS_KEY, type Theme, type Preferences } from '@/lib/preferences';
+import { HISTORY_KEY, readHistory, recordCompleted, recordSeen, type PuzzleHistory } from '@/lib/history';
 
 type Sheet = 'restart' | 'new' | 'settings' | 'help' | 'install' | null;
 type InstallEvent = Event & { prompt: () => Promise<void>; userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }> };
 const DIGITS = [1,2,3,4,5,6,7,8,9];
 const EMPTY_NOTES: number[] = [];
 const FOCUS_HINT_KEY = 'sudoku.focus-hold-learned.v1';
+/** Reads, updates and saves play history; storage failures only lose history, never the game. */
+const updateHistory = (change: (history: PuzzleHistory) => PuzzleHistory) => { try { localStorage.setItem(HISTORY_KEY, JSON.stringify(change(readHistory(localStorage.getItem(HISTORY_KEY))))); } catch { /* History is optional. */ } };
+const seenPuzzles = () => { try { return readHistory(localStorage.getItem(HISTORY_KEY)).seen; } catch { return []; } };
 const LEVELS: Difficulty[] = ['easy','medium','hard','expert'];
 const LEVEL_NOTES: Record<Difficulty, string> = { easy: 'Ease into it', medium: 'A little more thought', hard: 'Take your time', expert: 'For seasoned solvers' };
 /** Bars filled up to the level, matching the header's difficulty mark. */
@@ -51,6 +55,8 @@ export default function SudokuGame() {
   const [celebration, setCelebration] = useState<{ id: number; origin: number; cells: number[]; label: string } | null>(null);
   const celebrationId = useRef(0);
   const complete = game ? isComplete(game) : false;
+  const completedSource = complete ? game?.source : undefined;
+  useEffect(() => { if (completedSource) updateHistory(history => recordCompleted(history, completedSource)); }, [completedSource]);
   const selectCell = (index: number) => {
     setSelected(index); setBlockedEntry(null);
     if (focusedDigit !== null && game?.values[index]) setFocusedDigit(game.values[index]);
@@ -85,8 +91,10 @@ export default function SudokuGame() {
       // Lazy construction keeps the worker available for retry if startup fails.
       if (!worker.current) {
         const nextWorker = new Worker(new URL('../lib/puzzle.worker.ts', import.meta.url));
-        nextWorker.onmessage = ({ data }: MessageEvent<{ puzzle?: Puzzle; error?: string }>) => {
+        nextWorker.onmessage = ({ data }: MessageEvent<{ puzzle?: Puzzle; bankSize?: number; error?: string }>) => {
           if (data.puzzle) {
+            const { source } = data.puzzle;
+            if (source && data.bankSize) { const total = data.bankSize; updateHistory(history => recordSeen(history, { source, total })); }
             setGame(createGame(data.puzzle));
             setSelected(data.puzzle.givens.indexOf(0));
             setDifficulty(data.puzzle.difficulty);
@@ -100,7 +108,7 @@ export default function SudokuGame() {
         };
         worker.current = nextWorker;
       }
-      worker.current.postMessage({ difficulty: level });
+      worker.current.postMessage({ difficulty: level, avoid: level === 'expert' ? seenPuzzles() : [] });
     } catch { setBusy(false); setError('Could not create a puzzle. Reload the app to try again.'); }
   }, [resetSelection]);
 

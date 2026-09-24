@@ -26,6 +26,13 @@ Grading 150 generated puzzles per level with a human-style solver (easiest techn
 - Random solution grids made by seeded backtracking give a similar split: 8% need the new techniques and 37% still need more. The fixed pattern is not what makes Expert puzzles rare.
 - At about 8–11% per candidate, generating Expert on request would take several seconds on a phone, so Expert puzzles come from a precomputed bank (`scripts/build-expert-bank.ts`, about 80 seconds for 300 puzzles). The bank's hardest steps: 152 coloring, 128 XY-wing, 13 triples, 7 X-wing.
 
+## Follow-up: Expert felt easy (September 24)
+
+- Sean found an Expert puzzle easy with Block incorrect answers, Filter number keys and Smart highlighting on.
+- The first bank needed too little: 174 of 300 puzzles needed exactly one advanced step, and half needed it only once 51+ cells were filled.
+- Requiring 3+ advanced steps with the first needed at 45 or fewer filled cells keeps about 1% of random minimal puzzles. The rebuilt 300-puzzle bank (24 minutes) needs 3–7 advanced steps each, with the first needed at a median of 40 filled cells.
+- Symmetries preserve the hardest technique but not the solver's step count, because scan order changes. Served variants are re-checked.
+
 ## How it works
 
 - `generatePuzzle` (`src/lib/sudoku.ts`) builds the solution from one fixed pattern, `digits[(r * 3 + floor(r / 3) + c) % 9]`, then shuffles bands, rows within bands, stacks, columns within stacks, and digit labels. Every solution is a transformation of the same grid.

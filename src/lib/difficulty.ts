@@ -5,6 +5,8 @@ import { BOXES, COLUMNS, DIGITS, HOUSES, ROWS, type Candidates } from './deducti
 /** Human solving techniques, easiest first. A puzzle is rated by the hardest one it needs. */
 export const TECHNIQUES = ['naked-single', 'hidden-single', 'locked-candidates', 'pair', 'triple', 'x-wing', 'quad', 'swordfish', 'xy-wing', 'coloring', 'beyond'] as const;
 export type Technique = typeof TECHNIQUES[number];
+/** Expert needs repeated advanced reasoning early, not one late trick: at least this many advanced steps, the first while this many cells or fewer are filled. */
+export const EXPERT_RULE = { minAdvancedSteps: 3, maxFilledAtFirstAdvanced: 45 } as const;
 export const DIFFICULTY_BANDS: Record<Difficulty, readonly Technique[]> = { easy: ['naked-single'], medium: ['hidden-single'], hard: ['locked-candidates', 'pair'], expert: ['triple', 'x-wing', 'quad', 'swordfish', 'xy-wing', 'coloring'] };
 // Hard removes every removable clue; the others keep their clue targets.
 const GRADED_CLUE_TARGETS: Record<Difficulty, number> = { ...CLUE_TARGETS, hard: 0 }; // expert never generates; it comes from EXPERT_BANK
@@ -128,11 +130,12 @@ function coloring(candidates: Candidates): boolean {
   return false;
 }
 /** Solves with the easiest technique first, returning the hardest one used ('beyond' if these techniques cannot finish) and the board reached. */
-export function solveWithTechniques(givens: readonly number[]): { technique: Technique; values: number[] } {
+export function solveWithTechniques(givens: readonly number[]): { technique: Technique; values: number[]; advancedSteps: number; filledAtFirstAdvanced: number | null } {
   const values = [...givens];
   const candidates: Candidates = values.map((value, i) => new Set(value ? [] : DIGITS.filter(digit => !peers(i).some(peer => values[peer] === digit))));
   const place = (index: number, digit: number) => { values[index] = digit; candidates[index].clear(); for (const peer of peers(index)) candidates[peer].delete(digit); };
-  let hardest = 0;
+  let hardest = 0, advancedSteps = 0;
+  let filledAtFirstAdvanced: number | null = null;
   const steps: [number, () => boolean][] = [
     [1, () => { for (const house of HOUSES) for (const digit of DIGITS) { const cells = house.filter(i => candidates[i].has(digit)); if (cells.length === 1) { place(cells[0], digit); return true; } } return false; }],
     [2, () => lockedCandidates(candidates)],
@@ -150,8 +153,15 @@ export function solveWithTechniques(givens: readonly number[]): { technique: Tec
     const step = steps.find(([, apply]) => apply());
     if (!step) break;
     hardest = Math.max(hardest, step[0]);
+    // Triples and harder count as advanced; the board size when the first one is needed shows how early it comes.
+    if (step[0] >= TECHNIQUES.indexOf('triple')) { advancedSteps++; filledAtFirstAdvanced ??= values.filter(Boolean).length; }
   }
-  return { technique: values.every(Boolean) ? TECHNIQUES[hardest] : 'beyond', values };
+  return { technique: values.every(Boolean) ? TECHNIQUES[hardest] : 'beyond', values, advancedSteps, filledAtFirstAdvanced };
+}
+/** Solvable with the app's techniques, needing only expert-band techniques at most, and meeting EXPERT_RULE. */
+export function isExpert(givens: readonly number[]): boolean {
+  const { technique, advancedSteps, filledAtFirstAdvanced } = solveWithTechniques(givens);
+  return DIFFICULTY_BANDS.expert.includes(technique) && advancedSteps >= EXPERT_RULE.minAdvancedSteps && filledAtFirstAdvanced !== null && filledAtFirstAdvanced <= EXPERT_RULE.maxFilledAtFirstAdvanced;
 }
 /** The hardest technique a person needs to solve the puzzle. */
 export function ratePuzzle(givens: readonly number[]): Technique {
@@ -174,15 +184,29 @@ export function transformPuzzle(puzzle: Puzzle, seed: number): Puzzle {
   });
   return { ...puzzle, givens: move(puzzle.givens), solution: move(puzzle.solution) };
 }
-/** An expert puzzle from the precomputed bank, solved by technique and given a seeded symmetry so it looks new. */
-function createExpertPuzzle(seed: number): Puzzle {
-  const givens = [...EXPERT_BANK[seed % EXPERT_BANK.length]].map(Number);
-  const puzzle = { id: `${seed}-expert`, difficulty: 'expert' as const, givens, solution: solveWithTechniques(givens).values };
-  return transformPuzzle(puzzle, seed);
+/** A stable id for a bank entry (FNV-1a of its givens), so play history survives bank rebuilds that keep the puzzle. */
+export function expertKey(entry: string): string {
+  let hash = 0x811c9dc5;
+  for (let i = 0; i < entry.length; i++) hash = Math.imul(hash ^ entry.charCodeAt(i), 0x01000193);
+  return (hash >>> 0).toString(36);
+}
+/** An expert puzzle from the precomputed bank, skipping ones in `avoid` until every entry has been seen, solved by technique and given a seeded symmetry so it looks new. */
+function createExpertPuzzle(seed: number, avoid: readonly string[]): Puzzle {
+  const unseen = EXPERT_BANK.filter(entry => !avoid.includes(expertKey(entry)));
+  const pool = unseen.length ? unseen : EXPERT_BANK;
+  const entry = pool[seed % pool.length];
+  const givens = [...entry].map(Number);
+  const puzzle = { id: `${seed}-expert`, difficulty: 'expert' as const, givens, solution: solveWithTechniques(givens).values, source: expertKey(entry) };
+  // A symmetry keeps the logic but changes the solver's scan order, which can shorten its path. Serve only variants that still meet the rule.
+  for (let attempt = 0; attempt < 20; attempt++) {
+    const moved = transformPuzzle(puzzle, (seed + Math.imul(attempt, 0x9e3779b9)) >>> 0);
+    if (isExpert(moved.givens)) return moved;
+  }
+  return puzzle;
 }
 /** A uniquely solvable puzzle whose rating falls in the difficulty's band, drawing seeded candidates until one fits. */
-export function createPuzzle(difficulty: Difficulty, seed = Math.floor(Math.random() * 0xffffffff)): Puzzle {
-  if (difficulty === 'expert') return createExpertPuzzle(seed >>> 0);
+export function createPuzzle(difficulty: Difficulty, seed = Math.floor(Math.random() * 0xffffffff), { avoid = [] }: { avoid?: readonly string[] } = {}): Puzzle {
+  if (difficulty === 'expert') return createExpertPuzzle(seed >>> 0, avoid);
   const band = DIFFICULTY_BANDS[difficulty];
   const ceiling = TECHNIQUES.indexOf(band[band.length - 1]);
   let first: Puzzle | null = null;
