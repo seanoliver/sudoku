@@ -41,8 +41,26 @@ export function fillNotes(game: GameState): GameState {
     && noteOrigins[i] === game.noteOrigins[i])) return game;
   return record(game, { values: game.values, notes, exclusions: game.exclusions, noteOrigins });
 }
-export function addNotes(game: GameState, { indices, value, filterNumberKeys = false }: { indices: readonly number[]; value: number; filterNumberKeys?: boolean }): GameState {
+/** Empty, editable cells among a batch's indices. */
+const batchCells = (game: GameState, indices: readonly number[]) => [...new Set(indices)].filter(index => Number.isInteger(index) && index >= 0 && index < 81 && !game.givens[index] && !game.values[index]);
+/** True when every selected empty cell already has the mark, so a batch tap removes it. */
+export function batchHasMark(game: GameState, { indices, value, marks }: { indices: readonly number[]; value: number; marks: 'notes' | 'exclusions' }): boolean {
+  const cells = batchCells(game, indices);
+  return cells.length > 0 && cells.every(index => game[marks][index].includes(value));
+}
+/** When every selected empty cell already has the mark, a batch removes it from all of them. */
+function removeFromBatch(game: GameState, { indices, value, marks }: { indices: readonly number[]; value: number; marks: 'notes' | 'exclusions' }): GameState | null {
+  if (!batchHasMark(game, { indices, value, marks })) return null;
+  const cells = batchCells(game, indices);
+  const notes = [...game.notes], exclusions = [...game.exclusions], noteOrigins = [...game.noteOrigins];
+  const target = marks === 'notes' ? notes : exclusions;
+  for (const index of cells) { target[index] = target[index].filter(n => n !== value); noteOrigins[index] = 'manual'; }
+  return record(game, { values: game.values, notes, exclusions, noteOrigins });
+}
+export function toggleNotes(game: GameState, { indices, value, filterNumberKeys = false }: { indices: readonly number[]; value: number; filterNumberKeys?: boolean }): GameState {
   if (!Number.isInteger(value) || value < 1 || value > 9 || isComplete(game)) return game;
+  const removed = removeFromBatch(game, { indices, value, marks: 'notes' });
+  if (removed) return removed;
   const targets = [...new Set(indices)].filter(index => Number.isInteger(index) && index >= 0 && index < 81
     && !game.givens[index] && !game.values[index] && !(filterNumberKeys && heldByPeer(game, index, value))
     && (!game.notes[index].includes(value) || game.noteOrigins[index] !== 'manual'));
@@ -57,8 +75,10 @@ export function addNotes(game: GameState, { indices, value, filterNumberKeys = f
   }
   return record(game, { values: game.values, notes, exclusions, noteOrigins });
 }
-export function addExclusions(game: GameState, { indices, value, filterNumberKeys = false }: { indices: readonly number[]; value: number; filterNumberKeys?: boolean }): GameState {
+export function toggleExclusions(game: GameState, { indices, value, filterNumberKeys = false }: { indices: readonly number[]; value: number; filterNumberKeys?: boolean }): GameState {
   if (!Number.isInteger(value) || value < 1 || value > 9 || isComplete(game)) return game;
+  const removed = removeFromBatch(game, { indices, value, marks: 'exclusions' });
+  if (removed) return removed;
   const targets = [...new Set(indices)].filter(index => Number.isInteger(index) && index >= 0 && index < 81
     && !game.givens[index] && !game.values[index] && !(filterNumberKeys && heldByPeer(game, index, value)) && !game.exclusions[index].includes(value));
   if (!targets.length) return game;

@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { createGame, enter, undo, restartGame, addNotes, addExclusions } from '../src/lib/game.ts';
+import { createGame, enter, undo, restartGame, toggleNotes, toggleExclusions } from '../src/lib/game.ts';
 import { generatePuzzle, getEntryDigits } from '../src/lib/sudoku.ts';
 import { DEFAULT_PREFS, restorePreferences } from '../src/lib/preferences.ts';
 
@@ -57,8 +57,8 @@ test('single and batch annotations are unrestricted with filtering off', () => {
     const cleared = enter(annotated, { index: 0, value: 4, ...mode });
     assert.deepEqual([cleared.notes[0], cleared.exclusions[0]], [[], []]);
   }
-  assert.deepEqual(addNotes(game, { indices: [0, 1], value: 4 }).notes[1], [4]);
-  assert.deepEqual(addExclusions(game, { indices: [0, 1], value: 4 }).exclusions[1], [4]);
+  assert.deepEqual(toggleNotes(game, { indices: [0, 1], value: 4 }).notes[1], [4]);
+  assert.deepEqual(toggleExclusions(game, { indices: [0, 1], value: 4 }).exclusions[1], [4]);
 });
 
 
@@ -95,11 +95,11 @@ test('filtering still lets a stale note or exclusion be removed', () => {
 
 test('filtered batch notes and exclusions skip cells where the digit is blocked', () => {
   const game = enter(blank(), { index: 4, value: 6 });
-  for (const apply of [addNotes, addExclusions]) {
+  for (const apply of [toggleNotes, toggleExclusions]) {
     const next = apply(game, { indices: [0, 80], value: 6, filterNumberKeys: true });
-    const marks = apply === addNotes ? next.notes : next.exclusions;
+    const marks = apply === toggleNotes ? next.notes : next.exclusions;
     assert.deepEqual([marks[0], marks[80]], [[], [6]]);
     assert.equal(apply(game, { indices: [0], value: 6, filterNumberKeys: true }), game);
-    assert.deepEqual((apply === addNotes ? apply(game, { indices: [0], value: 6 }).notes : apply(game, { indices: [0], value: 6 }).exclusions)[0], [6]);
+    assert.deepEqual((apply === toggleNotes ? apply(game, { indices: [0], value: 6 }).notes : apply(game, { indices: [0], value: 6 }).exclusions)[0], [6]);
   }
 });

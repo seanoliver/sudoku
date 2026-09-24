@@ -8,7 +8,7 @@ test('restart clears an attempt while preserving the puzzle and original state',
   let before = engine.fillNotes(engine.createGame(puzzle));
   const empty = before.givens.flatMap((n, i) => n ? [] : [i]);
   before = engine.enter(before, { index: empty[0], value: before.solution[empty[0]] });
-  before = engine.addExclusions(before, { indices: empty.slice(1, 3), value: 4 });
+  before = engine.toggleExclusions(before, { indices: empty.slice(1, 3), value: 4 });
   const saved = JSON.stringify(before);
   const after = engine.restartGame(before);
   assert.deepEqual(after, engine.createGame(puzzle));

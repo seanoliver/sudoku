@@ -136,7 +136,7 @@ test('givens, occupied cells, invalid inputs, and completed games reject annotat
 test('Fill notes replaces stale notes, retains all exclusions and survives reload and undo', () => {
   let before = gameEngine.enter(blank(), { index: 0, value: 4, pencil: true });
   before = gameEngine.enter(before, { index: 1, value: 4 });
-  before = gameEngine.addExclusions(before, { indices: [0, 2], value: 2 });
+  before = gameEngine.toggleExclusions(before, { indices: [0, 2], value: 2 });
   before = gameEngine.enter(before, { index: 2, value: 3, exclude: true });
   const serialized = JSON.stringify(before);
   const after = gameEngine.fillNotes(before);
