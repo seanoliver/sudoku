@@ -1,4 +1,4 @@
-export type Difficulty = 'easy' | 'medium' | 'hard';
+export type Difficulty = 'easy' | 'medium' | 'hard' | 'expert';
 export type Puzzle = { id: string; difficulty: Difficulty; givens: number[]; solution: number[] };
 const indexes = Array.from({ length: 81 }, (_, i) => i);
 const row = (i: number) => Math.floor(i / 9);
@@ -62,7 +62,7 @@ export function countSolutions(values: number[]): number {
   return count;
 }
 
-export const CLUE_TARGETS: Record<Difficulty, number> = { easy: 42, medium: 34, hard: 28 };
+export const CLUE_TARGETS: Record<Difficulty, number> = { easy: 42, medium: 34, hard: 28, expert: 0 };
 export function generatePuzzle(difficulty: Difficulty, seed = Math.floor(Math.random() * 0xffffffff)): Puzzle {
   return buildPuzzle({ difficulty, seed, clueTarget: CLUE_TARGETS[difficulty] });
 }

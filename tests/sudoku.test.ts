@@ -1,13 +1,13 @@
 import { automaticNotes, getCandidates } from '../src/lib/candidates.ts';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { generatePuzzle, countSolutions, conflicts, peers, possibleCells, type Difficulty } from '../src/lib/sudoku.ts';
+import { generatePuzzle, countSolutions, conflicts, peers, possibleCells } from '../src/lib/sudoku.ts';
 import { createGame, enter, undo, restore, isComplete } from '../src/lib/game.ts';
 import { restorePreferences, DEFAULT_PREFS } from '../src/lib/preferences.ts';
 
 const basicNotes = (values: number[]) => automaticNotes(getCandidates({ values }));
 
-for (const difficulty of ['easy', 'medium', 'hard'] as Difficulty[]) {
+for (const difficulty of ['easy', 'medium', 'hard'] as const) {
   test(`${difficulty}: varied, valid, uniquely solvable puzzles`, () => {
     const boards = new Set<string>();
     for (let seed = 1; seed <= 12; seed++) {

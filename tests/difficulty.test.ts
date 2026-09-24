@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { createPuzzle, ratePuzzle, solveWithTechniques, TECHNIQUES, DIFFICULTY_BANDS } from '../src/lib/difficulty.ts';
+import { createPuzzle, ratePuzzle, solveWithTechniques, transformPuzzle, TECHNIQUES, DIFFICULTY_BANDS } from '../src/lib/difficulty.ts';
+import { EXPERT_BANK } from '../src/lib/expert-bank.ts';
 import { buildPuzzle, countSolutions, conflicts, generatePuzzle } from '../src/lib/sudoku.ts';
 
 test('a solved board and a one-gap board need only naked singles', () => {
@@ -10,7 +11,7 @@ test('a solved board and a one-gap board need only naked singles', () => {
 });
 
 test('ratings follow technique order and every generated easy puzzle needs only naked singles', () => {
-  assert.deepEqual(TECHNIQUES, ['naked-single', 'hidden-single', 'locked-candidates', 'pair', 'triple', 'x-wing', 'beyond']);
+  assert.deepEqual(TECHNIQUES, ['naked-single', 'hidden-single', 'locked-candidates', 'pair', 'triple', 'x-wing', 'quad', 'swordfish', 'xy-wing', 'coloring', 'beyond']);
   for (let seed = 1; seed <= 8; seed++) assert.equal(ratePuzzle(generatePuzzle('easy', seed).givens), 'naked-single');
 });
 
@@ -44,4 +45,43 @@ test('technique solving never contradicts the solution, including on the hardest
     assert.ok(values.every((v, i) => v === 0 || v === puzzle.solution[i]), `seed ${seed} placed a wrong digit`);
     if (technique !== 'beyond') assert.deepEqual(values, puzzle.solution);
   }
+});
+
+test('symmetry transforms keep a puzzle valid, unique, and equally hard, and vary the board', () => {
+  const base = buildPuzzle({ difficulty: 'hard', seed: 11, clueTarget: 0 });
+  const rating = ratePuzzle(base.givens);
+  const boards = new Set<string>();
+  for (let seed = 1; seed <= 8; seed++) {
+    const moved = transformPuzzle(base, seed);
+    assert.equal(conflicts(moved.solution).size, 0);
+    assert.ok(moved.givens.every((n, i) => n === 0 || n === moved.solution[i]));
+    assert.equal(moved.givens.filter(Boolean).length, base.givens.filter(Boolean).length);
+    assert.equal(countSolutions(moved.givens), 1);
+    assert.equal(ratePuzzle(moved.givens), rating);
+    boards.add(moved.givens.join(''));
+  }
+  assert.ok(boards.size >= 7);
+});
+
+test('every banked expert puzzle is unique and rates in the expert band', () => {
+  assert.ok(EXPERT_BANK.length >= 100);
+  for (const entry of EXPERT_BANK) {
+    const givens = [...entry].map(Number);
+    assert.equal(countSolutions(givens), 1);
+    assert.ok(DIFFICULTY_BANDS.expert.includes(ratePuzzle(givens)), entry);
+  }
+});
+
+test('expert puzzles come from the bank, solved and transformed, and never need guessing', () => {
+  const boards = new Set<string>();
+  for (let seed = 1; seed <= 12; seed++) {
+    const puzzle = createPuzzle('expert', seed);
+    assert.equal(puzzle.difficulty, 'expert');
+    assert.equal(countSolutions(puzzle.givens), 1);
+    assert.deepEqual(solveWithTechniques(puzzle.givens).values, puzzle.solution);
+    assert.ok(DIFFICULTY_BANDS.expert.includes(ratePuzzle(puzzle.givens)));
+    assert.deepEqual(createPuzzle('expert', seed), puzzle);
+    boards.add(puzzle.givens.join(''));
+  }
+  assert.equal(boards.size, 12);
 });
