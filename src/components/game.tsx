@@ -322,11 +322,12 @@ export default function SudokuGame() {
           {batchSelection && <div className="batch-heading"><span role="status">{selection.indices.length} {selection.indices.length === 1 ? 'cell' : 'cells'} selected</span><button className="batch-clear" onClick={clearSelection}>Clear selection</button></div>}
           <div className="note-controls" aria-label="Puzzle tools">
             <div className="mode-switch" role="group" aria-label="Entry mode">
+              <span className={`mode-indicator mode-indicator-${mode}`} aria-hidden="true"/>
               {(['value', 'note', 'exclude'] as const).map(option => <button key={option} className={`mode-option mode-${option}`} aria-pressed={mode === option} disabled={paused || busy} onClick={() => chooseMode(option)} title={{ value: 'Numbers', note: 'Notes (N)', exclude: 'Exclude (X)' }[option]}>
                 <Icon name={({ value: 'numbers', note: 'pencil', exclude: 'exclude' } as const)[option]} size={16}/><span>{{ value: 'Numbers', note: 'Notes', exclude: 'Exclude' }[option]}</span>
               </button>)}
             </div>
-            <button className="erase-control" style={{ visibility: canErase ? 'visible' : 'hidden' }} disabled={!canErase} onClick={() => { input(0); focusSelectedCell(); }} aria-label="Erase" title="Erase (Backspace)"><Icon name="erase" size={20}/></button>
+            <button className="erase-control" disabled={!canErase} onClick={() => { input(0); focusSelectedCell(); }} aria-label="Erase" title="Erase (Backspace)"><Icon name="erase" size={20}/></button>
           </div>
         <div className={`number-pad mode-${mode}`} aria-label="Number pad">
           {DIGITS.map(n => {

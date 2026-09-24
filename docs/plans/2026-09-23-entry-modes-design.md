@@ -5,8 +5,8 @@ Roadmap item: R3, annotation mode switching. Sean named four problems on Septemb
 ## Controls
 
 - One segmented control, **Numbers | Notes | Exclude**, about 44px tall across the keypad width, replaces the Notes switch and the Exclude chip. Every mode is one tap away.
-- The active segment is filled in its mode color: blue for Numbers, note blue for Notes, pale red for Exclude.
-- Erase is a fixed icon button at the right end of the row. When nothing is erasable it is hidden with `visibility: hidden`, so the row never shifts.
+- One indicator behind the segments slides to the active mode (220ms, color fading to the mode: white for Numbers, pale blue for Notes, pale red for Exclude). Reduced motion moves it instantly.
+- Erase is a fixed icon button at the right end of the row, always visible and dimmed while disabled, so the row stays balanced.
 - Accessibility: a labeled group ("Entry mode") of three buttons with `aria-pressed`. Number keys keep their existing labels ("Enter 4", "Enter 4 as a note", "Rule out 4").
 
 ## Mode shown on the keys
