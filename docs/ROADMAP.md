@@ -217,7 +217,7 @@ Status: queued for research. The feature outcomes below are uncommitted. Complet
 
 ### R3. Annotation mode switching
 
-**Status:** Implemented on `feat/entry-modes` ([design](plans/2026-09-23-entry-modes-design.md)). A one-tap Numbers | Notes | Exclude control replaces the Notes switch and Exclude chip, the number keys show the active mode, batches keep the annotation mode, and X works from any mode.
+**Status:** Shipped in [PR #27](https://github.com/seanoliver/sudoku/pull/27) ([design](plans/2026-09-23-entry-modes-design.md)). A one-tap Numbers | Notes | Exclude control replaces the Notes switch and Exclude chip, the number keys show the active mode, batches keep the annotation mode, and X works from any mode.
 
 - **Observation:** Switching between note and exclude mode is still too difficult.
 - **Research:** Observe single-cell and batch annotation sequences on a phone, count required actions, and identify mode confusion. Include interactions with default digit focus and number-row selection.
