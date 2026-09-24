@@ -180,10 +180,10 @@ h1,h2,h3,p { margin: 0; }
 .mode-option:disabled { opacity: .4; }
 .mode-option[aria-pressed='true'] { box-shadow: 0 1px 2px rgb(0 0 0 / .12); }
 .mode-value[aria-pressed='true'] { background: var(--surface); color: var(--blue); }
-.mode-note[aria-pressed='true'] { background: var(--surface); color: var(--note-blue); }
+.mode-note[aria-pressed='true'] { background: var(--blue-soft); color: var(--note-blue); }
 .mode-exclude[aria-pressed='true'] { background: var(--red-soft); color: var(--note-red); }
 .erase-control { display: grid; place-items: center; width: 44px; min-height: 44px; border-radius: 7px; color: var(--secondary); }
-.number-pad.mode-note .number-key>span { font-size: 17px; color: var(--note-blue); }
+.number-pad.mode-note .number-key { justify-content: flex-start; align-items: flex-start; padding: 7px 0 0 9px; background: color-mix(in srgb, var(--blue-soft) 70%, var(--surface)); }.number-pad.mode-note .number-key>span { font-size: 16px; line-height: 1; color: var(--note-blue); }.number-pad.mode-note .number-key>small { align-self: center; margin: auto 9px 8px 0; }
 .number-pad.mode-exclude .number-key { background: color-mix(in srgb, var(--red-soft) 70%, var(--surface)); }
 .number-pad.mode-exclude .number-key>span { position: relative; color: var(--note-red); }
 .number-pad.mode-exclude .number-key>span::after { content: ''; position: absolute; left: 50%; top: 50%; width: 1.1em; height: 2px; margin: -1px 0 0 -.55em; background: currentColor; transform: rotate(45deg); }
