@@ -31,6 +31,7 @@ Pointing-pair, hidden-pair, and hidden-single logic exists in the engine, but it
 | 5 | Apply a chosen deduction | Validate and apply a player-selected pointing pair | Explanation records from milestone 4 |
 | 6 | Progressive hints | Reveal one supported move in optional steps | Explainable detection from milestones 4 and 5 |
 | 7 | Technique-based difficulty and practice | Grade puzzles by supported logical techniques | Reliable step traces from milestone 6 |
+| 8 | Learn module | A technique inventory with a visual lesson and practice boards for each deduction | Step reports from milestone 6; practice boards from milestone 7 |
 
 Digit focus and batch exclusions have shipped. The new requests below add an input and layout pass before recovery; speed replay should follow the action-recording work alongside recovery. This is a proposed order, not a commitment to start implementation. Explainable detection can be developed before the hint UI, but every explanation must refer to a valid board state.
 
@@ -350,6 +351,8 @@ This precedes applied deductions because their affected notes and explanations m
 
 ## 7. Difficulty and practice
 
+**Status:** Technique grading shipped in [PR #30](https://github.com/seanoliver/sudoku/pull/30), [PR #32](https://github.com/seanoliver/sudoku/pull/32) and [PR #33](https://github.com/seanoliver/sudoku/pull/33): levels are graded by required technique, with an Expert bank. Targeted practice is folded into milestone 8.
+
 **Player benefit:** Choose an appropriate challenge and practice a selected technique.
 
 Deliver in two releases:
@@ -358,6 +361,27 @@ Deliver in two releases:
 2. **Targeted practice:** Offer puzzles that require a selected technique along the supported solving path. Begin with small curated or validated sets before adding bounded generation in the puzzle worker.
 
 **Completion criteria:** Labels agree with reproducible solve traces. A practice puzzle requires a useful instance of the selected technique; merely containing a recognizable pattern is insufficient. Generation stays responsive and has a fallback when constraints cannot be met. The existing clue-count labels are replaced only after calibration.
+
+## 8. Learn module
+
+Captured from Sean on September 24. Long-term scope, modeled on the way Good Sudoku teaches techniques.
+
+**Player benefit:** Learn each deduction, practice spotting it, and use it to get unstuck in a real game.
+
+- **Technique inventory:** One place listing every deduction the solver knows, easiest first: naked and hidden singles, pointing and claiming, naked and hidden pairs, triples and quads, X-wing, swordfish, XY-wing, and coloring. Each shows whether the player has learned it.
+- **Visual lesson:** Opening a technique shows how it works on a real board with animation and highlights, and walks through finding it. Follow the visual-first principle: minimal text, with explanation only where the board cannot show it.
+- **Practice boards:** A series of partly solved boards where that technique is the only possible next move, for the player to find. The technique solver can produce these from bank and generated puzzles: step through a solve and keep each board just before a move of that technique when no easier move exists. Verify each board against that rule.
+- **Two ways in:** From a game (a hint names the needed technique and offers "Learn this"), and from a home screen (R11) for learning without a game in progress.
+- **Achievements:** Earn a mark for each technique learned, for example after solving its practice set. Coordinate with R7 (accomplishments) and R10 (puzzle history).
+
+**Dependencies:** Milestone 6's step reports (technique, cells, digits and eliminations for one move) are the shared foundation for hints, lessons, and practice boards, so build them first.
+
+**Completion criteria:** Every listed technique has a lesson and a practice set whose boards each require that technique as the only next move. Entering from a game returns to the same game state. Learned status persists on the device.
+
+### R11. Home screen
+
+- **Idea:** A home screen for starting or continuing a game, opening the Learn module, and later seeing history and achievements. Sean mentioned it on September 24 as a future entry point for the Learn module.
+- **Output:** Three rendered directions, then a scope proposal. Today the app opens straight into the game.
 
 ## Very low priority: desktop experience
 
