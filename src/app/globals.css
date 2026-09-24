@@ -196,5 +196,5 @@ h1,h2,h3,p { margin: 0; }
 .cell.hint-mistake { background: var(--red-soft); box-shadow: inset 0 0 0 2px var(--red); }
 .hint-ghost { position: absolute; inset: 0; display: grid; place-items: center; font-size: clamp(23px, 6.4vw, 29px); line-height: 1; color: var(--hint); opacity: .9; pointer-events: none; }
 .hint-struck-grid { position: absolute; top: 8%; left: 8%; width: 84%; height: 84%; display: grid; grid-template: repeat(3, 1fr) / repeat(3, 1fr); place-items: center; pointer-events: none; font-size: clamp(9px, 2.8vw, 13px); }.cell.hint-target .notes { visibility: hidden; }
-.hint-struck { position: relative; line-height: 1; font-weight: 700; color: var(--red); }.hint-struck::after { content: ''; position: absolute; left: 50%; top: 50%; width: 1.3em; height: 2px; margin: -1px 0 0 -.65em; background: var(--red); transform: rotate(45deg); }
+.hint-struck-digit { position: relative; line-height: 1; font-weight: 700; color: var(--red); }.hint-struck-digit::after { content: ''; position: absolute; left: 50%; top: 50%; width: 1.3em; height: 2px; margin: -1px 0 0 -.65em; background: var(--red); transform: rotate(45deg); }
 @media (hover: hover) { .hint-button:not(:disabled):hover { background: var(--peer); } }
