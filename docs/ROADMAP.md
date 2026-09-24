@@ -211,7 +211,7 @@ Status: queued for research. The feature outcomes below are uncommitted. Complet
 
 ### R2. Difficulty beyond Hard
 
-**Status:** Part 1 shipped in [PR #30](https://github.com/seanoliver/sudoku/pull/30): levels are now graded by required technique ([investigation](investigations/2026-09-24-difficulty-grading.md), [design](plans/2026-09-24-graded-difficulty-design.md)). Part 2, an Expert level, is implemented on `feat/expert-difficulty` ([design](plans/2026-09-24-expert-difficulty-design.md)).
+**Status:** Part 1 shipped in [PR #30](https://github.com/seanoliver/sudoku/pull/30): levels are now graded by required technique ([investigation](investigations/2026-09-24-difficulty-grading.md), [design](plans/2026-09-24-graded-difficulty-design.md)). Part 2, an Expert level, shipped in [PR #32](https://github.com/seanoliver/sudoku/pull/32) ([design](plans/2026-09-24-expert-difficulty-design.md)).
 
 - **Observation:** The game needs a level harder than Hard.
 - **Research:** Evaluate current Hard puzzles by required techniques and solving effort, including enabled assistance. Assess whether the existing generator and supported deductions can reliably produce and grade a harder tier.
