@@ -225,7 +225,7 @@ Status: queued for research. The feature outcomes below are uncommitted. Complet
 
 ### R4. Number-row presentation
 
-**Status:** Implemented on `feat/number-row-counts` ([design](plans/2026-09-23-number-row-counts-design.md)). Remaining counts are removed; a digit with all nine placed fades out. Sean chose this over a progress bar and remaining-count dots on September 23.
+**Status:** Shipped in [PR #28](https://github.com/seanoliver/sudoku/pull/28) ([design](plans/2026-09-23-number-row-counts-design.md)). Remaining counts are removed; a digit with all nine placed fades out. Sean chose this over a progress bar and remaining-count dots on September 23.
 
 - **Observations:** Remaining-number counts look messy; consider the Good Sudoku style number row.
 - **Research:** Inspect the referenced app's number-row behavior and identify which aspects address the playtest problem. Compare count presentation, completion states, focus, entry and annotations within the available phone width. Clarify whether “remaining” counts placements, correct placements or another measure.
