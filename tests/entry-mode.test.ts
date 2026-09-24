@@ -37,3 +37,16 @@ test('choosing Numbers during a batch leaves annotation modes', () => {
   assert.equal(selectMode(batch, { mode: 'value', batch: true }).mode, 'value');
   assert.equal(toggleMode(batch, { mode: 'note', batch: true }).mode, 'value');
 });
+
+test('a batch from Notes annotates as Notes and keeps Notes', () => {
+  const fromNotes = beginBatch({ mode: 'note', batchMode: 'exclude' });
+  assert.deepEqual(fromNotes, { mode: 'note', batchMode: 'note' });
+});
+
+test('keyboard toggles inside a batch started in Numbers', () => {
+  const batch = beginBatch(INITIAL_ENTRY_MODE);
+  const excluding = toggleMode(batch, { mode: 'exclude', batch: true });
+  assert.equal(activeMode(excluding, { batch: true }), 'exclude');
+  assert.equal(excluding.mode, 'value');
+  assert.equal(toggleMode(excluding, { mode: 'exclude', batch: true }).mode, 'value');
+});

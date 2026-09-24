@@ -12,9 +12,10 @@ Roadmap item: R3, annotation mode switching. Sean named four problems on Septemb
 ## Mode shown on the keys
 
 - Numbers: current key style.
-- Notes: smaller digits in note blue.
+- Notes: small note-blue digits in the top-left corner of pale blue keys, like notes in a cell.
 - Exclude: pale red key tint, red digits struck top left to bottom right.
 - The "Notes on. …" and "Exclude on. …" hint lines are removed.
+- The batch keypad uses the same per-mode key styling, so the batch mode is visible while cells are selected.
 
 ## Mode persistence
 

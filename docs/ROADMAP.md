@@ -16,7 +16,7 @@ Already merged into `main`:
 - Optional Smart highlighting, manual notes and exclusions, and one-time Fill notes.
 - Digit focus through an explicit button or filled-cell hold, with an integrated board toolbar ([PR #10](https://github.com/seanoliver/sudoku/pull/10)).
 - Hold/drag selection for batch notes and exclusions, with one undo step per batch and a grouped keypad panel containing Clear selection ([PR #11](https://github.com/seanoliver/sudoku/pull/11)).
-- Compact annotation controls: one Notes switch, an Exclude chip within Notes mode, contextual Erase, and Undo/Fill notes in Settings ([PR #15](https://github.com/seanoliver/sudoku/pull/15)).
+- Compact annotation controls with contextual Erase and Undo/Fill notes in Settings ([PR #15](https://github.com/seanoliver/sudoku/pull/15)). The Notes switch and Exclude chip were later replaced by a Numbers | Notes | Exclude control (R3).
 
 Pointing-pair, hidden-pair, and hidden-single logic exists in the engine, but it does not automatically change gameplay notes or highlighting. Difficulty currently uses clue density. Persistent Redo has shipped in [PR #18](https://github.com/seanoliver/sudoku/pull/18). Explanation records, progressive hints, and technique-based grading remain future work.
 
@@ -220,7 +220,6 @@ Status: queued for research. The feature outcomes below are uncommitted. Complet
 **Status:** Implemented on `feat/entry-modes` ([design](plans/2026-09-23-entry-modes-design.md)). A one-tap Numbers | Notes | Exclude control replaces the Notes switch and Exclude chip, the number keys show the active mode, batches keep the annotation mode, and X works from any mode.
 
 - **Observation:** Switching between note and exclude mode is still too difficult.
-- **Current baseline:** PR #15 has shipped the Notes switch and nested Exclude chip. Re-test that interaction before proposing another change; the playtest observation does not establish whether the latest controls resolve the problem.
 - **Research:** Observe single-cell and batch annotation sequences on a phone, count required actions, and identify mode confusion. Include interactions with default digit focus and number-row selection.
 - **Output:** A recommended interaction flow and a focused usability test for switching modes without accidental values or annotations. Prepare design directions if promoted to implementation.
 

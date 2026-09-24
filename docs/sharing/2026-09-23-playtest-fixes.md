@@ -42,7 +42,7 @@ Record attributed replies in a new `docs/investigations/` entry. Use them to dec
 
 ## Drafting status
 
-X-only thread draft saved in Typefully for @SeanOliver: https://typefully.com/?d=10898346&a=84484. Two posts (203 and 269 characters), the clip attached to post 1, all other platforms disabled, no scheduled date. The video's alt text is in the draft scratchpad and must be added in Typefully before posting; the CLI cannot set it. The writing critic returned the copy CLEAN after three rounds. Publishing, scheduling, and replies remain unrequested.
+X-only thread draft saved in Typefully for @SeanOliver. Two posts (203 and 269 characters), the clip attached to post 1, all other platforms disabled, no scheduled date. The writing critic returned the copy CLEAN after three rounds. Publishing, scheduling, and replies remain unrequested.
 
 ## X draft
 
