@@ -13,6 +13,8 @@ Sean's September 23 phone playtest of the entry mode switch asked for four chang
 
 - **Focus follows entries.** While a digit is focused, entering a value in a cell switches focus to that number, so its other placements are easy to scan. Notes and exclusions leave focus unchanged, and entering a value never turns focus on by itself.
 
+- **Dimmed keys focus their number.** Number keys are never disabled during play. Tapping or typing a digit that is dimmed by the filter, or has all nine placed, or cannot be annotated in the selected cell, switches focus to that number and changes nothing on the board. This lets the number row move focus between digits. It replaces the red rejection feedback that a typed filtered digit used to show; wrong answers under Block incorrect answers still show it.
+
 ## Roadmap
 
 Adds R9, a native iOS app, as a later goal once the web app is settled.

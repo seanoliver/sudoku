@@ -33,7 +33,7 @@ The build generates `public/sw.js` after Next.js finishes, precaching the comple
 - Pause hides the board and stops the clock. The clock also pauses in dialogs and background tabs. Hide timer in Settings hides the time display while elapsed time continues to be tracked and saved.
 - Progress saves automatically on this device, including undo history.
 - Choose a new easy, medium, or hard puzzle. Each generated puzzle has exactly one solution.
-- Settings include system/light/dark appearance, Block incorrect answers, related-cell highlighting, and optional Filter number keys. Filtering dims numbers already in the selected cell’s row, column, or box and rejects matching keyboard input, in Numbers, Notes, and Exclude. It starts off and ignores notes, exclusions, and the solution.
+- Settings include system/light/dark appearance, Block incorrect answers, related-cell highlighting, and optional Filter number keys. Filtering dims numbers already in the selected cell’s row, column, or box in Numbers, Notes, and Exclude; tapping or typing a dimmed number focuses it instead of entering it. It starts off and ignores notes, exclusions, and the solution.
 
 Keyboard: arrow keys move, 1–9 enter, N switches to Notes and X to Exclude (press again for Numbers), Backspace/Delete erases, and Cmd/Ctrl+Z undoes.
 
