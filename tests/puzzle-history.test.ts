@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readHistory, recordSeen, recordCompleted, EMPTY_HISTORY } from '../src/lib/history.ts';
-import { createPuzzle, expertCycleComplete, expertKey, isExpert } from '../src/lib/difficulty.ts';
+import { createPuzzle, expertCycleComplete, expertKey } from '../src/lib/difficulty.ts';
 import { EXPERT_BANK } from '../src/lib/expert-bank.ts';
 import { createGame, restartGame, restore } from '../src/lib/game.ts';
 

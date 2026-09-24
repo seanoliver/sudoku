@@ -1,10 +1,8 @@
-import { buildPuzzle, CLUE_TARGETS, peers, type Difficulty, type Puzzle } from './sudoku.ts';
+import { buildPuzzle, CLUE_TARGETS, type Difficulty, type Puzzle } from './sudoku.ts';
 import { EXPERT_BANK } from './expert-bank.ts';
-import { BOXES, COLUMNS, DIGITS, HOUSES, ROWS, type Candidates } from './deductions.ts';
+import { applyStep, baseCandidates, findStep, TECHNIQUES, type Technique } from './steps.ts';
 
-/** Human solving techniques, easiest first. A puzzle is rated by the hardest one it needs. */
-export const TECHNIQUES = ['naked-single', 'hidden-single', 'locked-candidates', 'pair', 'triple', 'x-wing', 'quad', 'swordfish', 'xy-wing', 'coloring', 'beyond'] as const;
-export type Technique = typeof TECHNIQUES[number];
+export { TECHNIQUES, type Technique } from './steps.ts';
 /** Expert needs repeated advanced reasoning early, not one late trick: at least this many advanced steps, the first while this many cells or fewer are filled. */
 export const EXPERT_RULE = { minAdvancedSteps: 3, maxFilledAtFirstAdvanced: 45 } as const;
 export const DIFFICULTY_BANDS: Record<Difficulty, readonly Technique[]> = { easy: ['naked-single'], medium: ['hidden-single'], hard: ['locked-candidates', 'pair'], expert: ['triple', 'x-wing', 'quad', 'swordfish', 'xy-wing', 'coloring'] };
@@ -12,149 +10,18 @@ export const DIFFICULTY_BANDS: Record<Difficulty, readonly Technique[]> = { easy
 const GRADED_CLUE_TARGETS: Record<Difficulty, number> = { ...CLUE_TARGETS, hard: 0 }; // expert never generates; it comes from EXPERT_BANK
 const MAX_ATTEMPTS = 60;
 
-const boxOf = (i: number) => Math.floor(i / 27) * 3 + Math.floor((i % 9) / 3);
-function subsets<T>(items: readonly T[], size: number): T[][] {
-  if (!size) return [[]];
-  if (items.length < size) return [];
-  const [first, ...rest] = items;
-  return [...subsets(rest, size - 1).map(set => [first, ...set]), ...subsets(rest, size)];
-}
-
-/** Pointing (box to line) and claiming (line to box) with two or three cells. */
-function lockedCandidates(candidates: Candidates): boolean {
-  let changed = false;
-  for (const box of BOXES) for (const digit of DIGITS) {
-    const cells = box.filter(i => candidates[i].has(digit));
-    if (cells.length < 2 || cells.length > 3) continue;
-    const rows = new Set(cells.map(i => Math.floor(i / 9))), columns = new Set(cells.map(i => i % 9));
-    const line = rows.size === 1 ? ROWS[[...rows][0]] : columns.size === 1 ? COLUMNS[[...columns][0]] : null;
-    if (line) for (const i of line) if (!box.includes(i) && candidates[i].delete(digit)) changed = true;
-  }
-  for (const line of [...ROWS, ...COLUMNS]) for (const digit of DIGITS) {
-    const cells = line.filter(i => candidates[i].has(digit));
-    const boxes = new Set(cells.map(boxOf));
-    if (cells.length < 2 || cells.length > 3 || boxes.size !== 1) continue;
-    for (const i of BOXES[[...boxes][0]]) if (!line.includes(i) && candidates[i].delete(digit)) changed = true;
-  }
-  return changed;
-}
-
-/** Naked and hidden sets of the given size within any row, column or box. */
-function sets(candidates: Candidates, size: number): boolean {
-  let changed = false;
-  for (const house of HOUSES) {
-    for (const cells of subsets(house.filter(i => candidates[i].size >= 2 && candidates[i].size <= size), size)) {
-      const digits = new Set(cells.flatMap(i => [...candidates[i]]));
-      if (digits.size !== size) continue;
-      for (const i of house) if (!cells.includes(i)) for (const digit of digits) if (candidates[i].delete(digit)) changed = true;
-    }
-    for (const digits of subsets(DIGITS, size)) {
-      if (digits.some(digit => !house.some(i => candidates[i].has(digit)))) continue;
-      const cells = [...new Set(digits.flatMap(digit => house.filter(i => candidates[i].has(digit))))];
-      if (cells.length !== size) continue;
-      for (const i of cells) for (const digit of [...candidates[i]]) if (!digits.includes(digit) && candidates[i].delete(digit)) changed = true;
-    }
-  }
-  return changed;
-}
-
-function xWing(candidates: Candidates): boolean {
-  let changed = false;
-  for (const [base, cover] of [[ROWS, COLUMNS], [COLUMNS, ROWS]] as const) for (const digit of DIGITS) {
-    const positions = base.map(line => line.flatMap((i, k) => candidates[i].has(digit) ? [k] : []));
-    for (let a = 0; a < 9; a++) for (let b = a + 1; b < 9; b++) {
-      const [pa, pb] = [positions[a], positions[b]];
-      if (pa.length !== 2 || pb.length !== 2 || pa[0] !== pb[0] || pa[1] !== pb[1]) continue;
-      for (const k of pa) for (const i of cover[k]) if (!base[a].includes(i) && !base[b].includes(i) && candidates[i].delete(digit)) changed = true;
-    }
-  }
-  return changed;
-}
-
-function swordfish(candidates: Candidates): boolean {
-  let changed = false;
-  for (const [base, cover] of [[ROWS, COLUMNS], [COLUMNS, ROWS]] as const) for (const digit of DIGITS) {
-    const positions = base.map(line => line.flatMap((i, k) => candidates[i].has(digit) ? [k] : []));
-    const eligible = [...Array(9).keys()].filter(a => positions[a].length >= 2 && positions[a].length <= 3);
-    for (const lines of subsets(eligible, 3)) {
-      const union = new Set(lines.flatMap(a => positions[a]));
-      if (union.size !== 3) continue;
-      for (const k of union) for (const i of cover[k]) if (!lines.some(a => base[a].includes(i)) && candidates[i].delete(digit)) changed = true;
-    }
-  }
-  return changed;
-}
-const sees = (a: number, b: number) => a !== b && (Math.floor(a / 9) === Math.floor(b / 9) || a % 9 === b % 9 || boxOf(a) === boxOf(b));
-function xyWing(candidates: Candidates): boolean {
-  const bivalue = [...Array(81).keys()].filter(i => candidates[i].size === 2);
-  for (const pivot of bivalue) {
-    const [a, b] = [...candidates[pivot]];
-    const wings = bivalue.filter(i => sees(i, pivot));
-    for (const x of wings) for (const y of wings) {
-      if (x >= y) continue;
-      const cx = candidates[x], cy = candidates[y];
-      for (const [p, q] of [[a, b], [b, a]]) {
-        if (!cx.has(p) || cx.has(q) || !cy.has(q) || cy.has(p)) continue;
-        const c = [...cx].find(d => d !== p);
-        if (c === undefined || !cy.has(c) || c === a || c === b) continue;
-        let changed = false;
-        for (let i = 0; i < 81; i++) if (i !== x && i !== y && i !== pivot && sees(i, x) && sees(i, y) && candidates[i].delete(c)) changed = true;
-        if (changed) return true;
-      }
-    }
-  }
-  return false;
-}
-/** Single-digit coloring over conjugate pairs (houses with exactly two cells for the digit). */
-// Exactly one cell of each conjugate pair holds the digit, so a sound board always 2-colors cleanly; the search can skip already-colored cells without checking for clashes.
-function coloring(candidates: Candidates): boolean {
-  for (const digit of DIGITS) {
-    const links = new Map<number, number[]>();
-    for (const house of HOUSES) { const cells = house.filter(i => candidates[i].has(digit)); if (cells.length === 2) { const [p, q] = cells; links.set(p, [...(links.get(p) ?? []), q]); links.set(q, [...(links.get(q) ?? []), p]); } }
-    const color = new Map<number, number>();
-    for (const start of links.keys()) {
-      if (color.has(start)) continue;
-      const component: number[] = []; const queue = [start]; color.set(start, 0);
-      while (queue.length) { const cell = queue.shift()!; component.push(cell); for (const next of links.get(cell) ?? []) if (!color.has(next)) { color.set(next, 1 - color.get(cell)!); queue.push(next); } }
-      if (component.length < 4) continue;
-      for (const shade of [0, 1]) {
-        const same = component.filter(i => color.get(i) === shade);
-        if (same.some((i, k) => same.slice(k + 1).some(j => sees(i, j)))) { let changed = false; for (const i of same) if (candidates[i].delete(digit)) changed = true; if (changed) return true; }
-      }
-      const zeros = component.filter(i => color.get(i) === 0), ones = component.filter(i => color.get(i) === 1);
-      let changed = false;
-      for (let i = 0; i < 81; i++) if (!color.has(i) && candidates[i].has(digit) && zeros.some(z => sees(i, z)) && ones.some(o => sees(i, o))) { candidates[i].delete(digit); changed = true; }
-      if (changed) return true;
-    }
-  }
-  return false;
-}
-/** Solves with the easiest technique first, returning the hardest one used ('beyond' if these techniques cannot finish) and the board reached. */
+/** Solves one move at a time, easiest technique first, returning the hardest one used ('beyond' if these techniques cannot finish) and the board reached. */
 export function solveWithTechniques(givens: readonly number[]): { technique: Technique; values: number[]; advancedSteps: number; filledAtFirstAdvanced: number | null } {
   const values = [...givens];
-  const candidates: Candidates = values.map((value, i) => new Set(value ? [] : DIGITS.filter(digit => !peers(i).some(peer => values[peer] === digit))));
-  const place = (index: number, digit: number) => { values[index] = digit; candidates[index].clear(); for (const peer of peers(index)) candidates[peer].delete(digit); };
+  const candidates = baseCandidates(values);
   let hardest = 0, advancedSteps = 0;
   let filledAtFirstAdvanced: number | null = null;
-  const steps: [number, () => boolean][] = [
-    [1, () => { for (const house of HOUSES) for (const digit of DIGITS) { const cells = house.filter(i => candidates[i].has(digit)); if (cells.length === 1) { place(cells[0], digit); return true; } } return false; }],
-    [2, () => lockedCandidates(candidates)],
-    [3, () => sets(candidates, 2)],
-    [4, () => sets(candidates, 3)],
-    [5, () => xWing(candidates)],
-    [6, () => sets(candidates, 4)],
-    [7, () => swordfish(candidates)],
-    [8, () => xyWing(candidates)],
-    [9, () => coloring(candidates)],
-  ];
-  for (;;) {
-    const naked = candidates.findIndex(cell => cell.size === 1);
-    if (naked >= 0) { place(naked, [...candidates[naked]][0]); continue; }
-    const step = steps.find(([, apply]) => apply());
-    if (!step) break;
-    hardest = Math.max(hardest, step[0]);
+  for (let step = findStep(values, candidates); step; step = findStep(values, candidates)) {
+    const rank = TECHNIQUES.indexOf(step.technique);
+    hardest = Math.max(hardest, rank);
     // Triples and harder count as advanced; the board size when the first one is needed shows how early it comes.
-    if (step[0] >= TECHNIQUES.indexOf('triple')) { advancedSteps++; filledAtFirstAdvanced ??= values.filter(Boolean).length; }
+    if (rank >= TECHNIQUES.indexOf('triple')) { advancedSteps++; filledAtFirstAdvanced ??= values.filter(Boolean).length; }
+    applyStep(values, candidates, step);
   }
   return { technique: values.every(Boolean) ? TECHNIQUES[hardest] : 'beyond', values, advancedSteps, filledAtFirstAdvanced };
 }

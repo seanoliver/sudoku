@@ -92,6 +92,18 @@ export function toggleExclusions(game: GameState, { indices, value, filterNumber
   }
   return record(game, { values: game.values, notes, exclusions, noteOrigins });
 }
+/** Records several (cell, digit) exclusions as one undo step, skipping filled cells and ones already excluded. */
+export function excludeCandidates(game: GameState, { eliminations }: { eliminations: readonly { cell: number; digit: number }[] }): GameState {
+  const targets = eliminations.filter(({ cell, digit }) => Number.isInteger(cell) && cell >= 0 && cell < 81 && Number.isInteger(digit) && digit >= 1 && digit <= 9 && !game.givens[cell] && !game.values[cell] && !game.exclusions[cell].includes(digit));
+  if (!targets.length || isComplete(game)) return game;
+  const notes = [...game.notes], exclusions = [...game.exclusions], noteOrigins = [...game.noteOrigins];
+  for (const { cell, digit } of targets) {
+    notes[cell] = notes[cell].filter(n => n !== digit);
+    exclusions[cell] = [...new Set([...exclusions[cell], digit])].sort();
+    noteOrigins[cell] = 'manual';
+  }
+  return record(game, { values: game.values, notes, exclusions, noteOrigins });
+}
 export function enter(game: GameState, { index, value, pencil = false, exclude = false, blockIncorrectAnswers = false, filterNumberKeys = false }: { index: number; value: number; pencil?: boolean; exclude?: boolean; blockIncorrectAnswers?: boolean; filterNumberKeys?: boolean }): GameState {
   if (!Number.isInteger(index) || index < 0 || index >= 81 || !Number.isInteger(value) || value < 0 || value > 9 || game.givens[index] || isComplete(game)) return game;
   if (rejectEntry(game, { index, value, pencil, exclude, blockIncorrectAnswers, filterNumberKeys })) return game;
