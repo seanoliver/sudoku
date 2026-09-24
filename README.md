@@ -33,13 +33,13 @@ The build generates `public/sw.js` after Next.js finishes, precaching the comple
 - Pause hides the board and stops the clock. The clock also pauses in dialogs and background tabs. Hide timer in Settings hides the time display while elapsed time continues to be tracked and saved.
 - Progress saves automatically on this device, including undo history.
 - Choose a new easy, medium, or hard puzzle. Each generated puzzle has exactly one solution.
-- Settings include system/light/dark appearance, Block incorrect answers, related-cell highlighting, and optional Filter number keys. Filtering dims numbers already in the selected cell’s row, column, or box and rejects matching keyboard input. It starts off, ignores notes/exclusions and the solution, and leaves all annotation modes unrestricted.
+- Settings include system/light/dark appearance, Block incorrect answers, related-cell highlighting, and optional Filter number keys. Filtering dims numbers already in the selected cell’s row, column, or box in Numbers, Notes, and Exclude; tapping or typing a dimmed number focuses it instead of entering it. It starts off and ignores notes, exclusions, and the solution.
 
-Keyboard: arrow keys move, 1–9 enter, N toggles notes, X toggles exclusions while Notes is on, Backspace/Delete erases, and Cmd/Ctrl+Z undoes.
+Keyboard: arrow keys move, 1–9 enter, N switches to Notes and X to Exclude (press again for Numbers), Backspace/Delete erases, and Cmd/Ctrl+Z undoes.
 
 ## Install
 
-Use HTTPS on a hosted deployment (localhost is suitable for development). Visit once online and wait for “Ready to play offline.” On iOS, use Safari → Share → Add to Home Screen. Supported Android and desktop browsers offer their own installation UI; the app also handles the install prompt when available. A LAN HTTP address on a physical phone does not provide the secure context required for service workers.
+Use HTTPS on a hosted deployment (localhost is suitable for development). Visit once online; the Install sheet shows when offline play is ready. On iOS, use Safari → Share → Add to Home Screen. Supported Android and desktop browsers offer their own installation UI; the app also handles the install prompt when available. A LAN HTTP address on a physical phone does not provide the secure context required for service workers.
 
 No account, backend, analytics, advertising, or external font requests. Clearing browser data removes saved progress. Browser storage may be evicted by the operating system. Multiple tabs do not synchronize games; use one active tab per device.
 
