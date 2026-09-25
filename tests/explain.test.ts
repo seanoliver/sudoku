@@ -5,7 +5,8 @@ import { createPuzzle } from '../src/lib/difficulty.ts';
 import { createGame } from '../src/lib/game.ts';
 import { applyHint, nextHint } from '../src/lib/hints.ts';
 import { getPlayableCandidates } from '../src/lib/candidates.ts';
-import type { Step } from '../src/lib/steps.ts';
+import { applyStep, baseCandidates, findStep, type Step } from '../src/lib/steps.ts';
+import { EXPERT_BANK } from '../src/lib/expert-bank.ts';
 
 /** The board just before the first step matching `want`, walking Expert seeds in order. */
 function firstStep(want: (step: Step) => boolean, seeds = 400) {
@@ -114,4 +115,25 @@ test('an XY-wing walks the pivot, each case, then the shared digit', () => {
   assert.deepEqual(lines[1].focus, [pivot, wings[0]]);
   assert.equal(lines[2].text, `If the pivot is ${q}, this wing can't be ${q} too, so it's ${shared}.`);
   assert.deepEqual(lines[3].strike, step.eliminations);
+});
+
+test('every step across 150 bank puzzles has a walkthrough that ends on its move and fits the panel', () => {
+  const seen = new Set<string>();
+  for (const entry of EXPERT_BANK.slice(0, 150)) {
+    const values = [...entry].map(Number); const candidates = baseCandidates(values);
+    for (let step = findStep(values, candidates); step; step = findStep(values, candidates)) {
+      seen.add(step.technique);
+      const lines = explainStep(step, { values, candidates });
+      assert.ok(lines.length >= 2, step.technique);
+      for (const line of lines) {
+        assert.ok(line.text.length && line.text.length <= EXPLAIN_TEXT_LIMIT, `${step.technique}: ${line.text}`);
+        for (const cell of [...(line.focus ?? []), ...(line.target ?? []), ...(line.house ?? [])]) assert.ok(Number.isInteger(cell) && cell >= 0 && cell < 81, step.technique);
+      }
+      const last = lines.at(-1)!;
+      if (step.placement) assert.deepEqual(last.ghost, step.placement);
+      else assert.deepEqual(last.strike, step.eliminations);
+      applyStep(values, candidates, step);
+    }
+  }
+  assert.ok(seen.size >= 8, [...seen].join());
 });
