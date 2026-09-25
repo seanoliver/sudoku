@@ -192,7 +192,7 @@ h1,h2,h3,p { margin: 0; }
 .cell.selected.hint-area { background: var(--selection); }.cell:is(.selected, :focus-visible).hint-mistake { box-shadow: inset 0 0 0 2px var(--blue), inset 0 0 0 4px var(--red); }
 @media (hover: hover) { .hint-button:not(:disabled):hover { background: var(--peer); } }
 .board-wrap.walkthrough .cell:is(.selected, .related, .matching, .possible, .excluded-possible) { background: var(--surface); box-shadow: none; }
-.board-wrap.walkthrough .cell:focus-visible { box-shadow: none; }
+.board-wrap.walkthrough .cell:focus-visible { box-shadow: none; outline: 2px dashed var(--blue); outline-offset: -5px; }
 .board-wrap.walkthrough .notes .note-digit { opacity: .18; }
 .board-wrap.walkthrough .cell.walk-house { background: color-mix(in srgb, var(--ink) 11%, var(--surface)); }
 .board-wrap.walkthrough .cell.walk-gold { background: color-mix(in srgb, var(--hint) 42%, var(--surface)); }
