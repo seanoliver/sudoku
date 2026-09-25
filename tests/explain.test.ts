@@ -92,3 +92,26 @@ test('naked and hidden sets say which numbers are locked into which cells', () =
     assert.deepEqual(last.strike, step.eliminations);
   }
 });
+
+test('a fish shows one base line at a time, then the covered lines, then the move', () => {
+  for (const technique of ['x-wing', 'swordfish'] as const) {
+    const { step, values, candidates } = firstStep(s => s.technique === technique, 2000);
+    const lines = explainStep(step, { values, candidates });
+    const size = step.fish!.base.length;
+    assert.equal(lines.length, size + 2);
+    for (let k = 0; k < size; k++) assert.match(lines[k].text, new RegExp(`^(Row|Column) \\d has ${step.digits[0]} only in (rows|columns) `));
+    assert.deepEqual(lines.at(-1)!.strike, step.eliminations);
+  }
+});
+
+test('an XY-wing walks the pivot, each case, then the shared digit', () => {
+  const { step, values, candidates } = firstStep(s => s.technique === 'xy-wing');
+  const lines = explainStep(step, { values, candidates });
+  const { pivot, wings, pivotDigits: [p, q], shared } = step.xyWing!;
+  assert.equal(lines.length, 4);
+  assert.equal(lines[0].text, `This cell, the pivot, can only be ${Math.min(p, q)} or ${Math.max(p, q)}.`);
+  assert.equal(lines[1].text, `If the pivot is ${p}, this wing can't be ${p} too, so it's ${shared}.`);
+  assert.deepEqual(lines[1].focus, [pivot, wings[0]]);
+  assert.equal(lines[2].text, `If the pivot is ${q}, this wing can't be ${q} too, so it's ${shared}.`);
+  assert.deepEqual(lines[3].strike, step.eliminations);
+});

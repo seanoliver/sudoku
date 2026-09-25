@@ -124,6 +124,33 @@ function set(step: Step, { candidates }: Board): ExplainLine[] {
   ];
 }
 
+function fish(step: Step, { candidates }: Board): ExplainLine[] {
+  const d = step.digits[0], { rows, base, cover } = step.fish!;
+  const [baseLines, crossLines] = rows ? [ROWS, COLUMNS] : [COLUMNS, ROWS];
+  const [baseWord, crossWord] = rows ? ['row', 'column'] : ['column', 'row'];
+  const crossNames = `${crossWord}s ${list(cover.map(c => c + 1))}`, covered = cover.flatMap(c => crossLines[c]);
+  const chipsIn = (lines: readonly number[]) => chipsFor(candidates, lines.flatMap(b => baseLines[b]), [d]);
+  return [
+    ...base.map((b, k) => {
+      const cells = baseLines[b].filter(i => candidates[i].has(d));
+      return { house: baseLines[b], focus: cells, chips: chipsIn(base.slice(0, k + 1)), text: `${capital(baseWord)} ${b + 1} has ${d} only in ${crossWord}s ${list(cells.map(i => (rows ? i % 9 : Math.floor(i / 9)) + 1))}.` };
+    }),
+    { house: covered, focus: step.pattern, chips: chipsIn(base), text: `Each of these ${base.length} ${baseWord}s needs a ${d}, and together they use only ${crossNames}. So their ${d}s fill ${crossNames}, one each.` },
+    { house: covered, focus: step.pattern, chips: chipsIn(base), target: step.eliminations.map(e => e.cell), strike: step.eliminations, text: `No other cell in ${crossNames} can hold ${d}.` },
+  ];
+}
+
+function xyWing(step: Step, { candidates }: Board): ExplainLine[] {
+  const { pivot, wings: [x, y], pivotDigits: [p, q], shared } = step.xyWing!;
+  const chips = chipsFor(candidates, [pivot, x, y], [p, q, shared]);
+  return [
+    { focus: [pivot], chips, text: `This cell, the pivot, can only be ${Math.min(p, q)} or ${Math.max(p, q)}.` },
+    { focus: [pivot, x], chips, text: `If the pivot is ${p}, this wing can't be ${p} too, so it's ${shared}.` },
+    { focus: [pivot, y], chips, text: `If the pivot is ${q}, this wing can't be ${q} too, so it's ${shared}.` },
+    { focus: [x, y], chips, target: step.eliminations.map(e => e.cell), strike: step.eliminations, text: `Either way, one wing is ${shared}. A cell that sees both wings can't be ${shared}.` },
+  ];
+}
+
 /** The walkthrough for a step on this board; the last line shows the move. */
 export function explainStep(step: Step, board: Board): ExplainLine[] {
   switch (step.technique) {
@@ -131,7 +158,8 @@ export function explainStep(step: Step, board: Board): ExplainLine[] {
     case 'hidden-single': return hiddenSingle(step, board);
     case 'locked-candidates': return locked(step, board);
     case 'pair': case 'triple': case 'quad': return set(step, board);
+    case 'x-wing': case 'swordfish': return fish(step, board);
+    case 'xy-wing': return xyWing(step, board);
     case 'coloring': return coloring(step, board);
-    default: return [];
   }
 }
