@@ -234,7 +234,7 @@ export default function SudokuGame() {
     resetSelection();
     if (!activeHint) { setHintState({ game, level: 1, hint: nextHint(game), line: 0 }); return; }
     if (hintDisplay && activeHint.level < hintDisplay.levels) setHintState({ ...activeHint, level: (activeHint.level + 1) as HintLevel, line: 0 });
-    else if (walkthrough && activeHint.line < walkthrough.length - 1) setHintState({ ...activeHint, line: activeHint.line + 1 });
+    else if (walkthrough && activeHint.line < walkthrough.length - 1) stepWalkthrough(activeHint.line + 1);
   };
   const applyActiveHint = () => {
     if (!game || !activeHint) return;
@@ -309,7 +309,8 @@ export default function SudokuGame() {
   const walkLine = walkthrough?.[walkIndex] ?? null;
   const stepWalkthrough = (line: number) => {
     if (!activeHint || !walkthrough) return;
-    focusAfterRender.current = line >= walkthrough.length - 1 ? HINT_STRIP_FOCUS : line === 0 ? WALK_NEXT_FOCUS : null;
+    // Reaching either end disables the focused stepper button, which would drop focus outside the app's key handler.
+    if (document.activeElement?.closest('.walk-panel')) focusAfterRender.current = line >= walkthrough.length - 1 ? HINT_STRIP_FOCUS : line === 0 ? WALK_NEXT_FOCUS : null;
     setHintState({ ...activeHint, line });
   };
   const possible = useMemo(() => candidates && preferences.smartHighlighting && !complete
