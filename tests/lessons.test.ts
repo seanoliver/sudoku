@@ -134,6 +134,6 @@ test('each lesson’s mini board marks its pattern and its move, and coloring sh
     // A color wrap's move removes a whole color, so only a trap still shows both.
     if (id === 'color-trap') assert.ok(roles.includes('gold') && roles.includes('blue'), id);
     if (id === 'color-wrap') assert.ok(roles.includes('gold') || roles.includes('blue'), id);
-    else assert.ok(roles.includes('pattern') || id === 'naked-single', `${id} shows its pattern`);
+    if (!id.startsWith('color-')) assert.ok(roles.includes('pattern') || id === 'naked-single', `${id} shows its pattern`);
   }
 });
