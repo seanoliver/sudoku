@@ -370,6 +370,8 @@ Deliver in two releases:
 
 Captured from Sean on September 24. Long-term scope, modeled on the way Good Sudoku teaches techniques.
 
+**Status:** First slice on `feat/learn` ([design](plans/2026-09-25-learn-module-design.md)): "Learn" from the last step of a hint opens that technique's lesson: watch it on an example board, then five practice boards graded by Check. Finishing saves the technique as learned. The technique list and home screen entry come next.
+
 **Player benefit:** Learn each deduction, practice spotting it, and use it to get unstuck in a real game.
 
 - **Technique inventory:** One place listing every deduction the solver knows, easiest first: naked and hidden singles, pointing and claiming, naked and hidden pairs, triples and quads, X-wing, swordfish, XY-wing, and coloring. Each shows whether the player has learned it.
