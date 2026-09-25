@@ -307,10 +307,12 @@ export default function SudokuGame() {
   const walkthrough = walkStep && values && candidates ? explainStep(walkStep, { values, candidates }) : null;
   const walkIndex = walkthrough && activeHint ? Math.min(activeHint.line, walkthrough.length - 1) : 0;
   const walkLine = walkthrough?.[walkIndex] ?? null;
-  const stepWalkthrough = (line: number) => {
+  const stepWalkthrough = (line: number, at?: number) => {
     if (!activeHint || !walkthrough) return;
-    // Reaching either end disables the focused stepper button, which would drop focus outside the app's key handler.
-    if (document.activeElement?.closest('.walk-panel')) focusAfterRender.current = line >= walkthrough.length - 1 ? HINT_STRIP_FOCUS : line === 0 ? WALK_NEXT_FOCUS : null;
+    // Disabling the focused stepper button at either end, or leaving the last step (which removes Apply), would drop focus outside the app's key handler.
+    const focused = document.activeElement;
+    if (focused?.closest('.walk-panel, .hint-strip')) focusAfterRender.current = line >= walkthrough.length - 1 ? HINT_STRIP_FOCUS : line === 0 || focused.closest('.hint-strip') ? WALK_NEXT_FOCUS : null;
+    if (at !== undefined) hintAdvancedAt.current = at;
     setHintState({ ...activeHint, line });
   };
   const possible = useMemo(() => candidates && preferences.smartHighlighting && !complete
@@ -401,7 +403,7 @@ export default function SudokuGame() {
       {complete ? <div className="completion" role="status"><span className="success-mark"><Icon name="check" size={25}/></span><div><h2>Nicely done.</h2><p>Every number in its place.</p></div><button className="primary-button" onClick={() => openSheet('new')}>Play again</button></div> : <>
         <div className="controls-area">
           {walkLine && walkthrough && <WalkthroughPanel index={walkIndex} count={walkthrough.length} text={walkLine.text} onStep={stepWalkthrough}/>}
-          <div className="note-controls" aria-label="Puzzle tools">
+          <div className="note-controls" aria-label="Puzzle tools" inert={Boolean(walkLine)}>
             <div className="mode-switch" role="group" aria-label="Entry mode">
               <span className={`mode-indicator mode-indicator-${mode}`} aria-hidden="true"/>
               {(['value', 'note', 'exclude'] as const).map(option => <button key={option} className={`mode-option mode-${option}`} aria-pressed={mode === option} disabled={paused || busy} onClick={() => chooseMode(option)} title={{ value: 'Numbers', note: 'Notes (N)', exclude: 'Exclude (X)' }[option]}>
@@ -410,7 +412,7 @@ export default function SudokuGame() {
             </div>
             <button className="erase-control" disabled={!canErase} onClick={() => { input(0); focusSelectedCell(); }} aria-label="Erase" title="Erase (Backspace)"><Icon name="erase" size={20}/></button>
           </div>
-        <div className={`number-pad mode-${mode}`} aria-label="Number pad">
+        <div className={`number-pad mode-${mode}`} aria-label="Number pad" inert={Boolean(walkLine)}>
           {DIGITS.map(n => {
             const { remaining, filtered, focusOnly } = keyState(n);
             return <button key={n} className={`number-key ${!remaining ? 'digit-finished' : ''} ${filtered ? 'digit-filtered' : ''}`} aria-label={(numberFocus || focusOnly ? `Focus on ${n}` : batchSelection ? (game && batchHasMark(game, { indices: selection.indices, value: n, marks: excluding ? 'exclusions' : 'notes' }) ? `Remove ${excluding ? 'exclusion' : 'note'} ${n} from ${selection.indices.length} selected cells` : `${excluding ? 'Exclude' : 'Add note'} ${n} ${excluding ? 'from' : 'to'} ${selection.indices.length} selected cells`) : `${excluding ? 'Rule out' : 'Enter'} ${n}${pencil ? ' as a note' : ''}`) + (filtered ? ', unavailable: already in this row, column, or box' : '') + (remaining ? '' : ', all placed')} disabled={!game || busy || paused || complete} onClick={() => input(n)}><span style={{ gridRow: Math.ceil(n / 3), gridColumn: (n - 1) % 3 + 1 }}>{n}</span></button>;

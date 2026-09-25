@@ -32,6 +32,8 @@ export function houseName(house: readonly number[]): string {
   return r >= 0 ? `row ${r + 1}` : c >= 0 ? `column ${c + 1}` : `box ${BOXES.indexOf(house as number[]) + 1}`;
 }
 const capital = (text: string) => text[0].toUpperCase() + text.slice(1);
+/** "a 2", "an 8". */
+const an = (digit: number) => `${digit === 8 ? 'an' : 'a'} ${digit}`;
 /** "3", "3 and 7", "2, 5, and 8". */
 export const list = (items: readonly (number | string)[]) => items.length < 3 ? items.join(' and ') : `${items.slice(0, -1).join(', ')}, and ${items.at(-1)}`;
 const chipsFor = (candidates: Candidates, cells: readonly number[], digits: readonly number[]) => cells.flatMap(cell => digits.filter(d => candidates[cell].has(d)).map(digit => ({ cell, digit })));
@@ -57,7 +59,7 @@ function coloring(step: Step, { values, candidates }: Board): ExplainLine[] {
       if (next < 0 || colored.has(next)) continue;
       colored.set(next, shade.get(next)!); pairs.push([cell, next]); queue.push(next);
       const text = pairs.length === 1
-        ? `Look only at the ${d}s. ${capital(houseName(house))} has just two places for ${d}, so one is a ${d} and the other isn't. Color them gold and blue.`
+        ? `Look only at the ${d}s. ${capital(houseName(house))} has just two places for ${d}, so one is ${an(d)} and the other isn't. Color them gold and blue.`
         : `${capital(houseName(house))} also has just two places for ${d}. One is ${SHADE[shade.get(cell)!]}, so the other is ${SHADE[shade.get(next)!]}.`;
       lines.push({ text, house, focus: [cell, next], colored: new Map(colored), chips: every, links: { digit: d, pairs: [...pairs], newest: true } });
     }
@@ -70,13 +72,13 @@ function coloring(step: Step, { values, candidates }: Board): ExplainLine[] {
     return [...lines,
       { ...whole, text: `Every link flips the color, so either all the gold cells are ${d}s or none of them are. The same goes for blue.` },
       { ...whole, house, focus: [x, y], text: `${capital(houseName(house))} has two ${SHADE[bad]} cells, but it can hold only one ${d}. So none of the ${SHADE[bad]} cells are ${d}s.${places > 2 ? ` (With ${places} places for ${d}, it was never a link.)` : ''}` },
-      { ...whole, focus: step.shades![bad], strike: step.eliminations, text: `Cross ${d} out of every ${SHADE[bad]} cell. That makes every ${SHADE[1 - bad]} cell a ${d}.` },
+      { ...whole, focus: step.shades![bad], strike: step.eliminations, text: `Cross ${d} out of every ${SHADE[bad]} cell. That makes every ${SHADE[1 - bad]} cell ${an(d)}.` },
     ];
   }
   const trapped = step.eliminations[0].cell;
   return [...lines,
     { ...whole, text: `Every link flips the color, so either all the gold cells are ${d}s or all the blue ones are.` },
-    { ...whole, target: [trapped], focus: [step.shades![0].find(i => sees(i, trapped))!, step.shades![1].find(i => sees(i, trapped))!], text: `This cell sees a gold cell and a blue cell. One of them is a ${d} either way, so this cell can't be.` },
+    { ...whole, target: [trapped], focus: [step.shades![0].find(i => sees(i, trapped))!, step.shades![1].find(i => sees(i, trapped))!], text: `This cell sees a gold cell and a blue cell. One of them is ${an(d)} either way, so this cell can't be.` },
     { ...whole, target: step.eliminations.map(e => e.cell), strike: step.eliminations, text: `Cross ${d} out of ${step.eliminations.length > 1 ? 'every cell that sees both colors' : 'this cell'}.` },
   ];
 }
@@ -97,7 +99,9 @@ function hiddenSingle(step: Step, { values }: Board): ExplainLine[] {
   const { cell, digit } = step.placement!;
   const others = step.area.filter(i => !values[i] && i !== cell);
   return [
-    { house: step.area, focus: step.pattern, strike: others.map(i => ({ cell: i, digit })), text: `${capital(houseName(step.area))} needs a ${digit}. The ${digit}s already placed nearby rule out every other open cell in it.` },
+    { house: step.area, focus: step.pattern, strike: others.map(i => ({ cell: i, digit })), text: `${capital(houseName(step.area))} needs ${an(digit)}. ${!step.relies.length ? `The ${digit}s already placed nearby rule out every other open cell in it.`
+      : step.pattern.length ? `The placed ${digit}s ringed here rule out some of its open cells, and ${digit} is already crossed out of the rest.`
+      : `${digit} is already crossed out of every other open cell in it.`}` },
     { house: step.area, focus: [cell], ghost: step.placement, text: `Only this cell is left, so it's the ${digit}.` },
   ];
 }
@@ -135,7 +139,7 @@ function fish(step: Step, { candidates }: Board): ExplainLine[] {
       const cells = baseLines[b].filter(i => candidates[i].has(d));
       return { house: baseLines[b], focus: cells, chips: chipsIn(base.slice(0, k + 1)), text: `${capital(baseWord)} ${b + 1} has ${d} only in ${crossWord}s ${list(cells.map(i => (rows ? i % 9 : Math.floor(i / 9)) + 1))}.` };
     }),
-    { house: covered, focus: step.pattern, chips: chipsIn(base), text: `Each of these ${base.length} ${baseWord}s needs a ${d}, and together they use only ${crossNames}. So their ${d}s fill ${crossNames}, one each.` },
+    { house: covered, focus: step.pattern, chips: chipsIn(base), text: `Each of these ${base.length} ${baseWord}s needs ${an(d)}, and together they use only ${crossNames}. So their ${d}s fill ${crossNames}, one each.` },
     { house: covered, focus: step.pattern, chips: chipsIn(base), target: step.eliminations.map(e => e.cell), strike: step.eliminations, text: `No other cell in ${crossNames} can hold ${d}.` },
   ];
 }

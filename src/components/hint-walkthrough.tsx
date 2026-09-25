@@ -29,14 +29,14 @@ export function WalkthroughOverlay({ line }: { line: ExplainLine }) {
 }
 
 /** The sentence for the current line, with ‹ › to move through the walkthrough. */
-export function WalkthroughPanel({ index, count, text, onStep }: { index: number; count: number; text: string; onStep: (index: number) => void }) {
+export function WalkthroughPanel({ index, count, text, onStep }: { index: number; count: number; text: string; onStep: (index: number, at: number) => void }) {
   return <div className="walk-panel">
     <div className="walk-panel-head">
       <strong>Why this works</strong>
       <div className="walk-stepper">
-        <button aria-label="Previous step" disabled={index === 0} onClick={() => onStep(index - 1)}>‹</button>
+        <button aria-label="Previous step" disabled={index === 0} onClick={event => onStep(index - 1, event.timeStamp)}>‹</button>
         <span>{index + 1} of {count}</span>
-        <button aria-label="Next step" disabled={index >= count - 1} onClick={() => onStep(index + 1)}>›</button>
+        <button aria-label="Next step" disabled={index >= count - 1} onClick={event => onStep(index + 1, event.timeStamp)}>›</button>
       </div>
     </div>
     <p>{text}</p>

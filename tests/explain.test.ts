@@ -35,7 +35,7 @@ test('a color wrap builds the chain link by link, then shows the clash and the m
   assert.match(clash.text, /has two (gold|blue) cells, but it can hold only one/);
   const last = lines.at(-1)!;
   assert.deepEqual(last.strike, step.eliminations);
-  assert.match(last.text, new RegExp(`^Cross ${d} out of every (gold|blue) cell\\. That makes every (gold|blue) cell a ${d}\\.$`));
+  assert.match(last.text, new RegExp(`^Cross ${d} out of every (gold|blue) cell\\. That makes every (gold|blue) cell an? ${d}\\.$`));
 });
 
 test('a color trap ends by ringing the trapped cell in red', () => {
@@ -72,6 +72,20 @@ test('a hidden single crosses the digit out of every other open cell in the hous
   assert.deepEqual(first.house, step.area);
   assert.deepEqual(first.strike!.map(m => m.cell).sort((a, b) => a - b), others.sort((a, b) => a - b));
   assert.deepEqual(last.ghost, step.placement);
+});
+
+test('a hidden single that relies on crossed-out cells says so instead of crediting placed digits', () => {
+  const { step, values, candidates } = firstStep(s => s.technique === 'hidden-single' && s.relies.length > 0);
+  const [first] = explainStep(step, { values, candidates });
+  const d = step.placement!.digit;
+  assert.match(first.text, new RegExp(`${d} is already crossed out of`));
+  if (step.pattern.length) assert.match(first.text, new RegExp(`placed ${d}s`));
+  else assert.doesNotMatch(first.text, /placed/);
+});
+
+test('an 8 reads as "an 8"', () => {
+  const { step, values, candidates } = firstStep(s => s.technique === 'hidden-single' && s.placement!.digit === 8);
+  assert.match(explainStep(step, { values, candidates })[0].text, /needs an 8\./);
 });
 
 test('pointing names the box then the line; claiming names the line then the box', () => {
