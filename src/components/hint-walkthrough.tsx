@@ -6,7 +6,7 @@ const noteAt = (cell: number, digit: number) => ({
   y: Math.floor(cell / 9) + .08 + .84 * (Math.floor((digit - 1) / 3) + .5) / 3,
 });
 
-/** Links, candidate chips, strikes and the ghost placement for one walkthrough line, drawn over the board. */
+/** Links, candidate chips and strikes for one walkthrough line, drawn over the board. */
 export function WalkthroughOverlay({ line }: { line: ExplainLine }) {
   const struck = new Set(line.strike?.map(({ cell, digit }) => `${cell}-${digit}`));
   const chips = [...(line.chips ?? []), ...(line.strike ?? []).filter(mark => !line.chips?.some(chip => chip.cell === mark.cell && chip.digit === mark.digit))];
@@ -24,7 +24,6 @@ export function WalkthroughOverlay({ line }: { line: ExplainLine }) {
         {cross && <line className="walk-strike" x1={x - .14} y1={y - .14} x2={x + .14} y2={y + .14}/>}
       </g>;
     })}
-    {line.ghost && <text className="walk-ghost" x={line.ghost.cell % 9 + .5} y={Math.floor(line.ghost.cell / 9) + .53}>{line.ghost.digit}</text>}
   </svg>;
 }
 
