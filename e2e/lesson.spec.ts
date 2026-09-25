@@ -100,3 +100,32 @@ test('the game timer does not run during a lesson', async ({ page }) => {
   await page.waitForTimeout(2500);
   expect(await clock()).toBeCloseTo(start, 0);
 });
+
+test('a placement lesson grades the right digit as right, even where the cell had crossings-out', async ({ page }) => {
+  const single = gameBefore(step => lessonOf(step) === 'naked-single');
+  await page.addInitScript(([key, value]) => { if (!sessionStorage.getItem('seeded')) { localStorage.setItem(key, value); sessionStorage.setItem('seeded', '1'); } }, [SAVE_KEY, single]);
+  await page.goto('/');
+  await page.locator('.board .cell').first().waitFor();
+  await page.getByRole('button', { name: 'Show a hint' }).click();
+  await page.locator('.hint-action').click();
+  await page.locator('.hint-action').click();
+  while (await page.getByRole('button', { name: 'Next step' }).isEnabled()) await page.getByRole('button', { name: 'Next step' }).click();
+  await page.getByRole('button', { name: 'Learn naked single ›' }).click();
+  await footer(page).click();
+  const board = practiceGame(LESSON_BANK['naked-single'][1], 1);
+  const { cell, digit } = allSteps(board.values, getPlayableCandidates(board), 'naked-single')[0].placement!;
+  await page.locator(`.board [data-index="${cell}"]`).click();
+  await page.keyboard.press(String(digit));
+  await footer(page).click();
+  await expect(prompt(page)).toHaveText('That’s the naked single');
+});
+
+test('the example board and feedback boards ignore the keyboard', async ({ page }) => {
+  await openLesson(page);
+  const empty = practiceGame(LESSON_BANK.pointing[0], 0).values.findIndex(v => !v);
+  const cell = page.locator(`.board [data-index="${empty}"]`);
+  const label = await cell.getAttribute('aria-label');
+  await cell.click();
+  for (const key of ['1', '2', '3', '4', '5', '6', '7', '8', '9']) await page.keyboard.press(key);
+  await expect(cell).toHaveAttribute('aria-label', label!);
+});

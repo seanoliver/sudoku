@@ -1,5 +1,5 @@
 import { getPlayableCandidates } from './candidates.ts';
-import { createGame, fillNotes, type GameState } from './game.ts';
+import { createGame, enter, fillNotes, type GameState } from './game.ts';
 import { LESSON_BANK, type LessonBoard } from './lesson-bank.ts';
 import { allSteps, type Step, type Technique } from './steps.ts';
 
@@ -36,15 +36,28 @@ type Mark = { cell: number; digit: number };
 export type Grade = { correct: boolean; step: Step };
 const key = ({ cell, digit }: Mark) => `${cell}:${digit}`;
 
-/** Whether the change from `start` to `attempt` is one instance of the lesson's technique. Notes don't count as a move. */
+/** Same numbers and crossings-out; notes don't count. */
+export const sameBoard = (a: GameState, b: GameState) => a.values.every((value, cell) => value === b.values[cell]) && sameExclusions(a, b);
+const sameExclusions = (a: GameState, b: GameState) => a.exclusions.every((digits, cell) => digits.length === b.exclusions[cell].length && digits.every(digit => b.exclusions[cell].includes(digit)));
+
+/** Whether the change from `start` to `attempt` is the lesson's move. Notes don't count as a move. */
 export function grade(id: LessonId, start: GameState, attempt: GameState): Grade {
   const instances = allSteps(start.values, getPlayableCandidates(start), lessonTechnique(id)).filter(step => lessonOf(step) === id);
   const placed = attempt.values.flatMap((digit, cell) => digit !== start.values[cell] ? [{ cell, digit }] : []);
+  if (placed.length) {
+    // Placing a digit also clears crossings-out (its cell's, and that digit's in its peers), so compare with the board the placement makes.
+    const match = placed.length === 1 ? instances.find(step => step.placement && key(step.placement) === key(placed[0]) && sameExclusions(enter(start, { index: step.placement.cell, value: step.placement.digit }), attempt)) : undefined;
+    return { correct: Boolean(match), step: match ?? instances[0] };
+  }
   const added = new Set(attempt.exclusions.flatMap((digits, cell) => digits.filter(digit => !start.exclusions[cell].includes(digit)).map(digit => key({ cell, digit }))));
   const removed = start.exclusions.some((digits, cell) => digits.some(digit => !attempt.exclusions[cell].includes(digit)));
-  const match = removed ? undefined : instances.find(step => step.placement
-    ? !added.size && placed.length === 1 && key(placed[0]) === key(step.placement)
-    : !placed.length && added.size === step.eliminations.length && step.eliminations.every(mark => added.has(key(mark))));
+  // One pattern can clear several houses (a naked pair in a row and a box), so crossing out any of its instances' eliminations counts, as long as one instance is complete.
+  const covers = (step: Step) => {
+    const siblings = instances.filter(other => !other.placement && other.pattern.join() === step.pattern.join() && other.digits.join() === step.digits.join());
+    const allowed = new Set(siblings.flatMap(other => other.eliminations.map(key)));
+    return step.eliminations.every(mark => added.has(key(mark))) && [...added].every(mark => allowed.has(mark));
+  };
+  const match = removed || !added.size ? undefined : instances.find(step => !step.placement && covers(step));
   return { correct: Boolean(match), step: match ?? instances[0] };
 }
 

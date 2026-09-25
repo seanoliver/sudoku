@@ -59,3 +59,39 @@ test('learned status survives bad storage and ignores unknown lessons', () => {
   assert.deepEqual(readLearned('{"pointing":"2026-09-25","made-up":"x","x-wing":3}'), { pointing: '2026-09-25' });
   assert.deepEqual(markLearned({}, 'x-wing', '2026-09-25'), { 'x-wing': '2026-09-25' });
 });
+
+test('every correct move on every lesson board grades right when made the way the UI makes it', async () => {
+  const { LESSON_BANK } = await import('../src/lib/lesson-bank.ts');
+  const { practiceGame } = await import('../src/lib/lessons.ts');
+  const { getPlayableCandidates } = await import('../src/lib/candidates.ts');
+  const { allSteps } = await import('../src/lib/steps.ts');
+  const misses: string[] = [];
+  for (const id of LESSONS) for (const [index, board] of LESSON_BANK[id].entries()) {
+    const start = practiceGame(board, index);
+    for (const step of allSteps(start.values, getPlayableCandidates(start), lessonTechnique(id)).filter(s => lessonOf(s) === id)) {
+      const attempt = step.placement ? enter(start, { index: step.placement.cell, value: step.placement.digit })
+        : step.eliminations.reduce((game, { cell, digit }) => enter(game, { index: cell, value: digit, exclude: true }), start);
+      if (!grade(id, start, attempt).correct) misses.push(`${id} #${index}`);
+    }
+  }
+  assert.deepEqual(misses, []);
+});
+
+test('crossing out everything a naked pair implies across both of its houses is still the move', async () => {
+  const { LESSON_BANK } = await import('../src/lib/lesson-bank.ts');
+  const { practiceGame } = await import('../src/lib/lessons.ts');
+  const { getPlayableCandidates } = await import('../src/lib/candidates.ts');
+  const { allSteps } = await import('../src/lib/steps.ts');
+  let checked = 0;
+  for (const [index, board] of LESSON_BANK['naked-pair'].entries()) {
+    const start = practiceGame(board, index);
+    const pairs = allSteps(start.values, getPlayableCandidates(start), 'pair').filter(s => s.variant === 'naked');
+    const same = pairs.filter(s => s.pattern.join() === pairs[0].pattern.join());
+    if (same.length < 2) continue;
+    const union = same.flatMap(s => s.eliminations);
+    const attempt = union.reduce((game, { cell, digit }) => game.exclusions[cell].includes(digit) ? game : enter(game, { index: cell, value: digit, exclude: true }), start);
+    assert.equal(grade('naked-pair', start, attempt).correct, true, `board ${index}`);
+    checked++;
+  }
+  assert.ok(checked > 0, 'some naked pair spans two houses');
+});
