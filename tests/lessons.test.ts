@@ -95,3 +95,22 @@ test('crossing out everything a naked pair implies across both of its houses is 
   }
   assert.ok(checked > 0, 'some naked pair spans two houses');
 });
+
+test('fixing a wrong digit by typing the right one over it still grades right', async () => {
+  const { LESSON_BANK } = await import('../src/lib/lesson-bank.ts');
+  const { practiceGame } = await import('../src/lib/lessons.ts');
+  const { getPlayableCandidates } = await import('../src/lib/candidates.ts');
+  const { allSteps } = await import('../src/lib/steps.ts');
+  const misses: string[] = [];
+  for (const [index, board] of LESSON_BANK['naked-single'].entries()) {
+    const start = practiceGame(board, index);
+    for (const step of allSteps(start.values, getPlayableCandidates(start), 'naked-single')) {
+      const { cell, digit } = step.placement!;
+      for (const wrong of [1, 2, 3, 4, 5, 6, 7, 8, 9].filter(d => d !== digit)) {
+        const attempt = enter(enter(start, { index: cell, value: wrong }), { index: cell, value: digit });
+        if (!grade('naked-single', start, attempt).correct) misses.push(`#${index} cell ${cell} over ${wrong}`);
+      }
+    }
+  }
+  assert.deepEqual(misses, []);
+});

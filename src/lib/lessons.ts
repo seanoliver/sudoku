@@ -1,5 +1,5 @@
 import { getPlayableCandidates } from './candidates.ts';
-import { createGame, enter, fillNotes, type GameState } from './game.ts';
+import { createGame, fillNotes, type GameState } from './game.ts';
 import { LESSON_BANK, type LessonBoard } from './lesson-bank.ts';
 import { allSteps, type Step, type Technique } from './steps.ts';
 
@@ -44,12 +44,12 @@ const sameExclusions = (a: GameState, b: GameState) => a.exclusions.every((digit
 export function grade(id: LessonId, start: GameState, attempt: GameState): Grade {
   const instances = allSteps(start.values, getPlayableCandidates(start), lessonTechnique(id)).filter(step => lessonOf(step) === id);
   const placed = attempt.values.flatMap((digit, cell) => digit !== start.values[cell] ? [{ cell, digit }] : []);
+  const added = new Set(attempt.exclusions.flatMap((digits, cell) => digits.filter(digit => !start.exclusions[cell].includes(digit)).map(digit => key({ cell, digit }))));
   if (placed.length) {
-    // Placing a digit also clears crossings-out (its cell's, and that digit's in its peers), so compare with the board the placement makes.
-    const match = placed.length === 1 ? instances.find(step => step.placement && key(step.placement) === key(placed[0]) && sameExclusions(enter(start, { index: step.placement.cell, value: step.placement.digit }), attempt)) : undefined;
+    // Placing digits clears crossings-out (the cell's, and that digit's in its peers), so a placement is judged on the digit alone.
+    const match = placed.length === 1 && !added.size ? instances.find(step => step.placement && key(step.placement) === key(placed[0])) : undefined;
     return { correct: Boolean(match), step: match ?? instances[0] };
   }
-  const added = new Set(attempt.exclusions.flatMap((digits, cell) => digits.filter(digit => !start.exclusions[cell].includes(digit)).map(digit => key({ cell, digit }))));
   const removed = start.exclusions.some((digits, cell) => digits.some(digit => !attempt.exclusions[cell].includes(digit)));
   // One pattern can clear several houses (a naked pair in a row and a box), so crossing out any of its instances' eliminations counts, as long as one instance is complete.
   const covers = (step: Step) => {

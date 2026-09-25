@@ -74,6 +74,7 @@ export default function SudokuGame() {
   // Watching, reading feedback, or done: the board is for looking at, so nothing may change it.
   const lessonLocked = lesson !== null && (lesson.phase !== 'practice' || lesson.result !== null);
   const hintAdvancedAt = useRef(-Infinity);
+  const lessonTappedAt = useRef(-Infinity);
   const [celebration, setCelebration] = useState<{ id: number; origin: number; cells: number[]; label: string } | null>(null);
   const celebrationId = useRef(0);
   const complete = game ? isComplete(game) : false;
@@ -261,6 +262,7 @@ export default function SudokuGame() {
   };
   const input = (value: number) => {
     if (!game || paused || busy || sheet || complete || lessonLocked) return;
+    lessonTappedAt.current = -Infinity;
     if (value !== 0 && (numberFocus || keyState(value).focusOnly)) { setFocusedDigit(value); setBlockedEntry(null); return; }
     const refused = rejectEntry(game, { index: selected, value, pencil, exclude: excluding, blockIncorrectAnswers: preferences.blockIncorrectAnswers, filterNumberKeys: filtering });
     if (refused) { setBlockedEntry({ ...refused, index: selected, value, id: ++rejectionId.current }); return; }
@@ -331,7 +333,7 @@ export default function SudokuGame() {
     if (lesson) setLesson({ ...lesson, line }); else if (activeHint) setHintState({ ...activeHint, line });
   };
   const lessonBoards = lesson ? LESSON_BANK[lesson.id] : [];
-  const showBoard = (start: GameState) => { setGame(start); resetSelection(); setBlockedEntry(null); setFocusedDigit(null); setSelected(Math.max(0, start.values.indexOf(0))); };
+  const showBoard = (start: GameState) => { setGame(start); resetSelection(); setBlockedEntry(null); setFocusedDigit(null); setCelebration(null); setSelected(Math.max(0, start.values.indexOf(0))); };
   const openLesson = (id: LessonId) => {
     if (!game) return;
     const start = practiceGame(LESSON_BANK[id][0], 0);
@@ -362,7 +364,7 @@ export default function SudokuGame() {
   const exitLesson = () => {
     if (!lesson) return;
     setGame(lesson.held); setSelected(lesson.heldSelected); setLesson(null);
-    resetSelection(); setBlockedEntry(null); setEntry(lesson.heldEntry); setFocusedDigit(lesson.heldFocus);
+    resetSelection(); setBlockedEntry(null); setCelebration(null); setEntry(lesson.heldEntry); setFocusedDigit(lesson.heldFocus);
     focusAfterRender.current = `.board [data-index="${lesson.heldSelected}"]`;
   };
   const retryPractice = () => {
@@ -375,8 +377,10 @@ export default function SudokuGame() {
     : !lesson.result ? { label: 'Check', disabled: !game || sameBoard(game, lesson.start) }
     : !lesson.result.correct ? { label: 'Try again' }
     : { label: lesson.board < lessonBoards.length - 1 ? 'Next board' : 'Finish' };
-  const onLessonFooter = () => {
-    if (!lesson) return;
+  const onLessonFooter = (at: number) => {
+    // The footer's action changes in place, so a double tap would skip the feedback the first tap revealed. Input in between resets this.
+    if (!lesson || at - lessonTappedAt.current < 350) return;
+    lessonTappedAt.current = at;
     if (lesson.phase === 'watch') practiceBoard(1);
     else if (!lesson.result) checkPractice();
     else if (!lesson.result.correct) retryPractice();

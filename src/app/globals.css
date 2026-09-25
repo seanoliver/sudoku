@@ -237,3 +237,4 @@ h1,h2,h3,p { margin: 0; }
 .lesson-done h2 { margin: 0; font-size: 18px; }
 .lesson-done p { margin: 2px 0 0; color: var(--muted, #6b7485); font-size: 14px; }
 .walk-learn { align-self: flex-start; padding: 2px 0; color: var(--hint-strong); font-size: 14px; font-weight: 650; }
+.app .note-controls[inert], .app .number-pad[inert] { opacity: .45; }

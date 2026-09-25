@@ -22,8 +22,8 @@ export function LessonPrompt({ name, state }: { name: string; state: LessonPromp
   return <div className={`lesson-prompt ${state}`} role="status"><Icon name={icon} size={18}/><span>{text}</span></div>;
 }
 
-export function LessonFooter({ label, disabled = false, onClick }: { label: string; disabled?: boolean; onClick: () => void }) {
-  return <button className="primary-button full-width lesson-footer" disabled={disabled} onClick={onClick}>{label}</button>;
+export function LessonFooter({ label, disabled = false, onClick }: { label: string; disabled?: boolean; onClick: (at: number) => void }) {
+  return <button className="primary-button full-width lesson-footer" disabled={disabled} onClick={event => onClick(event.timeStamp)}>{label}</button>;
 }
 
 /** Fills the controls area once every practice board is done. */

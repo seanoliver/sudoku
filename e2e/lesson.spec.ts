@@ -14,6 +14,8 @@ const answer = (board: number) => {
 };
 const footer = (page: Page) => page.locator('.lesson-footer');
 const prompt = (page: Page) => page.locator('.lesson-prompt');
+/** A tap after reading the result: the footer ignores a second tap within 350 ms, as a double tap. */
+const tapFooter = async (page: Page) => { await page.waitForTimeout(400); await footer(page).click(); };
 const saved = (page: Page, key: string) => page.evaluate(k => localStorage.getItem(k), key);
 
 async function openLesson(page: Page) {
@@ -43,49 +45,49 @@ test('a lesson opens from the last hint step, and leaving it restores the untouc
   await page.getByRole('button', { name: 'Your game' }).click();
   await expect(page.locator('.lesson-bar')).toHaveCount(0);
   await expect(page.locator('.app-bar .brand')).toBeVisible();
-  expect(await saved(page, SAVE_KEY)).toBe(before);
+  expect(JSON.parse(await saved(page, SAVE_KEY) ?? 'null')).toEqual(JSON.parse(before ?? 'null'));
 });
 
 test('the right move on a practice board is graded right, then Next board', async ({ page }) => {
   await openLesson(page);
-  await footer(page).click();
+  await tapFooter(page);
   await expect(prompt(page)).toHaveText('Find the pointing pair');
   await expect(footer(page)).toBeDisabled();
   await crossOut(page, answer(1));
-  await footer(page).click();
+  await tapFooter(page);
   await expect(prompt(page)).toHaveText('That’s the pointing pair');
   await expect(footer(page)).toHaveText('Next board');
-  await footer(page).click();
+  await tapFooter(page);
   await expect(prompt(page)).toHaveText('Find the pointing pair');
   await expect(page.locator('.lesson-dots i.done')).toHaveCount(1);
 });
 
 test('a wrong move shows the walkthrough, and Try again restores the board', async ({ page }) => {
   await openLesson(page);
-  await footer(page).click();
+  await tapFooter(page);
   const target = answer(1)[0];
   const board = practiceGame(LESSON_BANK.pointing[1], 1);
   const wrongCell = board.values.findIndex((v, i) => !v && i !== target.cell && getPlayableCandidates(board)[i].size > 1);
   const wrongDigit = [...getPlayableCandidates(board)[wrongCell]].find(d => d !== board.solution[wrongCell])!;
   await crossOut(page, [{ cell: wrongCell, digit: wrongDigit }]);
-  await footer(page).click();
+  await tapFooter(page);
   await expect(prompt(page)).toHaveText('Not quite');
   await expect(page.locator('.walk-panel')).toBeVisible();
   await expect(page.locator(`.board [data-index="${wrongCell}"]`)).not.toHaveAttribute('aria-label', new RegExp(`ruled out.*${wrongDigit}`));
-  await footer(page).click();
+  await tapFooter(page);
   await expect(prompt(page)).toHaveText('Find the pointing pair');
   await expect(page.locator('.walk-panel')).toHaveCount(0);
 });
 
 test('finishing every practice board marks the lesson learned', async ({ page }) => {
   await openLesson(page);
-  await footer(page).click();
+  await tapFooter(page);
   const boards = LESSON_BANK.pointing.length - 1;
   for (let board = 1; board <= boards; board++) {
     await crossOut(page, answer(board));
-    await footer(page).click();
+    await tapFooter(page);
     await expect(prompt(page)).toHaveText('That’s the pointing pair');
-    await footer(page).click();
+    await tapFooter(page);
   }
   await expect(page.locator('.lesson-done h2')).toHaveText('Pointing pair learned');
   expect(JSON.parse(await saved(page, LEARNED_KEY) ?? '{}')).toHaveProperty('pointing');
@@ -111,12 +113,12 @@ test('a placement lesson grades the right digit as right, even where the cell ha
   await page.locator('.hint-action').click();
   while (await page.getByRole('button', { name: 'Next step' }).isEnabled()) await page.getByRole('button', { name: 'Next step' }).click();
   await page.getByRole('button', { name: 'Learn naked single ›' }).click();
-  await footer(page).click();
+  await tapFooter(page);
   const board = practiceGame(LESSON_BANK['naked-single'][1], 1);
   const { cell, digit } = allSteps(board.values, getPlayableCandidates(board), 'naked-single')[0].placement!;
   await page.locator(`.board [data-index="${cell}"]`).click();
   await page.keyboard.press(String(digit));
-  await footer(page).click();
+  await tapFooter(page);
   await expect(prompt(page)).toHaveText('That’s the naked single');
 });
 
@@ -128,4 +130,17 @@ test('the example board and feedback boards ignore the keyboard', async ({ page 
   await cell.click();
   for (const key of ['1', '2', '3', '4', '5', '6', '7', '8', '9']) await page.keyboard.press(key);
   await expect(cell).toHaveAttribute('aria-label', label!);
+});
+
+test('a quick double tap on Check still shows the feedback', async ({ page }) => {
+  await openLesson(page);
+  await tapFooter(page);
+  const board = practiceGame(LESSON_BANK.pointing[1], 1);
+  const target = answer(1)[0];
+  const wrongCell = board.values.findIndex((v, i) => !v && i !== target.cell && getPlayableCandidates(board)[i].size > 1);
+  const wrongDigit = [...getPlayableCandidates(board)[wrongCell]].find(d => d !== board.solution[wrongCell])!;
+  await crossOut(page, [{ cell: wrongCell, digit: wrongDigit }]);
+  await footer(page).dblclick();
+  await expect(prompt(page)).toHaveText('Not quite');
+  await expect(page.locator('.walk-panel')).toBeVisible();
 });
