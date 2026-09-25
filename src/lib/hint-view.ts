@@ -28,7 +28,7 @@ export function techniqueName(step: Step): string {
     case 'x-wing': return 'X-wing';
     case 'swordfish': return 'Swordfish';
     case 'xy-wing': return 'XY-wing';
-    case 'coloring': return 'Coloring';
+    case 'coloring': return step.variant === 'trap' ? 'Color trap' : 'Color wrap';
   }
 }
 

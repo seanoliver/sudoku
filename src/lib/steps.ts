@@ -17,7 +17,7 @@ export type Step = {
   placement?: { cell: number; digit: number };
   eliminations: { cell: number; digit: number }[];
   /** Naked or hidden sets; pointing (box to line) or claiming (line to box) locked candidates. */
-  variant?: 'naked' | 'hidden' | 'pointing' | 'claiming';
+  variant?: 'naked' | 'hidden' | 'pointing' | 'claiming' | 'wrap' | 'trap';
   /** Candidates already removed by an exclusion or earlier elimination that the move relies on, so a hint can point at them. */
   relies: { cell: number; digit: number }[];
   /** Coloring's two shades: one of them holds the digit, the other does not. */
@@ -152,14 +152,14 @@ function coloring(candidates: Candidates): Step | null {
       while (queue.length) { const cell = queue.shift()!; component.push(cell); for (const next of links.get(cell) ?? []) if (!color.has(next)) { color.set(next, 1 - color.get(cell)!); queue.push(next); } }
       if (component.length < 4) continue;
       const shades: [number[], number[]] = [component.filter(i => color.get(i) === 0), component.filter(i => color.get(i) === 1)];
-      const step = (eliminations: { cell: number; digit: number }[]): Step => ({ technique: 'coloring', area: component, pattern: component, digits: [digit], eliminations, relies: [], shades });
+      const step = (eliminations: { cell: number; digit: number }[], variant: 'wrap' | 'trap'): Step => ({ technique: 'coloring', variant, area: component, pattern: component, digits: [digit], eliminations, relies: [], shades });
       for (const shade of [0, 1]) {
         const same = component.filter(i => color.get(i) === shade);
-        if (same.some((i, k) => same.slice(k + 1).some(j => sees(i, j)))) { const eliminations = removable(candidates, same, digit); if (eliminations.length) return step(eliminations); }
+        if (same.some((i, k) => same.slice(k + 1).some(j => sees(i, j)))) { const eliminations = removable(candidates, same, digit); if (eliminations.length) return step(eliminations, 'wrap'); }
       }
       const zeros = component.filter(i => color.get(i) === 0), ones = component.filter(i => color.get(i) === 1);
       const eliminations = removable(candidates, [...Array(81).keys()].filter(i => !color.has(i) && zeros.some(z => sees(i, z)) && ones.some(o => sees(i, o))), digit);
-      if (eliminations.length) return step(eliminations);
+      if (eliminations.length) return step(eliminations, 'trap');
     }
   }
   return null;
