@@ -4,9 +4,9 @@ import { inSentence } from '@/lib/lessons';
 export type LessonPromptState = 'watch' | 'practice' | 'correct' | 'wrong';
 
 /** Replaces the app bar during a lesson: the way back, the technique, and practice progress. */
-export function LessonBar({ name, done, current, count, onExit }: { name: string; done: number; current: number | null; count: number; onExit: () => void }) {
+export function LessonBar({ name, done, current, count, back, onExit }: { name: string; done: number; current: number | null; count: number; back: string; onExit: () => void }) {
   return <header className="app-bar lesson-bar">
-    <button className="lesson-back" onClick={onExit}><Icon name="chevron" size={16}/><span>Your game</span></button>
+    <button className="lesson-back" onClick={onExit}><Icon name="chevron" size={16}/><span>{back}</span></button>
     <div className="lesson-title">
       <strong>{name}</strong>
       <span className="lesson-dots" role="img" aria-label={`${done} of ${count} practice boards done`}>{Array.from({ length: count }, (_, k) => <i key={k} className={k < done ? 'done' : k === current ? 'now' : ''}/>)}</span>
@@ -27,10 +27,10 @@ export function LessonFooter({ label, disabled = false, onClick }: { label: stri
 }
 
 /** Fills the controls area once every practice board is done. */
-export function LessonDone({ name, onExit }: { name: string; onExit: () => void }) {
+export function LessonDone({ name, back, onExit }: { name: string; back: string; onExit: () => void }) {
   return <div className="lesson-done">
     <span className="success-mark"><Icon name="check" size={25}/></span>
     <div><h2>{name} learned</h2><p>You found it on every practice board.</p></div>
-    <button className="primary-button" onClick={onExit}>Back to your game</button>
+    <button className="primary-button" onClick={onExit}>{back}</button>
   </div>;
 }
