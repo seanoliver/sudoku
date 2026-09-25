@@ -1,7 +1,8 @@
 import { getPlayableCandidates } from './candidates.ts';
 import { createGame, fillNotes, type GameState } from './game.ts';
 import { LESSON_BANK, type LessonBoard } from './lesson-bank.ts';
-import { allSteps, type Step, type Technique } from './steps.ts';
+import { allSteps, findStep, TECHNIQUES, type Step, type Technique } from './steps.ts';
+import type { Difficulty } from './sudoku.ts';
 
 export const LESSONS = ['naked-single', 'hidden-single', 'pointing', 'claiming', 'naked-pair', 'naked-triple', 'naked-quad', 'hidden-pair', 'hidden-triple', 'hidden-quad', 'x-wing', 'swordfish', 'xy-wing', 'color-wrap', 'color-trap'] as const;
 export type LessonId = typeof LESSONS[number];
@@ -81,3 +82,28 @@ export function practiceGame(board: LessonBoard, index: number): GameState {
 }
 /** Lessons need an example and at least one practice board. */
 export const hasLesson = (id: LessonId) => LESSON_BANK[id].length >= 2;
+
+// Mirrors DIFFICULTY_BANDS (a test keeps them equal); importing it would pull the Expert bank into the page bundle.
+const BAND_OF: Record<Exclude<Technique, 'beyond'>, Difficulty> = { 'naked-single': 'easy', 'hidden-single': 'medium', 'locked-candidates': 'hard', pair: 'hard', triple: 'expert', 'x-wing': 'expert', quad: 'expert', swordfish: 'expert', 'xy-wing': 'expert', coloring: 'expert' };
+/** Lessons with practice boards, grouped like the puzzle picker, easiest technique first. */
+export const LESSON_BANDS: { band: Difficulty; lessons: LessonId[] }[] = (['easy', 'medium', 'hard', 'expert'] as const).map(band => ({
+  band,
+  lessons: LESSONS.filter(id => hasLesson(id) && BAND_OF[lessonTechnique(id)] === band)
+    .sort((a, b) => TECHNIQUES.indexOf(lessonTechnique(a)) - TECHNIQUES.indexOf(lessonTechnique(b)) || LESSONS.indexOf(a) - LESSONS.indexOf(b)),
+}));
+
+export type DiagramRole = 'empty' | 'filled' | 'area' | 'pattern' | 'move' | 'gold' | 'blue';
+const diagrams = new Map<LessonId, DiagramRole[]>();
+/** Per cell, what the lesson's example board shows: the move, then coloring, then the pattern, then the area. */
+export function lessonDiagram(id: LessonId): DiagramRole[] {
+  const cached = diagrams.get(id);
+  if (cached) return cached;
+  const game = practiceGame(LESSON_BANK[id][0], 0);
+  const step = findStep(game.values, getPlayableCandidates(game))!;
+  const moved = new Set([...(step.placement ? [step.placement.cell] : []), ...step.eliminations.map(e => e.cell)]);
+  // A hidden set removes candidates inside its own cells, so there the pattern is the thing to show.
+  const roles = game.values.map((value, cell): DiagramRole => moved.has(cell) && !(step.variant === 'hidden' && step.pattern.includes(cell)) ? 'move' : step.shades?.[0].includes(cell) ? 'gold' : step.shades?.[1].includes(cell) ? 'blue'
+    : step.pattern.includes(cell) ? 'pattern' : step.area.includes(cell) ? 'area' : value ? 'filled' : 'empty');
+  diagrams.set(id, roles);
+  return roles;
+}

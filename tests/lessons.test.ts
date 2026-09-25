@@ -114,3 +114,24 @@ test('fixing a wrong digit by typing the right one over it still grades right', 
   }
   assert.deepEqual(misses, []);
 });
+
+test('the Learn page groups every lesson with boards into the puzzle picker’s bands, easiest first', async () => {
+  const { LESSON_BANDS, hasLesson } = await import('../src/lib/lessons.ts');
+  const { DIFFICULTY_BANDS } = await import('../src/lib/difficulty.ts');
+  assert.deepEqual(LESSON_BANDS.map(b => b.band), ['easy', 'medium', 'hard', 'expert']);
+  const listed = LESSON_BANDS.flatMap(b => b.lessons);
+  assert.deepEqual([...listed].sort(), LESSONS.filter(hasLesson).sort());
+  for (const { band, lessons } of LESSON_BANDS) for (const id of lessons) assert.ok(DIFFICULTY_BANDS[band].includes(lessonTechnique(id)), `${id} in ${band}`);
+  assert.deepEqual(LESSON_BANDS[2].lessons, ['pointing', 'claiming', 'naked-pair', 'hidden-pair']);
+});
+
+test('each lesson’s mini board marks its pattern and its move, and coloring shows both colors', async () => {
+  const { LESSON_BANDS, lessonDiagram } = await import('../src/lib/lessons.ts');
+  for (const id of LESSON_BANDS.flatMap(b => b.lessons)) {
+    const roles = lessonDiagram(id);
+    assert.equal(roles.length, 81, id);
+    if (!/^hidden-(pair|triple|quad)$/.test(id)) assert.ok(roles.includes('move'), `${id} shows its move`);
+    if (id.startsWith('color-')) assert.ok(roles.includes('gold') && roles.includes('blue'), id);
+    else assert.ok(roles.includes('pattern') || id === 'naked-single', `${id} shows its pattern`);
+  }
+});
