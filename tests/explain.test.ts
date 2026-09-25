@@ -54,3 +54,41 @@ test('every coloring line keeps the chain colors it has revealed so far', () => 
   assert.equal(seen, step.area.length);
   for (const line of lines) assert.ok(line.text.length <= EXPLAIN_TEXT_LIMIT, line.text);
 });
+
+test('a naked single rings one placed copy of each other digit, then places the digit', () => {
+  const { step, values, candidates } = firstStep(s => s.technique === 'naked-single');
+  const lines = explainStep(step, { values, candidates });
+  assert.equal(lines.length, 2);
+  assert.deepEqual([...lines[0].focus!].sort((a, b) => a - b), [step.placement!.cell, ...step.pattern].sort((a, b) => a - b));
+  assert.match(lines[0].text, new RegExp(`^Every number but ${step.placement!.digit} is already in its row, column, or box`));
+  assert.deepEqual(lines[1].ghost, step.placement);
+});
+
+test('a hidden single crosses the digit out of every other open cell in the house, then places it', () => {
+  const { step, values, candidates } = firstStep(s => s.technique === 'hidden-single');
+  const [first, last] = explainStep(step, { values, candidates });
+  const others = step.area.filter(i => !values[i] && i !== step.placement!.cell);
+  assert.deepEqual(first.house, step.area);
+  assert.deepEqual(first.strike!.map(m => m.cell).sort((a, b) => a - b), others.sort((a, b) => a - b));
+  assert.deepEqual(last.ghost, step.placement);
+});
+
+test('pointing names the box then the line; claiming names the line then the box', () => {
+  for (const variant of ['pointing', 'claiming'] as const) {
+    const { step, values, candidates } = firstStep(s => s.variant === variant);
+    const [first, last] = explainStep(step, { values, candidates });
+    assert.match(first.text, variant === 'pointing' ? /^In box \d, \d fits only in these cells\. They're all in (row|column) \d\.$/ : /^In (row|column) \d, \d fits only in these cells\. They're all in box \d\.$/);
+    assert.deepEqual(first.house, step.area);
+    assert.deepEqual(last.strike, step.eliminations);
+  }
+});
+
+test('naked and hidden sets say which numbers are locked into which cells', () => {
+  for (const variant of ['naked', 'hidden'] as const) {
+    const { step, values, candidates } = firstStep(s => s.technique === 'pair' && s.variant === variant);
+    const [first, last] = explainStep(step, { values, candidates });
+    assert.deepEqual(first.focus, step.pattern);
+    assert.ok(first.chips!.length && first.chips!.every(m => step.pattern.includes(m.cell) && step.digits.includes(m.digit)));
+    assert.deepEqual(last.strike, step.eliminations);
+  }
+});

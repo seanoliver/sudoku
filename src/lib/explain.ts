@@ -81,9 +81,56 @@ function coloring(step: Step, { values, candidates }: Board): ExplainLine[] {
   ];
 }
 
+const boxOf = (cell: number) => BOXES.find(box => box.includes(cell))!;
+const lineOf = (cells: readonly number[]) => [...ROWS, ...COLUMNS].find(line => cells.every(i => line.includes(i)))!;
+
+function nakedSingle(step: Step): ExplainLine[] {
+  const { cell, digit } = step.placement!;
+  const ruled = step.relies.map(m => m.digit);
+  return [
+    { focus: [cell, ...step.pattern], strike: step.relies, text: `Every number but ${digit} is already in its row, column, or box${ruled.length ? `, or ruled out here (${list(ruled)})` : ''}.` },
+    { focus: [cell], ghost: step.placement, text: `So this cell has to be ${digit}.` },
+  ];
+}
+
+function hiddenSingle(step: Step, { values }: Board): ExplainLine[] {
+  const { cell, digit } = step.placement!;
+  const others = step.area.filter(i => !values[i] && i !== cell);
+  return [
+    { house: step.area, focus: step.pattern, strike: others.map(i => ({ cell: i, digit })), text: `${capital(houseName(step.area))} needs a ${digit}. The ${digit}s already placed nearby rule out every other open cell in it.` },
+    { house: step.area, focus: [cell], ghost: step.placement, text: `Only this cell is left, so it's the ${digit}.` },
+  ];
+}
+
+function locked(step: Step, { candidates }: Board): ExplainLine[] {
+  const d = step.digits[0];
+  const chips = chipsFor(candidates, step.pattern, [d]);
+  const to = step.variant === 'pointing' ? lineOf(step.pattern) : boxOf(step.pattern[0]);
+  return [
+    { house: step.area, focus: step.pattern, chips, text: `In ${houseName(step.area)}, ${d} fits only in these cells. They're all in ${houseName(to)}.` },
+    { house: to, focus: step.pattern, chips, target: step.eliminations.map(e => e.cell), strike: step.eliminations, text: `So ${houseName(step.area)}'s ${d} is in ${houseName(to)}, and the rest of ${houseName(to)} can't hold ${d}.` },
+  ];
+}
+
+function set(step: Step, { candidates }: Board): ExplainLine[] {
+  const n = step.pattern.length, where = houseName(step.area), digits = list(step.digits);
+  const chips = chipsFor(candidates, step.pattern, step.digits);
+  return step.variant === 'naked' ? [
+    { house: step.area, focus: step.pattern, chips, text: `These ${n} cells in ${where} can only hold ${digits}.` },
+    { house: step.area, focus: step.pattern, chips, target: [...new Set(step.eliminations.map(e => e.cell))], strike: step.eliminations, text: `Those ${n} numbers must fill these ${n} cells, so no other cell in ${where} can hold them.` },
+  ] : [
+    { house: step.area, focus: step.pattern, chips, text: `In ${where}, ${digits} fit only in these ${n} cells.` },
+    { house: step.area, focus: step.pattern, chips, strike: step.eliminations, text: `So these cells hold ${digits}, and nothing else.` },
+  ];
+}
+
 /** The walkthrough for a step on this board; the last line shows the move. */
 export function explainStep(step: Step, board: Board): ExplainLine[] {
   switch (step.technique) {
+    case 'naked-single': return nakedSingle(step);
+    case 'hidden-single': return hiddenSingle(step, board);
+    case 'locked-candidates': return locked(step, board);
+    case 'pair': case 'triple': case 'quad': return set(step, board);
     case 'coloring': return coloring(step, board);
     default: return [];
   }
