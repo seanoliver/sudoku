@@ -46,7 +46,9 @@ function nakedSingle(values: readonly number[], candidates: Candidates): Step | 
   const digit = [...candidates[cell]][0];
   const seen = new Set(peers(cell).map(peer => values[peer]));
   const relies = DIGITS.filter(d => d !== digit && !seen.has(d)).map(d => ({ cell, digit: d }));
-  return { technique: 'naked-single', area: [cell], pattern: peers(cell).filter(peer => values[peer]), digits: [digit], placement: { cell, digit }, eliminations: [], relies };
+  // One placed copy of each other digit is enough to show why only this digit fits.
+  const pattern = DIGITS.filter(d => d !== digit).flatMap(d => peers(cell).filter(peer => values[peer] === d).slice(0, 1));
+  return { technique: 'naked-single', area: [cell], pattern, digits: [digit], placement: { cell, digit }, eliminations: [], relies };
 }
 
 function hiddenSingle(values: readonly number[], candidates: Candidates): Step | null {

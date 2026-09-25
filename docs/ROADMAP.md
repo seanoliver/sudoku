@@ -339,6 +339,8 @@ This precedes applied deductions because their affected notes and explanations m
 
 ## 6. Progressive hints
 
+**Status:** Shipped in [PR #36](https://github.com/seanoliver/sudoku/pull/36) ([design](plans/2026-09-24-progressive-hints-design.md)): a bulb in the focus bar opens a one-line hint strip with three levels (technique, where, move) and Apply. Engine shipped in [PR #35](https://github.com/seanoliver/sudoku/pull/35). "Learn this" waits for milestone 8.
+
 **Player benefit:** Get enough direction to resume solving, with control over how much is revealed.
 
 - Offer one Help entry point with a stable sequence: name a technique, identify an area, highlight the supporting cells/digits, then explain the move.

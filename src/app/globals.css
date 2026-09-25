@@ -3,7 +3,7 @@
   --note-red: #92545e; --note-blue: #346da8; --canvas: #f5f6f8; --surface: #fff; --ink: #273246; --secondary: #717c8e;
   --blue: #2776df; --blue-strong: #1965cd; --blue-soft: #e8f0fc; --selection: #d6e7ff;
   --possible: #e1f2e7; --peer: #f2f6fc; --matching: #e1edff; --line: #e3e7ed; --box-line: #adb9ca;
-  --red: #c24752; --red-soft: #ffedf0; --green: #42936e;
+  --red: #c24752; --red-soft: #ffedf0; --green: #42936e; --hint: #c9860a; --hint-soft: #fdf2dc; --hint-strong: #8f5a00;
   --shadow: 0 2px 5px #23395507, 0 8px 24px #23395505;
 }
 @media (prefers-color-scheme: dark) {
@@ -12,7 +12,7 @@
     --note-red: #d8adb3; --note-blue: #9ac5ff; --canvas: #181c24; --surface: #222833; --ink: #e2e7ef; --secondary: #98a5b8;
     --blue: #72a9ff; --blue-strong: #9ac2ff; --blue-soft: #263952; --selection: #2e527e;
     --possible: #294738; --peer: #283241; --matching: #304665; --line: #333d4c; --box-line: #637289;
-    --red: #ffa0a9; --red-soft: #4a303d; --green: #7dc8a4;
+    --red: #ffa0a9; --red-soft: #4a303d; --green: #7dc8a4; --hint: #f2b84b; --hint-soft: #40361f; --hint-strong: #f2b84b;
     --shadow: 0 3px 14px #00000012;
   }
 }
@@ -21,7 +21,7 @@
   --note-red: #d8adb3; --note-blue: #9ac5ff; --canvas: #181c24; --surface: #222833; --ink: #e2e7ef; --secondary: #98a5b8;
   --blue: #72a9ff; --blue-strong: #9ac2ff; --blue-soft: #263952; --selection: #2e527e;
   --possible: #294738; --peer: #283241; --matching: #304665; --line: #333d4c; --box-line: #637289;
-  --red: #ffa0a9; --red-soft: #4a303d; --green: #7dc8a4;
+  --red: #ffa0a9; --red-soft: #4a303d; --green: #7dc8a4; --hint: #f2b84b; --hint-soft: #40361f; --hint-strong: #f2b84b;
   --shadow: 0 3px 14px #00000012;
 }
 * { box-sizing: border-box; }
@@ -138,8 +138,8 @@ h1,h2,h3,p { margin: 0; }
 .puzzle-panel .board-row:first-child .cell-slot .cell { border-top-left-radius: 0; border-top-right-radius: 0; }
 .digit-focus-bar { height: 44px; display: flex; align-items: center; justify-content: space-between; border: 1px solid var(--box-line); border-bottom: 0; border-radius: 11px 11px 0 0; background: var(--surface); }
 .digit-focus-bar[inert] > * { visibility: hidden; }
-.focus-button,.digit-focus-label { display: flex; align-items: center; gap: 11px; padding: 0 14px; font-size: 12px; font-weight: 500; color: var(--ink); }
-.focus-button { width: 100%; height: 100%; border-radius: inherit; text-align: left; }
+.focus-button,.digit-focus-label { display: flex; align-items: center; gap: 11px; padding: 0 14px; font-size: 12px; font-weight: 500; color: var(--ink); }.digit-focus-label { flex: 1; min-width: 0; }
+.focus-button { flex: 1; min-width: 0; height: 100%; border-radius: inherit; text-align: left; }
 .focus-button:disabled { color: var(--secondary); }
 .focus-button:not(:disabled)>svg,.digit-focus-label>svg { color: var(--blue); }
 .focus-button strong,.digit-focus-label strong { font-weight: 650; }
@@ -183,3 +183,19 @@ h1,h2,h3,p { margin: 0; }
 @media (hover: hover) { .number-pad .number-key.digit-finished:hover { background: transparent; } }
 .number-pad.mode-note .number-key,.number-pad.mode-exclude .number-key { display: grid; grid-template: repeat(3, 1fr) / repeat(3, 1fr); place-items: center; padding: 7px 5px; gap: 0; }.number-pad.mode-note .number-key>span,.number-pad.mode-exclude .number-key>span { font-size: 13px; line-height: 1; font-weight: 500; }.number-pad.mode-exclude .number-key>span::after { height: 1.5px; margin-top: -.75px; }
 .help-action { display: flex; align-items: center; justify-content: center; gap: 6px; }
+.hint-button { display: grid; place-items: center; flex-shrink: 0; width: 44px; height: 43px; border-radius: 7px; color: var(--hint); }.hint-button:disabled { opacity: .4; }
+.digit-focus-bar.hint-strip { gap: 8px; padding-left: 12px; background: var(--hint-soft); }
+.hint-copy { display: flex; flex: 1; min-width: 0; align-items: center; gap: 8px; font-size: 13px; font-weight: 650; color: var(--ink); white-space: nowrap; }.hint-copy>span { overflow: hidden; text-overflow: ellipsis; }.hint-copy>svg { flex-shrink: 0; color: var(--hint); }
+.hint-dots { display: flex; gap: 4px; flex-shrink: 0; }.hint-dots i { width: 6px; height: 6px; border-radius: 50%; background: color-mix(in srgb, var(--hint) 25%, var(--line)); }.hint-dots i.on { background: var(--hint); }
+.hint-action { flex-shrink: 0; min-height: 30px; padding: 0 12px; border-radius: 8px; background: var(--hint-strong); color: var(--surface); font-size: 13px; font-weight: 650; }
+.cell.hint-area { background: color-mix(in srgb, var(--hint) 16%, var(--surface)); }
+.cell.hint-shade-a { background: color-mix(in srgb, var(--hint) 34%, var(--surface)); }.cell.hint-shade-b { background: color-mix(in srgb, var(--blue) 22%, var(--surface)); }
+.cell.hint-pattern .cell-number { text-decoration: underline 2px var(--hint); text-underline-offset: 4px; }.cell.hint-pattern:not(:has(.cell-number)) { box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--hint) 70%, transparent); }
+.cell.hint-relies { outline: 1.5px dashed var(--hint); outline-offset: -4px; }
+.cell.hint-target { background: color-mix(in srgb, var(--hint) 30%, var(--surface)); box-shadow: inset 0 0 0 2px var(--hint); }
+.cell.hint-mistake { background: var(--red-soft); box-shadow: inset 0 0 0 2px var(--red); }
+.cell.selected.hint-area { background: var(--selection); }.cell:is(.selected, :focus-visible):is(.hint-target, .hint-pattern) { box-shadow: inset 0 0 0 2px var(--blue), inset 0 0 0 4px var(--hint); }.cell:is(.selected, :focus-visible).hint-mistake { box-shadow: inset 0 0 0 2px var(--blue), inset 0 0 0 4px var(--red); }
+.hint-ghost { position: absolute; inset: 0; display: grid; place-items: center; font-size: clamp(23px, 6.4vw, 29px); line-height: 1; color: var(--hint); opacity: .9; pointer-events: none; }
+.hint-struck-grid { position: absolute; top: 8%; left: 8%; width: 84%; height: 84%; display: grid; grid-template: repeat(3, 1fr) / repeat(3, 1fr); place-items: center; pointer-events: none; font-size: clamp(9px, 2.8vw, 13px); }.cell.hint-target .notes { visibility: hidden; }
+.hint-struck-digit { position: relative; line-height: 1; font-weight: 700; color: var(--red); }.hint-struck-digit::after { content: ''; position: absolute; left: 50%; top: 50%; width: 1.3em; height: 2px; margin: -1px 0 0 -.65em; background: var(--red); transform: rotate(45deg); }
+@media (hover: hover) { .hint-button:not(:disabled):hover { background: var(--peer); } }
