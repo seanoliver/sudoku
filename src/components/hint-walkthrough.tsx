@@ -1,4 +1,5 @@
 import type { ExplainLine } from '@/lib/explain';
+import { inSentence } from '@/lib/lessons';
 
 /** Center of a candidate's slot in the notes grid, in board units (one cell = 1). The grid is 84% of the cell, inset 8%. */
 const noteAt = (cell: number, digit: number) => ({
@@ -28,7 +29,7 @@ export function WalkthroughOverlay({ line }: { line: ExplainLine }) {
 }
 
 /** The sentence for the current line, with ‹ › to move through the walkthrough. */
-export function WalkthroughPanel({ index, count, text, onStep }: { index: number; count: number; text: string; onStep: (index: number, at: number) => void }) {
+export function WalkthroughPanel({ index, count, text, onStep, learn }: { index: number; count: number; text: string; onStep: (index: number, at: number) => void; learn?: { name: string; onOpen: () => void } }) {
   return <div className="walk-panel">
     <div className="walk-panel-head">
       <strong>Why this works</strong>
@@ -39,5 +40,6 @@ export function WalkthroughPanel({ index, count, text, onStep }: { index: number
       </div>
     </div>
     <p>{text}</p>
+    {learn && <button className="walk-learn" onClick={learn.onOpen}>Learn {inSentence(learn.name)} ›</button>}
   </div>;
 }

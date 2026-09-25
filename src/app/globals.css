@@ -217,3 +217,24 @@ h1,h2,h3,p { margin: 0; }
 .walk-stepper button { width: 32px; height: 32px; border-radius: 16px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); font-size: 20px; line-height: 1; display: grid; place-items: center; }
 .walk-stepper button:disabled { opacity: .35; }
 @media (max-width: 360px) { .walk-panel p { font-size: 15px; }.walk-ghost { font-size: 23px; } }
+.lesson-hidden { display: none !important; }
+.lesson-bar { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; }
+.lesson-back { justify-self: start; display: inline-flex; align-items: center; gap: 2px; min-height: 44px; color: var(--blue-strong); font-weight: 600; font-size: 14px; }
+.lesson-back svg { transform: rotate(90deg); }
+.lesson-title { display: flex; flex-direction: column; align-items: center; gap: 6px; font-size: 16px; }
+.lesson-dots { display: inline-flex; gap: 5px; }
+.lesson-dots i { width: 7px; height: 7px; border-radius: 50%; background: var(--line); }
+.lesson-dots i.done { background: var(--green); }
+.lesson-dots i.now { background: var(--hint); }
+.lesson-prompt { height: 44px; display: flex; align-items: center; gap: 8px; padding: 0 12px; border: 1px solid var(--box-line); border-bottom: 0; border-radius: 11px 11px 0 0; background: var(--hint-soft); font-size: 14px; font-weight: 650; color: var(--ink); }
+.lesson-prompt > svg { flex-shrink: 0; color: var(--hint); }
+.lesson-prompt.correct { background: color-mix(in srgb, var(--green) 16%, var(--surface)); }
+.lesson-prompt.correct > svg { color: var(--green); }
+.lesson-prompt.wrong { background: var(--red-soft); }
+.lesson-prompt.wrong > svg { color: var(--red); }
+.lesson-footer { margin-top: 12px; }
+.lesson-done { position: absolute; top: 0; left: 0; right: 0; min-height: 100%; z-index: 5; display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 16px; border-radius: 16px; background: color-mix(in srgb, var(--green) 12%, var(--surface)); text-align: center; }
+.lesson-done h2 { margin: 0; font-size: 18px; }
+.lesson-done p { margin: 2px 0 0; color: var(--muted, #6b7485); font-size: 14px; }
+.walk-learn { align-self: flex-start; padding: 2px 0; color: var(--hint-strong); font-size: 14px; font-weight: 650; }
+.app .note-controls[inert], .app .number-pad[inert] { opacity: .45; }
