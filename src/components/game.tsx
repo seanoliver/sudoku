@@ -23,7 +23,7 @@ const EMPTY_NOTES: number[] = [];
 const FOCUS_HINT_KEY = 'sudoku.focus-hold-learned.v1';
 const HINT_STRIP_FOCUS = '.hint-strip .hint-action, .hint-strip .clear-focus-button';
 const WALK_NEXT_FOCUS = '.walk-stepper button:last-child';
-const walkClasses = (line: ExplainLine, cell: number) => [line.house?.includes(cell) ? 'walk-house' : '', line.focus?.includes(cell) ? 'walk-focus' : '', line.target?.includes(cell) ? 'walk-target' : '', line.colored?.has(cell) ? `walk-${line.colored.get(cell) ? 'blue' : 'gold'}` : ''];
+const walkClasses = (line: ExplainLine, cell: number) => [line.house?.includes(cell) ? 'walk-house' : '', line.focus?.includes(cell) ? 'walk-focus' : '', line.target?.includes(cell) ? 'walk-target' : '', line.colored?.has(cell) ? `walk-${line.colored.get(cell) ? 'blue' : 'gold'}` : '', line.ghost?.cell === cell ? 'walk-answer' : ''];
 /** Reads, updates and saves play history; storage failures only lose history, never the game. */
 const updateHistory = (change: (history: PuzzleHistory) => PuzzleHistory) => { try { localStorage.setItem(HISTORY_KEY, JSON.stringify(change(readHistory(localStorage.getItem(HISTORY_KEY))))); } catch { /* History is optional. */ } };
 const seenPuzzles = () => { try { return readHistory(localStorage.getItem(HISTORY_KEY)).seen; } catch { return []; } };
@@ -382,6 +382,7 @@ export default function SudokuGame() {
               return <div role="gridcell" aria-selected={selectedCell} aria-readonly={given} aria-rowindex={row+1} aria-colindex={col+1} key={i} className="cell-slot"><button className={classes} data-index={i} data-given={given} tabIndex={selected === i ? 0 : -1} aria-label={`Row ${row+1}, column ${col+1}, ${value ? `${value}${given ? ', given' : ''}` : notes.length ? `${generated ? 'generated notes' : 'notes'} ${notes.join(', ')}` : 'empty'}${!value && ruledOut.length ? `, ruled out ${ruledOut.join(', ')}` : ''}${possible.has(i) ? `, possible placement for ${selectedValue}` : ''}${excludedPossible.has(i) ? `, excluded placement for ${selectedValue}` : ''}${badCells.has(i) ? ', incorrect answer' : ''}`} aria-disabled={complete} onClick={event => selection.clickCell(event, i)}>
                 {celebrating && celebratedCells.has(i) && <span key={`celebrate-${celebrating.id}`} className="unit-celebration" style={{ animationDelay: `${distance(i, celebrating.origin) * CELEBRATION_STEP_MS}ms` }} aria-hidden="true"/>}
                 {value ? <span className="cell-number">{value}</span> : null}
+                {walkLine?.ghost?.cell === i && <span className="walk-ghost" aria-hidden="true">{walkLine.ghost.digit}</span>}
                 <CellNotes key={game?.id} focusedDigit={complete || walkLine ? null : focusedDigit} filled={Boolean(value)} manual={generated ? EMPTY_NOTES : notes} automatic={generated ? notes : EMPTY_NOTES} excluded={ruledOut} boardKey={boardKey}/>
                 {rejection?.index === i && <span key={`rejected-${rejection.id}`} className="rejected-digit" aria-hidden="true">{rejection.value}</span>}
                 {rejection?.sources.includes(i) && <span key={`source-${rejection.id}`} className="rejection-source" aria-hidden="true"/>}
