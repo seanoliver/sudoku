@@ -125,13 +125,15 @@ test('the Learn page groups every lesson with boards into the puzzle picker’s 
   assert.deepEqual(LESSON_BANDS[2].lessons, ['pointing', 'claiming', 'naked-pair', 'hidden-pair']);
 });
 
-test('each lesson’s mini board marks its pattern and its move, and coloring shows both colors', async () => {
+test('each lesson’s mini board marks its pattern and its move, and coloring shows its colors', async () => {
   const { LESSON_BANDS, lessonDiagram } = await import('../src/lib/lessons.ts');
   for (const id of LESSON_BANDS.flatMap(b => b.lessons)) {
     const roles = lessonDiagram(id);
     assert.equal(roles.length, 81, id);
     if (!/^hidden-(pair|triple|quad)$/.test(id)) assert.ok(roles.includes('move'), `${id} shows its move`);
-    if (id.startsWith('color-')) assert.ok(roles.includes('gold') && roles.includes('blue'), id);
+    // A color wrap's move removes a whole color, so only a trap still shows both.
+    if (id === 'color-trap') assert.ok(roles.includes('gold') && roles.includes('blue'), id);
+    if (id === 'color-wrap') assert.ok(roles.includes('gold') || roles.includes('blue'), id);
     else assert.ok(roles.includes('pattern') || id === 'naked-single', `${id} shows its pattern`);
   }
 });
