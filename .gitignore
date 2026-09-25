@@ -9,3 +9,5 @@ public/sw.js
 .worktrees/
 .vercel
 .playwright-mcp/
+test-results/
+playwright-report/
