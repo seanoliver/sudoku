@@ -39,3 +39,7 @@ jobs:
         run: pnpm test
       - name: Production build and service worker
         run: pnpm build
+      - name: Install Playwright browsers
+        run: pnpm exec playwright install --with-deps chromium webkit
+      - name: Browser tests (Chromium and WebKit)
+        run: pnpm test:e2e

@@ -17,11 +17,17 @@ export type Step = {
   placement?: { cell: number; digit: number };
   eliminations: { cell: number; digit: number }[];
   /** Naked or hidden sets; pointing (box to line) or claiming (line to box) locked candidates. */
-  variant?: 'naked' | 'hidden' | 'pointing' | 'claiming';
+  variant?: 'naked' | 'hidden' | 'pointing' | 'claiming' | 'wrap' | 'trap';
   /** Candidates already removed by an exclusion or earlier elimination that the move relies on, so a hint can point at them. */
   relies: { cell: number; digit: number }[];
   /** Coloring's two shades: one of them holds the digit, the other does not. */
   shades?: [number[], number[]];
+  /** Fish: whether the base lines are rows, and the base and cover line indices (0–8). */
+  fish?: { rows: boolean; base: number[]; cover: number[] };
+  /** XY-wing: `wings[k]` holds `pivotDigits[k]` and `shared`. */
+  xyWing?: { pivot: number; wings: [number, number]; pivotDigits: [number, number]; shared: number };
+  /** Color wrap: two cells of one shade that see each other. */
+  conflict?: [number, number];
 };
 
 const boxOf = (i: number) => Math.floor(i / 27) * 3 + Math.floor((i % 9) / 3);
@@ -114,7 +120,7 @@ function fish(candidates: Candidates, size: 2 | 3): Step | null {
       const crossing = [...new Set(lines.flatMap(a => positions[a]))];
       if (crossing.length !== size) continue;
       const eliminations = crossing.flatMap(k => removable(candidates, cover[k].filter(i => !lines.some(a => base[a].includes(i))), digit));
-      if (eliminations.length) return { technique: size === 2 ? 'x-wing' : 'swordfish', area: lines.flatMap(a => base[a]), pattern: lines.flatMap(a => base[a].filter(i => candidates[i].has(digit))), digits: [digit], eliminations, relies: [] };
+      if (eliminations.length) return { technique: size === 2 ? 'x-wing' : 'swordfish', area: lines.flatMap(a => base[a]), pattern: lines.flatMap(a => base[a].filter(i => candidates[i].has(digit))), digits: [digit], eliminations, relies: [], fish: { rows: base === ROWS, base: lines, cover: crossing.sort((m, n) => m - n) } };
     }
   }
   return null;
@@ -132,7 +138,7 @@ function xyWing(candidates: Candidates): Step | null {
         const c = [...candidates[x]].find(d => d !== p);
         if (c === undefined || !candidates[y].has(c) || c === a || c === b) continue;
         const eliminations = removable(candidates, [...Array(81).keys()].filter(i => i !== x && i !== y && i !== pivot && sees(i, x) && sees(i, y)), c);
-        if (eliminations.length) return { technique: 'xy-wing', area: [pivot, x, y], pattern: [pivot, x, y], digits: [a, b, c].sort(), eliminations, relies: [] };
+        if (eliminations.length) return { technique: 'xy-wing', area: [pivot, x, y], pattern: [pivot, x, y], digits: [a, b, c].sort(), eliminations, relies: [], xyWing: { pivot, wings: [x, y], pivotDigits: [p, q], shared: c } };
       }
     }
   }
@@ -152,14 +158,17 @@ function coloring(candidates: Candidates): Step | null {
       while (queue.length) { const cell = queue.shift()!; component.push(cell); for (const next of links.get(cell) ?? []) if (!color.has(next)) { color.set(next, 1 - color.get(cell)!); queue.push(next); } }
       if (component.length < 4) continue;
       const shades: [number[], number[]] = [component.filter(i => color.get(i) === 0), component.filter(i => color.get(i) === 1)];
-      const step = (eliminations: { cell: number; digit: number }[]): Step => ({ technique: 'coloring', area: component, pattern: component, digits: [digit], eliminations, relies: [], shades });
+      const step = (eliminations: { cell: number; digit: number }[], variant: 'wrap' | 'trap'): Step => ({ technique: 'coloring', variant, area: component, pattern: component, digits: [digit], eliminations, relies: [], shades });
       for (const shade of [0, 1]) {
         const same = component.filter(i => color.get(i) === shade);
-        if (same.some((i, k) => same.slice(k + 1).some(j => sees(i, j)))) { const eliminations = removable(candidates, same, digit); if (eliminations.length) return step(eliminations); }
+        const x = same.find((i, k) => same.slice(k + 1).some(j => sees(i, j)));
+        if (x === undefined) continue;
+        const eliminations = removable(candidates, same, digit);
+        if (eliminations.length) return { ...step(eliminations, 'wrap'), conflict: [x, same.find(j => j !== x && sees(x, j))!] };
       }
       const zeros = component.filter(i => color.get(i) === 0), ones = component.filter(i => color.get(i) === 1);
       const eliminations = removable(candidates, [...Array(81).keys()].filter(i => !color.has(i) && zeros.some(z => sees(i, z)) && ones.some(o => sees(i, o))), digit);
-      if (eliminations.length) return step(eliminations);
+      if (eliminations.length) return step(eliminations, 'trap');
     }
   }
   return null;

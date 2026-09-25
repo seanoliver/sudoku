@@ -34,3 +34,5 @@ Lint, typecheck and all 137 tests pass.
 ## Recurrence guardrail
 
 Any control rendered inside a conditional branch unmounts when the branch flips. For each such control, browser QA activates it from the keyboard and presses the next shortcut without a pointer click. A button whose action changes in place needs a double-tap check.
+
+`e2e/hint-walkthrough.spec.ts` runs these checks in CI, in Chromium and WebKit, for the hint walkthrough. WebKit matters: Safari does not focus a button when it is clicked, so focus sits on `<body>` after any click. The walkthrough's first WebKit run found exactly that: after clicking ‹ or ›, H stopped working. Code that moves focus after a click has to handle focus on `<body>`, and new focus paths get a spec there.

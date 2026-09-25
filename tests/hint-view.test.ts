@@ -16,7 +16,7 @@ test('technique names read the way solvers say them', () => {
   assert.equal(techniqueName({ ...pointing, technique: 'xy-wing', variant: undefined }), 'XY-wing');
 });
 
-test('each level reveals more, in one short line, and only the last applies', () => {
+test('the strip names the deduction, then where to look, then names it again for the walkthrough', () => {
   const one = hintView({ kind: 'step', step: hidden }, 1);
   assert.equal(one.text, 'Hidden single');
   assert.equal(one.action, 'next');
@@ -27,19 +27,10 @@ test('each level reveals more, in one short line, and only the last applies', ()
   assert.deepEqual([...two.cells.keys()].sort((a, b) => a - b), box0);
   assert.ok([...two.cells.values()].every(set => set.has('area')));
   const three = hintView({ kind: 'step', step: hidden }, 3);
-  assert.equal(three.text, 'The 6 goes here');
-  assert.equal(three.label, 'Hidden single. The 6 goes in row 2, column 2');
+  assert.equal(three.text, 'Hidden single');
   assert.equal(three.action, 'apply');
-  assert.ok(three.cells.get(10)!.has('target') && three.cells.get(30)!.has('pattern') && three.cells.get(11)!.has('relies'));
-  assert.deepEqual(three.ghost, { cell: 10, digit: 6 });
+  assert.equal(three.cells.size, 0, 'the walkthrough draws the board at level 3');
   for (const level of [1, 2, 3] as const) assert.ok(hintView({ kind: 'step', step: hidden }, level).text.length <= 20);
-});
-
-test('eliminations are shown as struck candidates at level 3', () => {
-  const three = hintView({ kind: 'step', step: pointing }, 3);
-  assert.equal(three.text, 'Cross out the 4s');
-  assert.deepEqual(three.struck, pointing.eliminations);
-  assert.ok(three.cells.get(0)!.has('pattern') && three.cells.get(5)!.has('struck'));
 });
 
 test('mistakes and dead ends have their own wording', () => {

@@ -341,6 +341,8 @@ This precedes applied deductions because their affected notes and explanations m
 
 **Status:** Shipped in [PR #36](https://github.com/seanoliver/sudoku/pull/36) ([design](plans/2026-09-24-progressive-hints-design.md)): a bulb in the focus bar opens a one-line hint strip with three levels (technique, where, move) and Apply. Engine shipped in [PR #35](https://github.com/seanoliver/sudoku/pull/35). "Learn this" waits for milestone 8.
 
+**Explanations:** On `feat/hint-why` ([design](plans/2026-09-24-hint-explanations-design.md)): after the technique and where to look, a step-by-step walkthrough in the keypad area explains why the move is valid, for every technique. Apply appears on the last step.
+
 **Player benefit:** Get enough direction to resume solving, with control over how much is revealed.
 
 - Offer one Help entry point with a stable sequence: name a technique, identify an area, highlight the supporting cells/digits, then explain the move.
@@ -374,6 +376,7 @@ Captured from Sean on September 24. Long-term scope, modeled on the way Good Sud
 - **Visual lesson:** Opening a technique shows how it works on a real board with animation and highlights, and walks through finding it. Follow the visual-first principle: minimal text, with explanation only where the board cannot show it.
 - **Practice boards:** A series of partly solved boards where that technique is the only possible next move, for the player to find. The technique solver can produce these from bank and generated puzzles: step through a solve and keep each board just before a move of that technique when no easier move exists. Verify each board against that rule.
 - **Two ways in:** From a game (a hint names the needed technique and offers "Learn this"), and from a home screen (R11) for learning without a game in progress.
+- **Coloring as two skills:** Color wrap and color trap are separate lessons, matching the names hints use.
 - **Achievements:** Earn a mark for each technique learned, for example after solving its practice set. Coordinate with R7 (accomplishments) and R10 (puzzle history).
 
 **Dependencies:** Milestone 6's step reports (technique, cells, digits and eliminations for one move) are the shared foundation for hints, lessons, and practice boards, so build them first.

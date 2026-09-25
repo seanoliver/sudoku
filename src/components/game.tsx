@@ -13,6 +13,8 @@ import { restorePreferences, DEFAULT_PREFS, PREFS_KEY, type Theme, type Preferen
 import { HISTORY_KEY, readHistory, recordCompleted, recordSeen, type PuzzleHistory } from '@/lib/history';
 import { applyHint, nextHint, type Hint } from '@/lib/hints';
 import { hintView, type HintLevel } from '@/lib/hint-view';
+import { explainStep, type ExplainLine } from '@/lib/explain';
+import { WalkthroughOverlay, WalkthroughPanel } from './hint-walkthrough';
 
 type Sheet = 'restart' | 'new' | 'settings' | 'help' | 'install' | null;
 type InstallEvent = Event & { prompt: () => Promise<void>; userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }> };
@@ -20,6 +22,8 @@ const DIGITS = [1,2,3,4,5,6,7,8,9];
 const EMPTY_NOTES: number[] = [];
 const FOCUS_HINT_KEY = 'sudoku.focus-hold-learned.v1';
 const HINT_STRIP_FOCUS = '.hint-strip .hint-action, .hint-strip .clear-focus-button';
+const WALK_NEXT_FOCUS = '.walk-stepper button:last-child';
+const walkClasses = (line: ExplainLine, cell: number) => [line.house?.includes(cell) ? 'walk-house' : '', line.focus?.includes(cell) ? 'walk-focus' : '', line.target?.includes(cell) ? 'walk-target' : '', line.colored?.has(cell) ? `walk-${line.colored.get(cell) ? 'blue' : 'gold'}` : ''];
 /** Reads, updates and saves play history; storage failures only lose history, never the game. */
 const updateHistory = (change: (history: PuzzleHistory) => PuzzleHistory) => { try { localStorage.setItem(HISTORY_KEY, JSON.stringify(change(readHistory(localStorage.getItem(HISTORY_KEY))))); } catch { /* History is optional. */ } };
 const seenPuzzles = () => { try { return readHistory(localStorage.getItem(HISTORY_KEY)).seen; } catch { return []; } };
@@ -56,7 +60,7 @@ export default function SudokuGame() {
   const board = useRef<HTMLDivElement>(null);
   const rejectionId = useRef(0);
   // Keep `game` in this state: it hides the hint after any board change, so Apply never writes a stale move.
-  const [hintState, setHintState] = useState<{ game: GameState; level: HintLevel; hint: Hint } | null>(null);
+  const [hintState, setHintState] = useState<{ game: GameState; level: HintLevel; hint: Hint; line: number } | null>(null);
   const focusAfterRender = useRef<string | null>(null);
   const hintAdvancedAt = useRef(-Infinity);
   const [celebration, setCelebration] = useState<{ id: number; origin: number; cells: number[]; label: string } | null>(null);
@@ -228,8 +232,9 @@ export default function SudokuGame() {
   const showHint = () => {
     if (!game || paused || busy || sheet || complete) return;
     resetSelection();
-    if (!activeHint) { setHintState({ game, level: 1, hint: nextHint(game) }); return; }
-    if (hintDisplay && activeHint.level < hintDisplay.levels) setHintState({ ...activeHint, level: (activeHint.level + 1) as HintLevel });
+    if (!activeHint) { setHintState({ game, level: 1, hint: nextHint(game), line: 0 }); return; }
+    if (hintDisplay && activeHint.level < hintDisplay.levels) setHintState({ ...activeHint, level: (activeHint.level + 1) as HintLevel, line: 0 });
+    else if (walkthrough && activeHint.line < walkthrough.length - 1) stepWalkthrough(activeHint.line + 1);
   };
   const applyActiveHint = () => {
     if (!game || !activeHint) return;
@@ -298,6 +303,18 @@ export default function SudokuGame() {
   const exclusions = game?.exclusions;
   const candidates = useMemo(() => values && exclusions ? getPlayableCandidates({ values, exclusions }) : null,
     [values, exclusions]);
+  const walkStep = activeHint?.level === 3 && activeHint.hint.kind === 'step' ? activeHint.hint.step : null;
+  const walkthrough = walkStep && values && candidates ? explainStep(walkStep, { values, candidates }) : null;
+  const walkIndex = walkthrough && activeHint ? Math.min(activeHint.line, walkthrough.length - 1) : 0;
+  const walkLine = walkthrough?.[walkIndex] ?? null;
+  const stepWalkthrough = (line: number, at?: number) => {
+    if (!activeHint || !walkthrough) return;
+    // Keep focus inside the app's key handler: Safari leaves it on <body> after a click, a disabled stepper button drops it, and leaving the last step removes Apply.
+    const focused = document.activeElement, lost = !focused || focused === document.body;
+    if (lost || focused.closest('.walk-panel, .hint-strip')) focusAfterRender.current = line >= walkthrough.length - 1 ? HINT_STRIP_FOCUS : line === 0 || lost || focused.closest('.hint-strip') ? WALK_NEXT_FOCUS : null;
+    if (at !== undefined) hintAdvancedAt.current = at;
+    setHintState({ ...activeHint, line });
+  };
   const possible = useMemo(() => candidates && preferences.smartHighlighting && !complete
     ? candidateCells(candidates, selectedValue) : new Set<number>(), [candidates, preferences.smartHighlighting, complete, selectedValue]);
   const excludedPossible = useMemo(() => values && exclusions && preferences.smartHighlighting && !complete
@@ -334,9 +351,8 @@ export default function SudokuGame() {
       <div className={`digit-focus-bar ${hintDisplay ? 'hint-strip' : ''}`} role="group" aria-label={hintDisplay ? 'Hint' : 'Digit focus'} inert={paused || busy || complete || !game}>
         {hintDisplay ? <>
           <span className="hint-copy" aria-hidden="true"><Icon name="bulb" size={18}/><span>{hintDisplay.text}</span></span>
-          {hintDisplay.levels > 1 && <span className="hint-dots" aria-hidden="true">{[1, 2, 3].map(step => <i key={step} className={step <= activeHint!.level ? 'on' : ''}/>)}</span>}
           {/* Next becomes Apply in place, so Apply ignores taps just after Next; a double-tap on Next would otherwise make the move. */}
-          {hintDisplay.action !== 'none' && <button className="hint-action" onClick={event => { if (hintDisplay.action === 'next') { hintAdvancedAt.current = event.timeStamp; showHint(); } else if (event.timeStamp - hintAdvancedAt.current > 350) applyActiveHint(); }}>{hintDisplay.action === 'apply' ? 'Apply' : 'Next'}</button>}
+          {hintDisplay.action !== 'none' && (!walkthrough || walkIndex >= walkthrough.length - 1) && <button className="hint-action" onClick={event => { if (hintDisplay.action === 'next') { hintAdvancedAt.current = event.timeStamp; if (activeHint?.level === 2 && activeHint.hint.kind === 'step') focusAfterRender.current = WALK_NEXT_FOCUS; showHint(); } else if (event.timeStamp - hintAdvancedAt.current > 350) applyActiveHint(); }}>{hintDisplay.action === 'apply' ? 'Apply' : 'Next'}</button>}
           <button className="clear-focus-button" aria-label="Close hint" title="Close hint" onClick={() => { setHintState(null); focusSelectedCell(); }}><Icon name="close" size={16}/></button>
         </> : <>
         {focusedDigit !== null ? <>
@@ -349,8 +365,8 @@ export default function SudokuGame() {
         </>}
       </div>
 
-      <p className="sr-only" role="status">{hintDisplay?.label ?? ''}</p>
-      <div className={`board-wrap ${complete ? 'is-complete' : ''}`}>
+      <p className="sr-only" role="status">{walkLine && walkthrough ? `${hintDisplay?.text}. Step ${walkIndex + 1} of ${walkthrough.length}. ${walkLine.text}` : hintDisplay?.label ?? ''}</p>
+      <div className={`board-wrap ${complete ? 'is-complete' : ''} ${walkLine ? 'walkthrough' : ''}`}>
         <div className="board" role="grid" aria-label="Sudoku puzzle" aria-rowcount={9} aria-colcount={9} ref={board} {...selection.pointerHandlers} aria-multiselectable={batchSelection} aria-busy={busy} inert={paused || busy}>
           {Array.from({ length: 9 }, (_, row) => <div role="row" className="board-row" key={row}>
             {Array.from({ length: 9 }, (_, col) => {
@@ -362,13 +378,11 @@ export default function SudokuGame() {
               const generated = game?.noteOrigins[i] === 'generated';
               const selectedCell = (batchSelection ? selection.indices.includes(i) : selected === i) && !complete;
               const same = value > 0 && selectedValue === value;
-              const classes = ['cell', given ? 'given' : 'entered', selectedCell ? 'selected' : '', !selectedCell && related.has(i) && preferences.highlightPeers && !complete ? 'related' : '', same && !selectedCell && !complete ? 'matching' : '', possible.has(i) ? 'possible' : '', excludedPossible.has(i) ? 'excluded-possible' : '', badCells.has(i) ? 'conflict' : '', rejection?.index === i ? 'rejecting' : '', ...[...(hintDisplay?.cells.get(i) ?? [])].map(role => `hint-${role}`)].filter(Boolean).join(' ');
+              const classes = ['cell', given ? 'given' : 'entered', selectedCell ? 'selected' : '', !selectedCell && related.has(i) && preferences.highlightPeers && !complete ? 'related' : '', same && !selectedCell && !complete ? 'matching' : '', possible.has(i) ? 'possible' : '', excludedPossible.has(i) ? 'excluded-possible' : '', badCells.has(i) ? 'conflict' : '', rejection?.index === i ? 'rejecting' : '', ...(walkLine ? walkClasses(walkLine, i) : [...(hintDisplay?.cells.get(i) ?? [])].map(role => `hint-${role}`))].filter(Boolean).join(' ');
               return <div role="gridcell" aria-selected={selectedCell} aria-readonly={given} aria-rowindex={row+1} aria-colindex={col+1} key={i} className="cell-slot"><button className={classes} data-index={i} data-given={given} tabIndex={selected === i ? 0 : -1} aria-label={`Row ${row+1}, column ${col+1}, ${value ? `${value}${given ? ', given' : ''}` : notes.length ? `${generated ? 'generated notes' : 'notes'} ${notes.join(', ')}` : 'empty'}${!value && ruledOut.length ? `, ruled out ${ruledOut.join(', ')}` : ''}${possible.has(i) ? `, possible placement for ${selectedValue}` : ''}${excludedPossible.has(i) ? `, excluded placement for ${selectedValue}` : ''}${badCells.has(i) ? ', incorrect answer' : ''}`} aria-disabled={complete} onClick={event => selection.clickCell(event, i)}>
                 {celebrating && celebratedCells.has(i) && <span key={`celebrate-${celebrating.id}`} className="unit-celebration" style={{ animationDelay: `${distance(i, celebrating.origin) * CELEBRATION_STEP_MS}ms` }} aria-hidden="true"/>}
                 {value ? <span className="cell-number">{value}</span> : null}
-                {hintDisplay?.ghost?.cell === i && <span className="hint-ghost" aria-hidden="true">{hintDisplay.ghost.digit}</span>}
-                {hintDisplay?.struck.some(mark => mark.cell === i) && <span className="hint-struck-grid" aria-hidden="true">{hintDisplay.struck.filter(mark => mark.cell === i).map(mark => <span key={mark.digit} className="hint-struck-digit" style={{ gridRow: Math.ceil(mark.digit / 3), gridColumn: (mark.digit - 1) % 3 + 1 }}>{mark.digit}</span>)}</span>}
-                <CellNotes key={game?.id} focusedDigit={complete ? null : focusedDigit} filled={Boolean(value)} manual={generated ? EMPTY_NOTES : notes} automatic={generated ? notes : EMPTY_NOTES} excluded={ruledOut} boardKey={boardKey}/>
+                <CellNotes key={game?.id} focusedDigit={complete || walkLine ? null : focusedDigit} filled={Boolean(value)} manual={generated ? EMPTY_NOTES : notes} automatic={generated ? notes : EMPTY_NOTES} excluded={ruledOut} boardKey={boardKey}/>
                 {rejection?.index === i && <span key={`rejected-${rejection.id}`} className="rejected-digit" aria-hidden="true">{rejection.value}</span>}
                 {rejection?.sources.includes(i) && <span key={`source-${rejection.id}`} className="rejection-source" aria-hidden="true"/>}
                 {badCells.has(i) && <span className="conflict-dot"/>}
@@ -376,6 +390,7 @@ export default function SudokuGame() {
             })}
           </div>)}
         </div>
+        {walkLine && <WalkthroughOverlay line={walkLine}/>}
         {(paused || busy || !game) && <div className="board-cover">
           {busy ? <><span className="spinner"/><h2>Getting your puzzle ready</h2></> : paused ? <><span className="pause-emblem"><Icon name="pause" size={28}/></span><h2>Take a break</h2><p>Your puzzle will be right here.</p><button className="primary-button" onClick={() => setPaused(false)}><Icon name="play" size={17}/>Resume puzzle</button></> : <><h2>Let’s try that again</h2><button className="primary-button" onClick={() => requestPuzzle(difficulty)}>Create puzzle</button></>}
         </div>}
@@ -386,8 +401,9 @@ export default function SudokuGame() {
 
       <div className="progress-line" role="progressbar" aria-label="Cells filled" aria-valuemin={0} aria-valuemax={total} aria-valuenow={filled}><span style={{ transform: `scaleX(${filled/total})` }}/></div>
       {complete ? <div className="completion" role="status"><span className="success-mark"><Icon name="check" size={25}/></span><div><h2>Nicely done.</h2><p>Every number in its place.</p></div><button className="primary-button" onClick={() => openSheet('new')}>Play again</button></div> : <>
-        <div>
-          <div className="note-controls" aria-label="Puzzle tools">
+        <div className="controls-area">
+          {walkLine && walkthrough && <WalkthroughPanel index={walkIndex} count={walkthrough.length} text={walkLine.text} onStep={stepWalkthrough}/>}
+          <div className="note-controls" aria-label="Puzzle tools" inert={Boolean(walkLine)}>
             <div className="mode-switch" role="group" aria-label="Entry mode">
               <span className={`mode-indicator mode-indicator-${mode}`} aria-hidden="true"/>
               {(['value', 'note', 'exclude'] as const).map(option => <button key={option} className={`mode-option mode-${option}`} aria-pressed={mode === option} disabled={paused || busy} onClick={() => chooseMode(option)} title={{ value: 'Numbers', note: 'Notes (N)', exclude: 'Exclude (X)' }[option]}>
@@ -396,7 +412,7 @@ export default function SudokuGame() {
             </div>
             <button className="erase-control" disabled={!canErase} onClick={() => { input(0); focusSelectedCell(); }} aria-label="Erase" title="Erase (Backspace)"><Icon name="erase" size={20}/></button>
           </div>
-        <div className={`number-pad mode-${mode}`} aria-label="Number pad">
+        <div className={`number-pad mode-${mode}`} aria-label="Number pad" inert={Boolean(walkLine)}>
           {DIGITS.map(n => {
             const { remaining, filtered, focusOnly } = keyState(n);
             return <button key={n} className={`number-key ${!remaining ? 'digit-finished' : ''} ${filtered ? 'digit-filtered' : ''}`} aria-label={(numberFocus || focusOnly ? `Focus on ${n}` : batchSelection ? (game && batchHasMark(game, { indices: selection.indices, value: n, marks: excluding ? 'exclusions' : 'notes' }) ? `Remove ${excluding ? 'exclusion' : 'note'} ${n} from ${selection.indices.length} selected cells` : `${excluding ? 'Exclude' : 'Add note'} ${n} ${excluding ? 'from' : 'to'} ${selection.indices.length} selected cells`) : `${excluding ? 'Rule out' : 'Enter'} ${n}${pencil ? ' as a note' : ''}`) + (filtered ? ', unavailable: already in this row, column, or box' : '') + (remaining ? '' : ', all placed')} disabled={!game || busy || paused || complete} onClick={() => input(n)}><span style={{ gridRow: Math.ceil(n / 3), gridColumn: (n - 1) % 3 + 1 }}>{n}</span></button>;
