@@ -12,6 +12,8 @@ const NAMES: Record<LessonId, string> = {
   'x-wing': 'X-wing', swordfish: 'Swordfish', 'xy-wing': 'XY-wing', 'color-wrap': 'Color wrap', 'color-trap': 'Color trap',
 };
 export const lessonName = (id: LessonId) => NAMES[id];
+/** The name mid-sentence: "pointing pair", but "X-wing" keeps its capital. */
+export const inSentence = (name: string) => /^X/.test(name) ? name : name[0].toLowerCase() + name.slice(1);
 
 /** The lesson that teaches a step. Pointing and claiming triples share the pair lessons. */
 export function lessonOf(step: Step): LessonId {
