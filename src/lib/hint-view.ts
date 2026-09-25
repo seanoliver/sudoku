@@ -2,8 +2,8 @@ import type { Hint } from './hints.ts';
 import type { Step } from './steps.ts';
 
 export type HintLevel = 1 | 2 | 3;
-/** How a cell takes part in a hint: the area to look in, the cells that force the move, the answer, and so on. */
-export type HintRole = 'area' | 'pattern' | 'target' | 'relies' | 'struck' | 'mistake' | 'shade-a' | 'shade-b';
+/** How a cell takes part in a hint before the walkthrough: the area to look in, or a mistake. */
+export type HintRole = 'area' | 'mistake';
 export type HintView = {
   /** One short visible line. */
   text: string;
@@ -12,8 +12,6 @@ export type HintView = {
   action: 'next' | 'apply' | 'none';
   levels: 1 | 3;
   cells: Map<number, Set<HintRole>>;
-  ghost?: { cell: number; digit: number };
-  struck: { cell: number; digit: number }[];
 };
 
 const SIZE = { 2: 'pair', 3: 'triple', 4: 'quad' } as Record<number, string>;
@@ -45,7 +43,7 @@ function houseOf(area: readonly number[]): { kind: 'row' | 'column' | 'box'; num
 export function hintView(hint: Hint, level: HintLevel): HintView {
   const cells = new Map<number, Set<HintRole>>();
   const mark = (cell: number, role: HintRole) => { if (!cells.has(cell)) cells.set(cell, new Set()); cells.get(cell)!.add(role); };
-  const view = (text: string, label: string, action: HintView['action'], extra: Partial<HintView> = {}): HintView => ({ text, label, action, levels: 3, cells, struck: [], ...extra });
+  const view = (text: string, label: string, action: HintView['action'], extra: Partial<HintView> = {}): HintView => ({ text, label, action, levels: 3, cells, ...extra });
 
   if (hint.kind === 'stuck') return view('No hint here', 'No hint is available for this board', 'none', { levels: 1 });
   if (hint.kind === 'solved') return view('Puzzle solved', 'The puzzle is solved', 'none', { levels: 1 });
@@ -60,24 +58,12 @@ export function hintView(hint: Hint, level: HintLevel): HintView {
   const { step } = hint;
   const name = techniqueName(step);
   if (level === 1) return view(name, name, 'next');
-  for (const cell of step.area) mark(cell, 'area');
   const house = houseOf(step.area);
   if (level === 2) {
+    for (const cell of step.area) mark(cell, 'area');
     const text = house ? `Look in this ${house.kind}` : step.area.length === 1 ? 'Look at this cell' : 'Look at these cells';
     const label = house ? `${name}. Look in ${house.kind} ${house.number}` : `${name}. Look at ${step.area.map(position).join('; ')}`;
     return view(text, label, 'next');
   }
-  for (const cell of step.pattern) mark(cell, 'pattern');
-  for (const { cell } of step.relies) mark(cell, 'relies');
-  if (step.shades) { step.shades[0].forEach(cell => mark(cell, 'shade-a')); step.shades[1].forEach(cell => mark(cell, 'shade-b')); }
-  if (step.placement) {
-    const { cell, digit } = step.placement;
-    mark(cell, 'target');
-    return view(`The ${digit} goes here`, `${name}. The ${digit} goes in ${position(cell)}`, 'apply', { ghost: step.placement });
-  }
-  for (const { cell } of step.eliminations) mark(cell, 'struck');
-  const digits = [...new Set(step.eliminations.map(e => e.digit))];
-  const text = digits.length === 1 ? `Cross out the ${digits[0]}s` : 'Cross out these';
-  const label = `${name}. Cross out ${step.eliminations.map(e => `${e.digit} at ${position(e.cell)}`).join('; ')}`;
-  return view(text, label, 'apply', { struck: step.eliminations });
+  return view(name, name, 'apply');
 }
