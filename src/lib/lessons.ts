@@ -1,5 +1,6 @@
 import { getPlayableCandidates } from './candidates.ts';
-import type { GameState } from './game.ts';
+import { createGame, fillNotes, type GameState } from './game.ts';
+import { LESSON_BANK, type LessonBoard } from './lesson-bank.ts';
 import { allSteps, type Step, type Technique } from './steps.ts';
 
 export const LESSONS = ['naked-single', 'hidden-single', 'pointing', 'claiming', 'naked-pair', 'naked-triple', 'naked-quad', 'hidden-pair', 'hidden-triple', 'hidden-quad', 'x-wing', 'swordfish', 'xy-wing', 'color-wrap', 'color-trap'] as const;
@@ -55,3 +56,13 @@ export function readLearned(raw: string | null): Learned {
   } catch { return {}; }
 }
 export const markLearned = (learned: Learned, id: LessonId, date: string): Learned => ({ ...learned, [id]: date });
+
+const digits = (text: string) => [...text].map(Number);
+/** A lesson board as a fresh game with every candidate noted and no undo history. */
+export function practiceGame(board: LessonBoard, index: number): GameState {
+  const base = createGame({ id: `lesson-${board.lesson}-${index}`, difficulty: 'expert', givens: digits(board.givens), solution: digits(board.solution) });
+  const game = fillNotes({ ...base, values: digits(board.values), exclusions: board.exclusions.split(',').map(digits) });
+  return { ...game, history: [], redoHistory: [] };
+}
+/** Lessons need an example and at least one practice board. */
+export const hasLesson = (id: LessonId) => LESSON_BANK[id].length >= 2;
