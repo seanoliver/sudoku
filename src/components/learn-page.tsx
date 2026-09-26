@@ -4,7 +4,6 @@ import { Icon } from './icons';
 const BAND_NAMES = { easy: 'Easy', medium: 'Medium', hard: 'Hard', expert: 'Expert' } as const;
 const COUNT = LESSON_BANDS.reduce((total, { lessons }) => total + lessons.length, 0);
 
-/** A small board showing the lesson's example move: the pattern, the move, and any coloring. */
 function Diagram({ id }: { id: LessonId }) {
   return <svg className="learn-diagram" viewBox="0 0 9 9" aria-hidden="true">
     {lessonDiagram(id).map((role, i) => <rect key={i} className={`learn-cell ${role}`} x={i % 9 + .06} y={Math.floor(i / 9) + .06} width=".88" height=".88" rx=".12"/>)}
@@ -12,7 +11,6 @@ function Diagram({ id }: { id: LessonId }) {
   </svg>;
 }
 
-/** Every lesson, easiest first, with what the player has learned. */
 export function LearnPage({ learned, onOpen, onExit }: { learned: Learned; onOpen: (id: LessonId) => void; onExit: () => void }) {
   const done = LESSON_BANDS.flatMap(({ lessons }) => lessons).filter(id => learned[id]).length;
   return <>
