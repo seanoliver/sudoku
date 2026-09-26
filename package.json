@@ -12,7 +12,8 @@
     "lint": "eslint .",
     "build:expert-bank": "node --experimental-strip-types scripts/build-expert-bank.ts",
     "build:lesson-bank": "node --experimental-strip-types scripts/build-lesson-bank.ts",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "build:share-image": "node scripts/build-share-image.mjs"
   },
   "dependencies": {
     "next": "16.3.5",

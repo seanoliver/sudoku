@@ -1,0 +1,1 @@
+Sudoku: a color wrap hint walking through a chain of linked 4s on the board, beside the line "A calm Sudoku that teaches you every technique, one move at a time."
