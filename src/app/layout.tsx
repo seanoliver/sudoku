@@ -4,6 +4,9 @@ export const metadata: Metadata = {
   title: 'Sudoku — a little time to focus',
   description: 'A simple, free Sudoku game. Play at your own pace, save your progress, and enjoy puzzles offline.',
   applicationName: 'Sudoku',
+  metadataBase: new URL('https://sudoku.seanoliver.dev'),
+  openGraph: { type: 'website', url: '/', siteName: 'Sudoku', title: 'Sudoku', description: 'A calm Sudoku that teaches you every technique, one move at a time.' },
+  twitter: { card: 'summary_large_image', title: 'Sudoku', description: 'A calm Sudoku that teaches you every technique, one move at a time.' },
   appleWebApp: { capable: true, statusBarStyle: 'default', title: 'Sudoku' },
   icons: { icon: '/icon-192.png', apple: '/apple-touch-icon.png' },
 };
