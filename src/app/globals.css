@@ -257,3 +257,4 @@ h1,h2,h3,p { margin: 0; }
 .learn-cell.gold { fill: color-mix(in srgb, var(--hint) 55%, var(--surface)); }
 .learn-cell.blue { fill: color-mix(in srgb, var(--blue) 45%, var(--surface)); }
 @media (hover: hover) { .learn-row:hover { border-color: var(--box-line); } }
+.learn-heading { margin: 0; font-size: 16px; font-weight: 700; }

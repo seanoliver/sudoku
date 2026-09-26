@@ -18,7 +18,7 @@ export function LearnPage({ learned, onOpen, onExit }: { learned: Learned; onOpe
   return <>
     <header className="app-bar lesson-bar">
       <button className="lesson-back" onClick={onExit}><Icon name="chevron" size={16}/><span>Your game</span></button>
-      <div className="lesson-title"><strong>Learn</strong><span className="learn-count">{done} of {COUNT} learned</span></div>
+      <div className="lesson-title"><h1 className="learn-heading">Learn</h1><span className="learn-count">{done} of {COUNT} learned</span></div>
       <span/>
     </header>
     <main className="game learn-list">
