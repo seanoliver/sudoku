@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { gameBefore } from './fixtures.ts';
+import { answer, crossOut, footer, gameBefore, prompt, tapFooter } from './fixtures.ts';
 import { SAVE_KEY } from '../src/lib/game.ts';
 import { LESSON_BANK } from '../src/lib/lesson-bank.ts';
 import { LEARNED_KEY, lessonOf, practiceGame } from '../src/lib/lessons.ts';
@@ -7,15 +7,6 @@ import { getPlayableCandidates } from '../src/lib/candidates.ts';
 import { allSteps } from '../src/lib/steps.ts';
 
 const pointingGame = gameBefore(step => lessonOf(step) === 'pointing');
-/** The crossings-out that answer practice board `board` of the pointing lesson. */
-const answer = (board: number) => {
-  const game = practiceGame(LESSON_BANK.pointing[board], board);
-  return allSteps(game.values, getPlayableCandidates(game), 'locked-candidates').find(step => lessonOf(step) === 'pointing')!.eliminations;
-};
-const footer = (page: Page) => page.locator('.lesson-footer');
-const prompt = (page: Page) => page.locator('.lesson-prompt');
-/** A tap after reading the result: the footer ignores a second tap within 350 ms, as a double tap. */
-const tapFooter = async (page: Page) => { await page.waitForTimeout(400); await footer(page).click(); };
 const saved = (page: Page, key: string) => page.evaluate(k => localStorage.getItem(k), key);
 
 async function openLesson(page: Page) {
@@ -30,12 +21,6 @@ async function openLesson(page: Page) {
   await page.getByRole('button', { name: 'Learn pointing pair ›' }).click();
   await expect(page.locator('.lesson-title strong')).toHaveText('Pointing pair');
   return before;
-}
-async function crossOut(page: Page, marks: { cell: number; digit: number }[]) {
-  for (const { cell, digit } of marks) {
-    await page.locator(`.board [data-index="${cell}"]`).click();
-    await page.keyboard.press(String(digit));
-  }
 }
 
 test('a lesson opens from the last hint step, and leaving it restores the untouched game', async ({ page }) => {

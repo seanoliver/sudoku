@@ -1,4 +1,8 @@
 import type { Page } from '@playwright/test';
+import { LESSON_BANK } from '../src/lib/lesson-bank.ts';
+import { lessonOf, practiceGame } from '../src/lib/lessons.ts';
+import { getPlayableCandidates } from '../src/lib/candidates.ts';
+import { allSteps } from '../src/lib/steps.ts';
 import { createPuzzle } from '../src/lib/difficulty.ts';
 import { createGame, SAVE_KEY } from '../src/lib/game.ts';
 import { applyHint, nextHint } from '../src/lib/hints.ts';
@@ -37,3 +41,19 @@ export const focusState = (page: Page) => page.evaluate(() => {
 
 export const stepLabel = (page: Page) => page.locator('.walk-stepper span').textContent();
 export const historyLength = (page: Page) => page.evaluate(key => JSON.parse(localStorage.getItem(key) ?? '{}').history?.length ?? 0, SAVE_KEY);
+
+/** The crossings-out that answer practice board `board` of the pointing lesson. */
+export const answer = (board: number) => {
+  const game = practiceGame(LESSON_BANK.pointing[board], board);
+  return allSteps(game.values, getPlayableCandidates(game), 'locked-candidates').find(step => lessonOf(step) === 'pointing')!.eliminations;
+};
+export const footer = (page: Page) => page.locator('.lesson-footer');
+export const prompt = (page: Page) => page.locator('.lesson-prompt');
+/** A tap after reading the result: the footer ignores a second tap within 350 ms, as a double tap. */
+export const tapFooter = async (page: Page) => { await page.waitForTimeout(400); await footer(page).click(); };
+export async function crossOut(page: Page, marks: { cell: number; digit: number }[]) {
+  for (const { cell, digit } of marks) {
+    await page.locator(`.board [data-index="${cell}"]`).click();
+    await page.keyboard.press(String(digit));
+  }
+}

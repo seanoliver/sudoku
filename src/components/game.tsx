@@ -15,7 +15,8 @@ import { applyHint, nextHint, type Hint } from '@/lib/hints';
 import { hintView, type HintLevel } from '@/lib/hint-view';
 import { explainStep, type ExplainLine } from '@/lib/explain';
 import { WalkthroughOverlay, WalkthroughPanel } from './hint-walkthrough';
-import { grade, hasLesson, LEARNED_KEY, lessonName, lessonOf, markLearned, practiceGame, readLearned, sameBoard, type Grade, type LessonId } from '@/lib/lessons';
+import { grade, hasLesson, LEARNED_KEY, lessonName, lessonOf, markLearned, practiceGame, readLearned, sameBoard, type Grade, type Learned, type LessonId } from '@/lib/lessons';
+import { LearnPage } from './learn-page';
 import { LESSON_BANK } from '@/lib/lesson-bank';
 import { findStep } from '@/lib/steps';
 import { LessonBar, LessonDone, LessonFooter, LessonPrompt } from './lesson';
@@ -28,8 +29,10 @@ const FOCUS_HINT_KEY = 'sudoku.focus-hold-learned.v1';
 const HINT_STRIP_FOCUS = '.hint-strip .hint-action, .hint-strip .clear-focus-button';
 const WALK_NEXT_FOCUS = '.walk-stepper button:last-child';
 const LESSON_FOOTER_FOCUS = '.lesson-footer';
-/** A lesson in progress. `held` is the player's game, set aside untouched until they leave. */
-type LessonState = { id: LessonId; phase: 'watch' | 'practice' | 'done'; board: number; start: GameState; result: Grade | null; line: number; held: GameState; heldSelected: number; heldFocus: number | null; heldEntry: EntryModeState };
+/** The player's game and its view, set aside untouched while they're on the Learn page or in a lesson. */
+type Held = { game: GameState; selected: number; focus: number | null; entry: EntryModeState; paused: boolean };
+/** A lesson in progress. `from` is where leaving it returns to. */
+type LessonState = { id: LessonId; from: 'hint' | 'list'; phase: 'watch' | 'practice' | 'done'; board: number; start: GameState; result: Grade | null; line: number };
 const walkClasses = (line: ExplainLine, cell: number) => [line.house?.includes(cell) ? 'walk-house' : '', line.focus?.includes(cell) ? 'walk-focus' : '', line.target?.includes(cell) ? 'walk-target' : '', line.colored?.has(cell) ? `walk-${line.colored.get(cell) ? 'blue' : 'gold'}` : '', line.ghost?.cell === cell ? 'walk-answer' : ''];
 /** Reads, updates and saves play history; storage failures only lose history, never the game. */
 const updateHistory = (change: (history: PuzzleHistory) => PuzzleHistory) => { try { localStorage.setItem(HISTORY_KEY, JSON.stringify(change(readHistory(localStorage.getItem(HISTORY_KEY))))); } catch { /* History is optional. */ } };
@@ -70,7 +73,10 @@ export default function SudokuGame() {
   const [hintState, setHintState] = useState<{ game: GameState; level: HintLevel; hint: Hint; line: number } | null>(null);
   const focusAfterRender = useRef<string | null>(null);
   const [lesson, setLesson] = useState<LessonState | null>(null);
-  const inLesson = lesson !== null;
+  const [held, setHeld] = useState<Held | null>(null);
+  const [learnOpen, setLearnOpen] = useState(false);
+  const [learned, setLearned] = useState<Learned>({});
+  const away = held !== null;
   // Watching, reading feedback, or done: the board is for looking at, so nothing may change it.
   const lessonLocked = lesson !== null && (lesson.phase !== 'practice' || lesson.result !== null);
   const hintAdvancedAt = useRef(-Infinity);
@@ -161,13 +167,13 @@ export default function SudokuGame() {
   }, [requestPuzzle]);
 
   useEffect(() => {
-    // During a lesson `game` is a practice board; saving it would overwrite the player's puzzle.
-    if (!game || inLesson) return;
+    // Away from the game, `game` can be a practice board; saving it would overwrite the player's puzzle.
+    if (!game || away) return;
     let timer: number | undefined;
     try { localStorage.setItem(SAVE_KEY, JSON.stringify(game)); }
     catch { timer = window.setTimeout(() => setStorageError(true), 0); }
     return () => clearTimeout(timer);
-  }, [game, inLesson]);
+  }, [game, away]);
 
   useEffect(() => {
     const onPrompt = (event: Event) => { event.preventDefault(); setInstallEvent(event as InstallEvent); };
@@ -334,10 +340,35 @@ export default function SudokuGame() {
   };
   const lessonBoards = lesson ? LESSON_BANK[lesson.id] : [];
   const showBoard = (start: GameState) => { setGame(start); resetSelection(); setBlockedEntry(null); setFocusedDigit(null); setCelebration(null); setSelected(Math.max(0, start.values.indexOf(0))); };
-  const openLesson = (id: LessonId) => {
+  const readLearnedNow = () => { try { return readLearned(localStorage.getItem(LEARNED_KEY)); } catch { return {}; } };
+  // Lessons run unpaused (a pause covers the board), so the player's pause is held with the game and restored.
+  const hold = () => { if (!held && game) { setHeld({ game, selected, focus: focusedDigit, entry, paused }); setPaused(false); } };
+  const restoreGame = () => {
+    if (!held) return;
+    setGame(held.game); setSelected(held.selected); setHeld(null); setPaused(held.paused);
+    resetSelection(); setBlockedEntry(null); setCelebration(null); setEntry(held.entry); setFocusedDigit(held.focus);
+    focusAfterRender.current = `.board [data-index="${held.selected}"]`;
+  };
+  const openLearn = () => {
+    if (!game || busy) return;
+    hold(); setHintState(null); setLearned(readLearnedNow()); setLearnOpen(true);
+    focusAfterRender.current = '.lesson-back';
+  };
+  const exitLearn = () => { setLearnOpen(false); restoreGame(); focusAfterRender.current = '.learn-button'; };
+  const exitLearnRef = useRef(exitLearn);
+  useEffect(() => { exitLearnRef.current = exitLearn; });
+  useEffect(() => {
+    if (!learnOpen) return;
+    // On the document, so Escape works even when focus has left the page's buttons.
+    const onKey = (event: globalThis.KeyboardEvent) => { if (event.key === 'Escape') exitLearnRef.current(); };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [learnOpen]);
+  const openLesson = (id: LessonId, from: LessonState['from'] = 'hint') => {
     if (!game) return;
     const start = practiceGame(LESSON_BANK[id][0], 0);
-    setLesson({ id, phase: 'watch', board: 0, start, result: null, line: 0, held: game, heldSelected: selected, heldFocus: focusedDigit, heldEntry: entry });
+    hold(); setLearnOpen(false);
+    setLesson({ id, from, phase: 'watch', board: 0, start, result: null, line: 0 });
     setHintState(null); showBoard(start);
     focusAfterRender.current = WALK_NEXT_FOCUS;
   };
@@ -363,9 +394,11 @@ export default function SudokuGame() {
   };
   const exitLesson = () => {
     if (!lesson) return;
-    setGame(lesson.held); setSelected(lesson.heldSelected); setLesson(null);
-    resetSelection(); setBlockedEntry(null); setCelebration(null); setEntry(lesson.heldEntry); setFocusedDigit(lesson.heldFocus);
-    focusAfterRender.current = `.board [data-index="${lesson.heldSelected}"]`;
+    setLesson(null);
+    if (lesson.from === 'hint') { restoreGame(); return; }
+    if (held) setGame(held.game);
+    setLearned(readLearnedNow()); setLearnOpen(true);
+    focusAfterRender.current = `.learn-row[data-lesson="${lesson.id}"]`;
   };
   const retryPractice = () => {
     if (!lesson) return;
@@ -405,12 +438,14 @@ export default function SudokuGame() {
   const canErase = Boolean(!batchSelection && editable && (game.values[selected] || game.notes[selected].length || game.exclusions[selected].length));
 
   const lessonDone = lesson ? lesson.phase === 'done' ? lessonBoards.length - 1 : lesson.phase === 'practice' ? lesson.board - 1 + (lesson.result?.correct ? 1 : 0) : 0 : 0;
-  const clockId = lesson?.held.id ?? game?.id;
+  const clockId = held?.game.id ?? game?.id;
+  if (learnOpen) return <div className="app"><LearnPage learned={learned} onOpen={id => openLesson(id, 'list')} onExit={exitLearn}/></div>;
   return <div className="app" onKeyDown={handleKey}>
-    {lesson ? <LessonBar name={lessonName(lesson.id)} done={lessonDone} current={lesson.phase === 'practice' ? lesson.board - 1 : null} count={lessonBoards.length - 1} onExit={exitLesson}/> : <header className="app-bar">
+    {lesson ? <LessonBar name={lessonName(lesson.id)} done={lessonDone} current={lesson.phase === 'practice' ? lesson.board - 1 : null} count={lessonBoards.length - 1} back={lesson.from === 'list' ? 'Learn' : 'Your game'} onExit={exitLesson}/> : <header className="app-bar">
       <h1 className="brand"><AppMark small/><span>Sudoku</span></h1>
       <div className="app-actions">
         {!installed && <button className="install-button" onClick={() => openSheet('install')}><Icon name="download" size={17}/><span>Install app</span></button>}
+        <button className="icon-button learn-button" aria-label="Learn" title="Learn" disabled={!game || busy} onClick={openLearn}><Icon name="learn"/></button>
         <button className="icon-button settings-button" aria-label="Settings" onClick={() => openSheet('settings')}><Icon name="settings"/></button>
       </div>
     </header>}
@@ -418,7 +453,7 @@ export default function SudokuGame() {
     <main className="game">
       <div className={`game-meta ${lesson ? 'lesson-hidden' : ''}`}>
         <button className="difficulty-button" disabled={busy} onClick={() => { setDifficulty(game?.difficulty ?? 'easy'); openSheet('new'); }} aria-label={`Difficulty: ${game?.difficulty ?? 'easy'}. Start a new puzzle`}><LevelBars level={game?.difficulty ?? 'easy'}/><span className="capitalize">{game?.difficulty ?? 'easy'}</span><Icon name="chevron" size={14}/></button>
-        <div className="time-controls">{clockId ? <Clock key={clockId} id={clockId} resetRevision={clockResetRevision} hidden={preferences.hideTimer} running={!paused && !sheet && !busy && !complete && !lesson}/> : <span className="clock">00:00</span>}<button className="pause-button" aria-label={paused ? 'Resume game' : 'Pause game'} disabled={busy || complete || !game} onClick={() => { resetSelection(); setBlockedEntry(null); setCelebration(null); setPaused(value => !value); }}><Icon name={paused ? 'play' : 'pause'} size={15}/></button></div>
+        <div className="time-controls">{clockId ? <Clock key={clockId} id={clockId} resetRevision={clockResetRevision} hidden={preferences.hideTimer} running={!paused && !sheet && !busy && !complete && !away}/> : <span className="clock">00:00</span>}<button className="pause-button" aria-label={paused ? 'Resume game' : 'Pause game'} disabled={busy || complete || !game} onClick={() => { resetSelection(); setBlockedEntry(null); setCelebration(null); setPaused(value => !value); }}><Icon name={paused ? 'play' : 'pause'} size={15}/></button></div>
       </div>
 
       <div className="puzzle-panel">
@@ -479,7 +514,7 @@ export default function SudokuGame() {
       {complete ? <div className="completion" role="status"><span className="success-mark"><Icon name="check" size={25}/></span><div><h2>Nicely done.</h2><p>Every number in its place.</p></div><button className="primary-button" onClick={() => openSheet('new')}>Play again</button></div> : <>
         <div className="controls-area">
           {walkLine && walkthrough && <WalkthroughPanel index={walkIndex} count={walkthrough.length} text={walkLine.text} onStep={stepWalkthrough} learn={!lesson && walkStep && walkIndex === walkthrough.length - 1 && hasLesson(lessonOf(walkStep)) ? { name: lessonName(lessonOf(walkStep)), onOpen: () => openLesson(lessonOf(walkStep)) } : undefined}/>}
-          {lesson?.phase === 'done' && <LessonDone name={lessonName(lesson.id)} onExit={exitLesson}/>}
+          {lesson?.phase === 'done' && <LessonDone name={lessonName(lesson.id)} back={lesson.from === 'list' ? 'Back to Learn' : 'Back to your game'} onExit={exitLesson}/>}
           <div className="note-controls" aria-label="Puzzle tools" inert={Boolean(walkLine) || lesson?.phase === 'done' || Boolean(lesson?.result?.correct)}>
             <div className="mode-switch" role="group" aria-label="Entry mode">
               <span className={`mode-indicator mode-indicator-${mode}`} aria-hidden="true"/>
