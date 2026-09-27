@@ -154,3 +154,19 @@ test('a puzzle started from Home over a game in progress takes the keyboard too'
   await page.getByRole('button', { name: 'Start puzzle' }).click();
   await expect(page.locator('.board .cell:focus')).toHaveCount(1);
 });
+
+test('Home keeps the time hidden when Hide timer is on', async ({ page }) => {
+  await seed(page, inProgress);
+  await page.addInitScript(() => localStorage.setItem('sudoku.preferences.v1', JSON.stringify({ theme: 'system', blockIncorrectAnswers: true, highlightPeers: true, hideTimer: true })));
+  await page.addInitScript(id => localStorage.setItem('sudoku.clock.v1', JSON.stringify({ id, seconds: 754 })), JSON.parse(inProgress).id);
+  await page.goto('/');
+  await expect(page.locator('.home-meta').first()).toContainText('% filled');
+  await expect(page.locator('.home-meta').first()).not.toContainText(/\d\d:\d\d/);
+});
+
+test('Home’s secondary text stays readable in dark mode', async ({ page }) => {
+  await page.emulateMedia({ colorScheme: 'dark' });
+  await seed(page, inProgress);
+  await page.goto('/');
+  await expect(page.locator('.home-meta').first()).toHaveCSS('color', 'rgb(152, 165, 184)');
+});
