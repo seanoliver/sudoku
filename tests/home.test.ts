@@ -34,3 +34,13 @@ test('the saved time belongs to this game only, and bad storage reads as none', 
   assert.equal(savedSeconds('not json', game.id), null);
   assert.equal(savedSeconds(null, game.id), null);
 });
+
+test('solved games are counted once each, whatever their difficulty, and bad storage reads as none', async () => {
+  const { readSolved, recordSolved } = await import('../src/lib/home.ts');
+  assert.deepEqual(readSolved(null), []);
+  assert.deepEqual(readSolved('nope'), []);
+  assert.deepEqual(readSolved('{"ids":[1,"a"]}'), []);
+  assert.deepEqual(readSolved('{"ids":["a"]}'), ['a']);
+  assert.deepEqual(recordSolved(recordSolved([], 'easy-1'), 'easy-1'), ['easy-1']);
+  assert.deepEqual(recordSolved(['easy-1'], 'hard-2'), ['easy-1', 'hard-2']);
+});

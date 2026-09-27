@@ -20,3 +20,14 @@ export function savedSeconds(raw: string | null, id: string): number | null {
     return saved?.id === id && Number.isFinite(saved.seconds) && saved.seconds >= 0 ? Math.floor(saved.seconds) : null;
   } catch { return null; }
 }
+
+export const SOLVED_KEY = 'sudoku.solved.v1';
+/** Ids of every game the player has finished, of any difficulty. */
+export function readSolved(raw: string | null): string[] {
+  try {
+    const ids = JSON.parse(raw ?? 'null')?.ids;
+    return Array.isArray(ids) && ids.every(id => typeof id === 'string') ? ids : [];
+  } catch { return []; }
+}
+export const recordSolved = (ids: readonly string[], id: string): string[] => ids.includes(id) ? [...ids] : [...ids, id];
+export const serializeSolved = (ids: readonly string[]) => JSON.stringify({ ids });

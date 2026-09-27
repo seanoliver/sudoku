@@ -18,7 +18,7 @@ import { WalkthroughOverlay, WalkthroughPanel } from './hint-walkthrough';
 import { grade, hasLesson, LEARNED_KEY, LESSON_BANDS, lessonName, lessonOf, markLearned, practiceGame, readLearned, sameBoard, type Grade, type Learned, type LessonId } from '@/lib/lessons';
 import { LearnPage } from './learn-page';
 import { Home } from './home';
-import { homeState, nextLesson, savedSeconds } from '@/lib/home';
+import { homeState, nextLesson, readSolved, recordSolved, savedSeconds, serializeSolved, SOLVED_KEY } from '@/lib/home';
 import { LESSON_BANK } from '@/lib/lesson-bank';
 import { findStep } from '@/lib/steps';
 import { LessonBar, LessonDone, LessonFooter, LessonPrompt } from './lesson';
@@ -92,6 +92,11 @@ export default function SudokuGame() {
   const hintDisplay = activeHint ? hintView(activeHint.hint, activeHint.level) : null;
   const completedSource = complete ? game?.source : undefined;
   useEffect(() => { if (completedSource) updateHistory(history => recordCompleted(history, completedSource)); }, [completedSource]);
+  const solvedId = complete && !away ? game?.id : undefined;
+  useEffect(() => {
+    if (!solvedId) return;
+    try { localStorage.setItem(SOLVED_KEY, serializeSolved(recordSolved(readSolved(localStorage.getItem(SOLVED_KEY)), solvedId))); } catch { /* The count is optional. */ }
+  }, [solvedId]);
   const selectCell = (index: number) => {
     setSelected(index); setBlockedEntry(null);
     if (focusedDigit !== null && game?.values[index]) setFocusedDigit(game.values[index]);
@@ -227,7 +232,11 @@ export default function SudokuGame() {
   const focusSelectedCell = () => board.current?.querySelector<HTMLButtonElement>(`[data-index="${selected}"]`)?.focus();
   const restartPuzzle = () => {
     if (!game || busy) return;
-    setGame(restartGame(game)); resetSelection(); setFocusedDigit(null);
+    const restarted = restartGame(game);
+    setGame(restarted); resetSelection(); setFocusedDigit(null);
+    // The clock may not be mounted (restarting from Home), so the reset has to reach its storage directly.
+    try { localStorage.setItem(CLOCK_KEY, JSON.stringify({ id: restarted.id, seconds: 0 })); } catch { /* The clock tolerates missing storage. */ }
+    refreshHome(restarted);
     setSelected(game.givens.indexOf(0)); setEntry(INITIAL_ENTRY_MODE);
     setBlockedEntry(null); setCelebration(null); setPaused(false); setClockResetRevision(value => value + 1);
     closeSheet();
@@ -347,15 +356,15 @@ export default function SudokuGame() {
   const showBoard = (start: GameState) => { setGame(start); resetSelection(); setBlockedEntry(null); setFocusedDigit(null); setCelebration(null); setSelected(Math.max(0, start.values.indexOf(0))); };
   /** Home's numbers come from storage, read when Home is shown rather than during render. */
   function refreshHome(current: GameState | null) {
-    try { setHomeData({ seconds: current ? savedSeconds(localStorage.getItem(CLOCK_KEY), current.id) : null, learned: readLearned(localStorage.getItem(LEARNED_KEY)), solved: readHistory(localStorage.getItem(HISTORY_KEY)).completed.length }); }
+    try { setHomeData({ seconds: current ? savedSeconds(localStorage.getItem(CLOCK_KEY), current.id) : null, learned: readLearned(localStorage.getItem(LEARNED_KEY)), solved: readSolved(localStorage.getItem(SOLVED_KEY)).length }); }
     catch { /* Home still works without its numbers. */ }
   }
-  const showHome = (focus: string) => { setView('home'); refreshHome(held?.game ?? game); focusAfterRender.current = focus; };
+  const showHome = (focus: string) => { setView('home'); refreshHome(held ? held.game : game); focusAfterRender.current = focus; };
   const goHome = () => { setHintState(null); resetSelection(); setBlockedEntry(null); showHome(homeState(game) === 'playing' ? '.home-continue-button' : '.home-level'); };
-  const continueGame = () => { setView('game'); focusAfterRender.current = `.board [data-index="${selected}"]`; };
+  const continueGame = () => { setView('game'); focusAfterRender.current = paused ? '.board-cover button' : `.board [data-index="${selected}"]`; };
   const playLevel = (level: Difficulty) => {
     if (homeState(game) === 'playing') { setDifficulty(level); openSheet('new'); return; }
-    requestPuzzle(level);
+    setDifficulty(level); requestPuzzle(level);
   };
   const readLearnedNow = () => { try { return readLearned(localStorage.getItem(LEARNED_KEY)); } catch { return {}; } };
   // Lessons run unpaused (a pause covers the board), so the player's pause is held with the game and restored.
@@ -382,6 +391,7 @@ export default function SudokuGame() {
     return () => document.removeEventListener('keydown', onKey);
   }, [learnOpen]);
   const openLesson = (id: LessonId, from: LessonState['from'] = 'hint') => {
+    if (busy) return;
     const start = practiceGame(LESSON_BANK[id][0], 0);
     hold(); setLearnOpen(false);
     setLesson({ id, from, phase: 'watch', board: 0, start, result: null, line: 0 });
@@ -459,14 +469,14 @@ export default function SudokuGame() {
   if (learnOpen) return <div className="app"><LearnPage learned={learned} onOpen={id => openLesson(id, 'list')} onExit={exitLearn}/></div>;
   const onHome = view === 'home' && !lesson;
   return <div className="app" onKeyDown={onHome ? undefined : handleKey}>
-    {onHome ? busy && !game ? null : <Home state={homeState(game)} game={game} seconds={homeData.seconds} learned={LESSON_BANDS.flatMap(band => band.lessons).filter(id => homeData.learned[id]).length}
+    {onHome ? busy && !game ? <header className="app-bar"><h1 className="brand"><AppMark small/><span>Sudoku</span></h1></header> : <Home state={homeState(game)} game={game} seconds={homeData.seconds} learned={LESSON_BANDS.flatMap(band => band.lessons).filter(id => homeData.learned[id]).length}
       next={nextLesson(homeData.learned)} solved={homeData.solved} onContinue={continueGame} onPlay={playLevel} onLesson={id => openLesson(id, 'home')} onLearn={openLearn} onSettings={() => openSheet('settings')}
-      notice={error ? <div className="notice" role="alert"><span>{error}</span><button onClick={() => setError('')} aria-label="Dismiss message"><Icon name="close" size={16}/></button></div> : null}/> : <>
+      notice={<>{error && <div className="notice" role="alert"><span>{error}</span><button onClick={() => setError('')} aria-label="Dismiss message"><Icon name="close" size={16}/></button></div>}{storageError && <p className="storage-warning" role="status">Saving is unavailable in this browser. Keep this tab open to continue your puzzle.</p>}</>}/> : <>
     {lesson ? <LessonBar name={lessonName(lesson.id)} done={lessonDone} current={lesson.phase === 'practice' ? lesson.board - 1 : null} count={lessonBoards.length - 1} back={{ hint: 'Your game', list: 'Learn', home: 'Home' }[lesson.from]} onExit={exitLesson}/> : <header className="app-bar">
       <h1 className="brand"><AppMark small/><span>Sudoku</span></h1>
       <div className="app-actions">
         {!installed && <button className="install-button" onClick={() => openSheet('install')}><Icon name="download" size={17}/><span>Install app</span></button>}
-        <button className="icon-button home-button" aria-label="Home" title="Home" onClick={goHome}><Icon name="home"/></button>
+        <button className="icon-button home-button" aria-label="Home" title="Home" disabled={busy} onClick={goHome}><Icon name="home"/></button>
         <button className="icon-button settings-button" aria-label="Settings" onClick={() => openSheet('settings')}><Icon name="settings"/></button>
       </div>
     </header>}

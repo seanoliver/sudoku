@@ -77,3 +77,61 @@ test('a save that cannot be restored says so on Home', async ({ page }) => {
   await expect(page.locator('.notice[role="alert"]')).toContainText('could not be restored');
   await expect(page.getByRole('heading', { name: 'Pick your first puzzle' })).toBeVisible();
 });
+
+const almostSolved = () => {
+  const game = JSON.parse(inProgress);
+  const last = game.givens.findIndex((v: number) => !v);
+  const values = game.solution.map((v: number, i: number) => i === last ? 0 : v);
+  return { game: JSON.stringify({ ...game, values, notes: game.notes.map(() => []), exclusions: game.exclusions.map(() => []), noteOrigins: game.noteOrigins.map(() => null), history: [], redoHistory: [] }), last, digit: game.solution[last] as number };
+};
+
+test('solving a puzzle of any difficulty adds to the solved count on Home', async ({ page }) => {
+  const { game, last, digit } = almostSolved();
+  await seed(page, game);
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Continue' }).click();
+  await page.locator(`.board [data-index="${last}"]`).click();
+  await page.keyboard.press(String(digit));
+  await expect(page.locator('.completion')).toBeVisible();
+  await page.getByRole('button', { name: 'Home' }).click();
+  await expect(page.locator('.home-foot')).toHaveText('1 puzzle solved');
+});
+
+test('restarting from Home’s settings resets the time', async ({ page }) => {
+  await seed(page, inProgress);
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Continue' }).click();
+  await page.waitForTimeout(2500);
+  await page.getByRole('button', { name: 'Home' }).click();
+  await page.getByRole('button', { name: 'Settings' }).click();
+  await page.getByRole('button', { name: /^Restart/ }).first().click();
+  await page.getByRole('button', { name: /^Restart/ }).last().click();
+  await expect(page.locator('.home-continue .home-meta')).toContainText('00:00');
+  await page.getByRole('button', { name: 'Continue' }).click();
+  await expect(page.locator('.clock')).toHaveText(/^00:0[01]$/);
+});
+
+test('Home is out of reach while a new puzzle is generating', async ({ page }) => {
+  await page.addInitScript(() => {
+    const Real = window.Worker;
+    window.Worker = class extends Real {
+      set onmessage(handler: ((event: MessageEvent) => void) | null) { super.onmessage = handler && (event => setTimeout(() => handler.call(this, event), 1500)); }
+      get onmessage() { return super.onmessage; }
+    } as typeof Worker;
+  });
+  await page.goto('/');
+  await page.getByRole('button', { name: /^New easy puzzle/ }).click();
+  await expect(page.getByRole('button', { name: 'Home' })).toBeDisabled();
+  await expect(page.locator('.board .cell').first()).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Home' })).toBeEnabled();
+});
+
+test('continuing into a paused game puts focus on Resume', async ({ page }) => {
+  await seed(page, inProgress);
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Continue' }).click();
+  await page.getByRole('button', { name: 'Pause game' }).click();
+  await page.getByRole('button', { name: 'Home' }).click();
+  await page.getByRole('button', { name: 'Continue' }).click();
+  await expect(page.locator('.board-cover button')).toBeFocused();
+});
