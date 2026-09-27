@@ -70,3 +70,10 @@ test('the game timer does not run on Home', async ({ page }) => {
   await page.waitForTimeout(2500);
   expect(await seconds()).toBeCloseTo(start, 0);
 });
+
+test('a save that cannot be restored says so on Home', async ({ page }) => {
+  await seed(page, '{"not":"a game"}');
+  await page.goto('/');
+  await expect(page.locator('.notice[role="alert"]')).toContainText('could not be restored');
+  await expect(page.getByRole('heading', { name: 'Pick your first puzzle' })).toBeVisible();
+});

@@ -460,7 +460,8 @@ export default function SudokuGame() {
   const onHome = view === 'home' && !lesson;
   return <div className="app" onKeyDown={onHome ? undefined : handleKey}>
     {onHome ? busy && !game ? null : <Home state={homeState(game)} game={game} seconds={homeData.seconds} learned={LESSON_BANDS.flatMap(band => band.lessons).filter(id => homeData.learned[id]).length}
-      next={nextLesson(homeData.learned)} solved={homeData.solved} onContinue={continueGame} onPlay={playLevel} onLesson={id => openLesson(id, 'home')} onLearn={openLearn} onSettings={() => openSheet('settings')}/> : <>
+      next={nextLesson(homeData.learned)} solved={homeData.solved} onContinue={continueGame} onPlay={playLevel} onLesson={id => openLesson(id, 'home')} onLearn={openLearn} onSettings={() => openSheet('settings')}
+      notice={error ? <div className="notice" role="alert"><span>{error}</span><button onClick={() => setError('')} aria-label="Dismiss message"><Icon name="close" size={16}/></button></div> : null}/> : <>
     {lesson ? <LessonBar name={lessonName(lesson.id)} done={lessonDone} current={lesson.phase === 'practice' ? lesson.board - 1 : null} count={lessonBoards.length - 1} back={{ hint: 'Your game', list: 'Learn', home: 'Home' }[lesson.from]} onExit={exitLesson}/> : <header className="app-bar">
       <h1 className="brand"><AppMark small/><span>Sudoku</span></h1>
       <div className="app-actions">

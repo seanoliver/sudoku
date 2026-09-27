@@ -24,9 +24,10 @@ function MiniBoard({ game, size }: { game: GameState; size: number }) {
 export type HomeProps = {
   state: HomeState; game: GameState | null; seconds: number | null; learned: number; next: LessonId | null; solved: number;
   onContinue: () => void; onPlay: (level: Difficulty) => void; onLesson: (id: LessonId) => void; onLearn: () => void; onSettings: () => void;
+  notice?: React.ReactNode;
 };
 
-export function Home({ state, game, seconds, learned, next, solved, onContinue, onPlay, onLesson, onLearn, onSettings }: HomeProps) {
+export function Home({ state, game, seconds, learned, next, solved, onContinue, onPlay, onLesson, onLearn, onSettings, notice }: HomeProps) {
   const clock = seconds === null ? '' : ` · ${time(seconds)}`;
   return <>
     <header className="app-bar">
@@ -34,6 +35,7 @@ export function Home({ state, game, seconds, learned, next, solved, onContinue, 
       <div className="app-actions"><button className="icon-button settings-button" aria-label="Settings" onClick={onSettings}><Icon name="settings"/></button></div>
     </header>
     <main className="game home">
+      {notice}
       {state === 'playing' && game && <section className="home-card home-continue" aria-labelledby="home-continue">
         <MiniBoard game={game} size={132}/>
         <div className="home-continue-copy">
