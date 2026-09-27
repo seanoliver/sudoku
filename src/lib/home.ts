@@ -31,3 +31,6 @@ export function readSolved(raw: string | null): string[] {
 }
 export const recordSolved = (ids: readonly string[], id: string): string[] => ids.includes(id) ? [...ids] : [...ids, id];
 export const serializeSolved = (ids: readonly string[]) => JSON.stringify({ ids });
+export function storeSolved(id: string) {
+  try { localStorage.setItem(SOLVED_KEY, serializeSolved(recordSolved(readSolved(localStorage.getItem(SOLVED_KEY)), id))); } catch { /* The count is optional. */ }
+}

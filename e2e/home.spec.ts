@@ -57,6 +57,7 @@ test('a finished game shows as solved with Play another', async ({ page }) => {
   await expect(page.getByRole('heading', { name: 'Play another' })).toBeVisible();
   await expect(page.locator('.home-eyebrow.solved')).toHaveText('Solved');
   await expect(page.getByRole('button', { name: 'Continue' })).toHaveCount(0);
+  await expect(page.locator('.home-foot')).toHaveText('1 puzzle solved');
 });
 
 test('the game timer does not run on Home', async ({ page }) => {
@@ -134,4 +135,22 @@ test('continuing into a paused game puts focus on Resume', async ({ page }) => {
   await page.getByRole('button', { name: 'Home' }).click();
   await page.getByRole('button', { name: 'Continue' }).click();
   await expect(page.locator('.board-cover button')).toBeFocused();
+});
+
+test('a puzzle started from Home takes the keyboard at once', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: /^New easy puzzle/ }).click();
+  await expect(page.locator('.board .cell').first()).toBeVisible();
+  await expect(page.locator('.board .cell:focus')).toHaveCount(1);
+  const first = await page.locator('.board .cell:focus').getAttribute('data-index');
+  await page.keyboard.press('ArrowDown');
+  await expect(page.locator('.board .cell:focus')).not.toHaveAttribute('data-index', first ?? '');
+});
+
+test('a puzzle started from Home over a game in progress takes the keyboard too', async ({ page }) => {
+  await seed(page, inProgress);
+  await page.goto('/');
+  await page.getByRole('button', { name: 'New easy puzzle' }).click();
+  await page.getByRole('button', { name: 'Start puzzle' }).click();
+  await expect(page.locator('.board .cell:focus')).toHaveCount(1);
 });
