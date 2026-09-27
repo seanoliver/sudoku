@@ -25,8 +25,7 @@ export function gameBefore(want: (step: Step) => boolean): string {
 /** Loads the app with `saved` as the current game and opens the hint walkthrough from the strip. */
 export async function openWalkthrough(page: Page, saved: string) {
   await page.addInitScript(([key, value]) => { if (!sessionStorage.getItem('seeded')) { localStorage.setItem(key, value); sessionStorage.setItem('seeded', '1'); } }, [SAVE_KEY, saved]);
-  await page.goto('/');
-  await page.locator('.board .cell').first().waitFor();
+  await openGame(page);
   await page.getByRole('button', { name: 'Show a hint' }).click();
   await page.locator('.hint-action').click();
   await page.locator('.hint-action').click();
@@ -56,4 +55,11 @@ export async function crossOut(page: Page, marks: { cell: number; digit: number 
     await page.locator(`.board [data-index="${cell}"]`).click();
     await page.keyboard.press(String(digit));
   }
+}
+
+/** Loads the app and enters the saved game through Home's Continue button. */
+export async function openGame(page: Page) {
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Continue' }).click();
+  await page.locator('.board .cell').first().waitFor();
 }

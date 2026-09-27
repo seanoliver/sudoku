@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
-const KEY = 'sudoku.clock.v1';
+export const CLOCK_KEY = 'sudoku.clock.v1';
+const KEY = CLOCK_KEY;
 export function Clock({ id, running, hidden = false, resetRevision = 0 }: { id: string; running: boolean; hidden?: boolean; resetRevision?: number }) {
   const [seconds, setSeconds] = useState(0);
   const lastReset = useRef(resetRevision);

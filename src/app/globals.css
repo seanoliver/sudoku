@@ -258,3 +258,31 @@ h1,h2,h3,p { margin: 0; }
 .learn-cell.blue { fill: color-mix(in srgb, var(--blue) 45%, var(--surface)); }
 @media (hover: hover) { .learn-row:hover { border-color: var(--box-line); } }
 .learn-heading { margin: 0; font-size: 16px; font-weight: 700; }
+.home { display: flex; flex-direction: column; gap: 12px; padding-bottom: 24px; }
+.home-board rect { fill: var(--surface); }
+.home-board line { stroke: var(--box-line); stroke-width: .06; }
+.home-board .thin line { stroke: var(--line); stroke-width: .03; }
+.home-board text { font-size: .62px; text-anchor: middle; dominant-baseline: central; fill: var(--ink); }
+.home-board text.entered { fill: var(--blue-strong); }
+.home-card { display: flex; align-items: center; gap: 16px; width: 100%; padding: 14px; border-radius: 18px; background: var(--surface); border: 1px solid var(--line); text-align: left; color: var(--ink); }
+.home-card h2 { margin: 0; font-size: 19px; }
+.home-continue { align-items: stretch; }
+.home-continue-copy { flex: 1; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.home-continue-button { margin-top: auto; }
+.home-eyebrow { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--hint-strong); }
+.home-eyebrow.solved { color: var(--green); }
+.home-meta { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted, #6b7485); }
+.home-heading { margin: 12px 0 0; font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted, #6b7485); }
+.home-heading-row { display: flex; align-items: flex-end; justify-content: space-between; }
+.home-all { width: auto; min-height: 32px; padding: 0 2px; font-size: 13px; }
+.home-levels { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.home-level { display: flex; flex-direction: column; align-items: center; gap: 8px; min-height: 64px; padding: 14px 4px; border-radius: 14px; background: var(--surface); border: 1px solid var(--line); font-size: 14px; font-weight: 600; color: var(--ink); }
+.home-start { flex-direction: column; align-items: stretch; gap: 12px; }
+.home-levels.big { grid-template-columns: repeat(2, 1fr); }
+.home-levels.big .home-level { align-items: flex-start; gap: 6px; padding: 14px; background: var(--canvas); }
+.home-levels.big .home-level span { font-size: 17px; }
+.home-levels.big .home-level small { font-size: 12px; font-weight: 500; color: var(--muted, #6b7485); text-align: left; }
+.home-lesson-copy { flex: 1; display: flex; flex-direction: column; gap: 3px; }
+.home-lesson > svg:last-child { flex-shrink: 0; transform: rotate(-90deg); color: var(--muted, #6b7485); }
+.home-foot { margin: 8px 0 0; text-align: center; font-size: 13px; color: var(--muted, #6b7485); }
+@media (hover: hover) { .home-level:hover, .home-lesson:hover { border-color: var(--box-line); } }
