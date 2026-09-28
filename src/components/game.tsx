@@ -667,6 +667,7 @@ export default function SudokuGame() {
       </div>
 
       <div className="progress-line" role="progressbar" aria-label="Cells filled" aria-valuemin={0} aria-valuemax={total} aria-valuenow={filled}><span style={{ transform: `scaleX(${filled/total})` }}/></div>
+      <div className="play-side">
       {complete ? <div className="completion" role="status"><span className="success-mark"><Icon name="check" size={25}/></span><div><h2>Nicely done.</h2><p>Every number in its place.</p></div><div className="completion-actions">{replayOf(game?.id) && <button className="text-button replay-button" onClick={() => openReplay('game')}><Icon name="play" size={15}/>Replay</button>}<button className="primary-button" onClick={() => openSheet('new')}>Play again</button></div></div> : <>
         <div className="controls-area">
           {walkLine && walkthrough && <WalkthroughPanel index={walkIndex} count={walkthrough.length} text={walkLine.text} onStep={stepWalkthrough} learn={!lesson && walkStep && walkIndex === walkthrough.length - 1 && hasLesson(lessonOf(walkStep)) ? { name: lessonName(lessonOf(walkStep)), onOpen: () => openLesson(lessonOf(walkStep)) } : undefined}/>}
@@ -694,6 +695,7 @@ export default function SudokuGame() {
 
       {error && <div className="notice" role="alert"><span>{error}</span><button onClick={() => setError('')} aria-label="Dismiss message"><Icon name="close" size={16}/></button></div>}
       {storageError && <p className="storage-warning" role="status">Saving is unavailable in this browser. Keep this tab open to continue your puzzle.</p>}
+      </div>
     </main>
     </>}
     <div className="desktop-caption">A simple game. A little space to think.</div>

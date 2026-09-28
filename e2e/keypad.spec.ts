@@ -50,15 +50,17 @@ test('the mode indicator sits on the chosen mode', async ({ page }) => {
 });
 
 // Full-screen phones, phones in Safari with the browser bars showing, small and folding phones, laptops, and iPads.
-const SIZES = [[390, 844], [375, 667], [393, 659], [375, 628], [390, 664], [360, 640], [375, 553], [320, 568], [466, 678], [466, 590], [890, 626], [626, 890], [1440, 790], [1280, 761], [1280, 720], [1024, 768], [1440, 900]].map(([width, height]) => ({ width, height }));
+const SIZES = [[390, 844], [375, 667], [393, 659], [375, 628], [390, 664], [360, 640], [375, 553], [320, 568], [466, 678], [466, 590], [890, 626], [626, 890], [1440, 790], [1280, 761], [1280, 720], [1024, 768], [1440, 900], [700, 560], [660, 520], [800, 640], [375, 600], [390, 610], [414, 620], [700, 580]].map(([width, height]) => ({ width, height }));
 for (const size of SIZES) {
   test(`the game fits without scrolling at ${size.width} × ${size.height}`, async ({ page }) => {
     await page.setViewportSize(size);
     await seed(page);
     await openGame(page);
-    const layout = await page.evaluate(() => ({ scroll: document.documentElement.scrollHeight, height: innerHeight, pad: document.querySelector('.number-pad')!.getBoundingClientRect().bottom }));
+    const layout = await page.evaluate(() => { const pad = document.querySelector('.number-pad')!.getBoundingClientRect(); return { scroll: document.documentElement.scrollHeight, height: innerHeight, pad: pad.bottom, right: pad.right, scrollWidth: document.documentElement.scrollWidth, width: innerWidth }; });
     expect(layout.scroll).toBeLessThanOrEqual(layout.height);
     expect(layout.pad).toBeLessThanOrEqual(layout.height);
+    expect(layout.scrollWidth).toBeLessThanOrEqual(layout.width);
+    expect(layout.right).toBeLessThanOrEqual(layout.width);
   });
 }
 
@@ -167,4 +169,23 @@ test('the installed app on a short phone fits with its taller app bar', async ({
   await seed(page);
   await openGame(page);
   expect(await page.evaluate(() => document.documentElement.scrollHeight <= innerHeight)).toBe(true);
+});
+
+for (const [width, height] of [[1024, 768], [890, 626]] as const) {
+  test(`a lesson's footer button can be tapped at ${width} × ${height}`, async ({ page }) => {
+    await page.setViewportSize({ width, height });
+    await page.goto('/');
+    await page.locator('.home-lesson').click();
+    const footer = page.locator('.lesson-footer');
+    await expect(footer).toBeVisible();
+    const b = (await footer.boundingBox())!;
+    const hit = await page.evaluate(([x, y]) => document.elementFromPoint(x, y)?.closest('.lesson-footer') !== null, [b.x + b.width / 2, b.y + b.height / 2]);
+    expect(hit).toBe(true);
+  });
+}
+
+test('the desktop caption stays on Home at side-by-side sizes', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 790 });
+  await page.goto('/');
+  await expect(page.locator('.desktop-caption')).toBeVisible();
 });
