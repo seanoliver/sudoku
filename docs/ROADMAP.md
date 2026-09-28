@@ -1,6 +1,6 @@
 # Sudoku feature roadmap
 
-Updated: September 22, 2026. These are proposed milestones in implementation order, without date commitments. Each milestone should ship independently and be checked in real play before starting the next.
+Updated: September 27, 2026. These are proposed milestones in implementation order, without date commitments. Each milestone should ship independently and be checked in real play before starting the next.
 
 ## Product goal
 
@@ -12,13 +12,13 @@ Already merged into `main`:
 
 - Offline play, local saves, undo, and keyboard controls.
 - Light, Dark, and System appearance in Settings. System is the default and follows device appearance changes; explicit Light or Dark overrides it. The choice persists on this device. Sean reaffirmed this requirement on September 22.
-- CI on pull requests runs lint, typechecks, unit tests and the production build/service-worker generation. The active [main ruleset](https://github.com/seanoliver/sudoku/rules/23413937) requires the CI check, an up-to-date branch and a PR, with no configured bypass actors. The connected Vercel workflow deploys merged main commits.
+- CI on pull requests runs lint, typechecks, unit tests, the production build/service-worker generation, and Playwright browser tests in Chromium and WebKit. The active [main ruleset](https://github.com/seanoliver/sudoku/rules/23413937) requires the CI check, an up-to-date branch and a PR, with no configured bypass actors. The connected Vercel workflow deploys merged main commits.
 - Optional Smart highlighting, manual notes and exclusions, and one-time Fill notes.
 - Digit focus through an explicit button or filled-cell hold, with an integrated board toolbar ([PR #10](https://github.com/seanoliver/sudoku/pull/10)).
 - Hold/drag selection for batch notes and exclusions, with one undo step per batch and a grouped keypad panel containing Clear selection ([PR #11](https://github.com/seanoliver/sudoku/pull/11)).
 - Compact annotation controls with contextual Erase and Undo/Fill notes in Settings ([PR #15](https://github.com/seanoliver/sudoku/pull/15)). The Notes switch and Exclude chip were later replaced by a Numbers | Notes | Exclude control (R3).
 
-Pointing-pair, hidden-pair, and hidden-single logic exists in the engine, but it does not automatically change gameplay notes or highlighting. Difficulty currently uses clue density. Persistent Redo has shipped in [PR #18](https://github.com/seanoliver/sudoku/pull/18). Explanation records, progressive hints, and technique-based grading remain future work.
+A step solver covering ten techniques, from naked singles to coloring, grades every level ([PR #30](https://github.com/seanoliver/sudoku/pull/30), [PR #32](https://github.com/seanoliver/sudoku/pull/32), [PR #33](https://github.com/seanoliver/sudoku/pull/33)), powers progressive hints with step-by-step walkthroughs ([PR #35](https://github.com/seanoliver/sudoku/pull/35)–[PR #37](https://github.com/seanoliver/sudoku/pull/37)), and feeds the Learn lessons ([PR #39](https://github.com/seanoliver/sudoku/pull/39), [PR #40](https://github.com/seanoliver/sudoku/pull/40)). It never changes notes or highlighting on its own. The app opens on a Home screen ([PR #42](https://github.com/seanoliver/sudoku/pull/42)). Persistent Redo has shipped in [PR #18](https://github.com/seanoliver/sudoku/pull/18); action descriptions and checkpoints remain future work.
 
 ## Sequence
 
@@ -26,14 +26,14 @@ Pointing-pair, hidden-pair, and hidden-single logic exists in the engine, but it
 | --- | --- | --- | --- |
 | 1 (shipped) | Digit locking | Keep one digit highlighted while scanning and annotating | Existing Smart highlighting |
 | 2 (shipped) | Batch exclusions | Record one deduction across multiple cells | Existing batch selection; coordinate with digit lock |
-| 3 | Recovery | Persistent redo, action descriptions, then a checkpoint | Stable batch actions from milestone 2 |
+| 3 (partly shipped; still to do: action descriptions, checkpoint) | Recovery | Persistent redo, action descriptions, then a checkpoint | Stable batch actions from milestone 2 |
 | 4 | Candidate explanations | Inspect basic constraints and distinguish manual exclusions | Recovery support for future explanation state |
 | 5 | Apply a chosen deduction | Validate and apply a player-selected pointing pair | Explanation records from milestone 4 |
-| 6 | Progressive hints | Reveal one supported move in optional steps | Explainable detection from milestones 4 and 5 |
-| 7 | Technique-based difficulty and practice | Grade puzzles by supported logical techniques | Reliable step traces from milestone 6 |
-| 8 | Learn module | A technique inventory with a visual lesson and practice boards for each deduction | Step reports from milestone 6; practice boards from milestone 7 |
+| 6 (shipped) | Progressive hints | Reveal one supported move in optional steps | Explainable detection from milestones 4 and 5 |
+| 7 (shipped; practice folded into 8) | Technique-based difficulty and practice | Grade puzzles by supported logical techniques | Reliable step traces from milestone 6 |
+| 8 (shipped) | Learn module | A technique inventory with a visual lesson and practice boards for each deduction | Step reports from milestone 6; practice boards from milestone 7 |
 
-Digit focus and batch exclusions have shipped. The new requests below add an input and layout pass before recovery; speed replay should follow the action-recording work alongside recovery. This is a proposed order, not a commitment to start implementation. Explainable detection can be developed before the hint UI, but every explanation must refer to a valid board state.
+Milestones 1, 2 and 6–8 have shipped. The requests below add an input and layout pass before recovery; speed replay should follow the action-recording work alongside recovery. This is a proposed order, not a commitment to start implementation. Explainable detection can be developed before the hint UI, but every explanation must refer to a valid board state.
 
 ## Requested additions: input, layout, feedback and replay
 
@@ -147,7 +147,7 @@ Captured from Sean's September 20 feedback and the [September 21 playtest](playt
 
 ## September 21 additions
 
-Source: [original playtest notes and coverage](playtests/2026-09-21.md). Status: requested, pending design. Proposed placement: alongside the input and feedback work before recovery. Their internal order is undecided. The configurable number picker has shipped and is tracked in the existing section above.
+Source: [original playtest notes and coverage](playtests/2026-09-21.md). Status: number-row focus, incorrect-entry feedback and faded red exclusions have shipped (see each item). Default number focus and sole-candidate autofill are still pending design. The configurable number picker has shipped and is tracked in the existing section above.
 
 ### Default number focus
 
@@ -205,7 +205,7 @@ Status: queued for research. The feature outcomes below are uncommitted. Complet
 ### R1. Missing populated notes
 
 - **Observation:** Fill notes left individual cells empty, including cells with earlier notes and cells with no visible notes. Sean clarified that Fill notes should replace all possible notes and retain exclusions.
-- **Status:** Reproduced and diagnosed. The manual-edit flag caused entire cells to be skipped; adding and removing annotations left that flag behind. A local fix rebuilds every empty cell while preserving exclusions. See the [investigation](investigations/2026-09-22-fill-notes.md).
+- **Status:** Reproduced and diagnosed. The manual-edit flag caused entire cells to be skipped; adding and removing annotations left that flag behind. The fix, shipped in [PR #16](https://github.com/seanoliver/sudoku/pull/16), rebuilds every empty cell while preserving exclusions. See the [investigation](investigations/2026-09-22-fill-notes.md).
 - **Research:** Capture a reproducible board and action sequence. Compare placed-number constraints, exclusions and manual-note ownership, including intentionally cleared notes, undo and reopened saves.
 - **Output:** A minimal reproduction and a classification of algorithm defect, persisted-state issue or confusing expected behavior. Propose a targeted fix or interaction clarification with a regression case.
 - **Proposed dependency:** Resolve before implementing temporary note preview or sole-candidate autofill, since both depend on trustworthy candidate and annotation behavior.
@@ -216,7 +216,7 @@ Status: queued for research. The feature outcomes below are uncommitted. Complet
 
 - **Observation:** The game needs a level harder than Hard.
 - **Research:** Evaluate current Hard puzzles by required techniques and solving effort, including enabled assistance. Assess whether the existing generator and supported deductions can reliably produce and grade a harder tier.
-- **Output:** A proposed difficulty definition, representative puzzles and validation criteria, plus dependencies on milestone 7's technique grading. Naming and delivery timing remain open.
+- **Output:** A proposed difficulty definition, representative puzzles and validation criteria, plus dependencies on milestone 7's technique grading.
 
 ### R3. Annotation mode switching
 
@@ -252,6 +252,7 @@ Status: queued for research. The feature outcomes below are uncommitted. Complet
 - **Research:** Define meaningful accomplishments and the solve evidence needed to preserve them. Explore local storage and retrieval, completion/replay integration, and story composition and export/share feasibility on phones.
 - **Output:** An accomplishment model and a proposed save-to-share flow, including what “Instagram-native” means for delivery. Capture current platform requirements during the spike and propose story design directions before implementation.
 - **Relationship:** Coordinate with existing unit celebrations and speed replay. Persistent accomplishments and external sharing require their own scope decision.
+- **Status:** Open. Related: links to the site show a preview image, shipped in [PR #41](https://github.com/seanoliver/sudoku/pull/41) ([design](plans/2026-09-25-share-image-design.md)).
 
 ### R8. Number grid keypad
 
@@ -339,9 +340,9 @@ This precedes applied deductions because their affected notes and explanations m
 
 ## 6. Progressive hints
 
-**Status:** Shipped in [PR #36](https://github.com/seanoliver/sudoku/pull/36) ([design](plans/2026-09-24-progressive-hints-design.md)): a bulb in the focus bar opens a one-line hint strip with three levels (technique, where, move) and Apply. Engine shipped in [PR #35](https://github.com/seanoliver/sudoku/pull/35). "Learn this" waits for milestone 8.
+**Status:** Shipped in [PR #36](https://github.com/seanoliver/sudoku/pull/36) ([design](plans/2026-09-24-progressive-hints-design.md)): a bulb in the focus bar opens a one-line hint strip with three levels (technique, where, move) and Apply. Engine shipped in [PR #35](https://github.com/seanoliver/sudoku/pull/35). The walkthrough's last step links to that technique's lesson ([PR #39](https://github.com/seanoliver/sudoku/pull/39)).
 
-**Explanations:** On `feat/hint-why` ([design](plans/2026-09-24-hint-explanations-design.md)): after the technique and where to look, a step-by-step walkthrough in the keypad area explains why the move is valid, for every technique. Apply appears on the last step.
+**Explanations:** Shipped in [PR #37](https://github.com/seanoliver/sudoku/pull/37), with the answer digit centered in [PR #38](https://github.com/seanoliver/sudoku/pull/38) ([design](plans/2026-09-24-hint-explanations-design.md)): after the technique and where to look, a step-by-step walkthrough in the keypad area explains why the move is valid, for every technique. Apply appears on the last step.
 
 **Player benefit:** Get enough direction to resume solving, with control over how much is revealed.
 
@@ -370,9 +371,9 @@ Deliver in two releases:
 
 Captured from Sean on September 24. Long-term scope, modeled on the way Good Sudoku teaches techniques.
 
-**Status:** First slice on `feat/learn` ([design](plans/2026-09-25-learn-module-design.md)): "Learn" from the last step of a hint opens that technique's lesson: watch it on an example board, then five practice boards graded by Check. Finishing saves the technique as learned. The technique list and home screen entry come next.
+**Status:** First slice shipped in [PR #39](https://github.com/seanoliver/sudoku/pull/39) ([design](plans/2026-09-25-learn-module-design.md)): "Learn" from the last step of a hint opens that technique's lesson: watch it on an example board, then five practice boards graded by Check. Finishing saves the technique as learned.
 
-**Learn page:** On `feat/learn-list` ([design](plans/2026-09-25-learn-list-design.md)): a book button in the top bar opens every lesson, grouped by difficulty band, with a mini diagram and learned status. Lessons opened there return to the list.
+**Learn page:** Shipped in [PR #40](https://github.com/seanoliver/sudoku/pull/40) ([design](plans/2026-09-25-learn-list-design.md)): Home's All techniques chip opens every lesson, grouped by difficulty band, with a mini diagram and learned status. Lessons opened there return to the list, and the list returns to Home. Hidden quad has no lesson yet: the lesson bank found only one board for it, below the minimum.
 
 **Player benefit:** Learn each deduction, practice spotting it, and use it to get unstuck in a real game.
 
@@ -391,7 +392,7 @@ Captured from Sean on September 24. Long-term scope, modeled on the way Good Sud
 
 - **Idea:** A home screen for starting or continuing a game, opening the Learn module, and later seeing history and achievements. Sean mentioned it on September 24 as a future entry point for the Learn module.
 - **Output:** Three rendered directions, then a scope proposal.
-- **Status:** On `feat/home` ([design](plans/2026-09-27-home-screen-design.md)): the app opens on Home, with the game in progress and Continue, four difficulties, the next lesson and All techniques, and a solved count. First visits pick their first puzzle. History and achievements come later.
+- **Status:** Shipped in [PR #42](https://github.com/seanoliver/sudoku/pull/42) ([design](plans/2026-09-27-home-screen-design.md)), with the install card ([PR #44](https://github.com/seanoliver/sudoku/pull/44)), the back button returning to Home ([PR #45](https://github.com/seanoliver/sudoku/pull/45)) and earlier Expert solves in the count ([PR #46](https://github.com/seanoliver/sudoku/pull/46)): the app opens on Home, with the game in progress and Continue, four difficulties, the next lesson and All techniques, and a solved count. First visits pick their first puzzle. History and achievements come later.
 
 ## Very low priority: desktop experience
 
@@ -422,4 +423,4 @@ This roadmap keeps automatic bookkeeping limited to explicit actions and existin
 
 ## Delivery discipline
 
-Digit focus and batch exclusions are complete. PR #12 shipped immediate dragging and title/Settings cleanup; #13 shipped filled-cell exit from batch selection; #14 shipped the optional constrained number picker; #15 shipped compact annotation controls. Follow-ups include temporary note preview and unit-completion animations; recovery and speed replay retain their dependencies. The September 21 playtest adds default digit focus, number-row focus selection, clearer incorrect-entry feedback, exclusion highlighting and optional sole-candidate autofill. Its seven research spikes must produce reviewed scope proposals before their feature outcomes enter the implementation sequence. CI merge gates are already active. Each feature starts with three rendered design directions for Sean to review, followed by a detailed implementation plan and a focused PR. Sean may change the order or skip renderings explicitly. This roadmap does not authorize implementing every phase at once. Update milestone status and links as changes merge.
+Each item's Status line records what has shipped. Open follow-ups include temporary note preview, default number focus, optional sole-candidate autofill, and recovery's action descriptions and checkpoint; speed replay retains its dependencies. Open research spikes (R5–R10) must produce reviewed scope proposals before their feature outcomes enter the implementation sequence. CI merge gates are already active. Each feature starts with three rendered design directions for Sean to review, followed by a detailed implementation plan and a focused PR. Sean may change the order or skip renderings explicitly. This roadmap does not authorize implementing every phase at once. Update milestone status and links as changes merge.
