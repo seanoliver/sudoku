@@ -6,7 +6,7 @@ import { AppMark, Icon } from './icons';
 import { LessonDiagram } from './learn-page';
 
 const LEVELS: Difficulty[] = ['easy', 'medium', 'hard', 'expert'];
-const LEVEL_NOTES: Record<Difficulty, string> = { easy: 'Warm up', medium: 'A little thought', hard: 'Take your time', expert: 'Bring your best' };
+export const LEVEL_NOTES: Record<Difficulty, string> = { easy: 'Warm up', medium: 'A little thought', hard: 'Take your time', expert: 'Bring your best' };
 const LESSON_COUNT = LESSON_BANDS.reduce((total, { lessons }) => total + lessons.length, 0);
 const capital = (text: string) => text[0].toUpperCase() + text.slice(1);
 const time = (seconds: number) => `${Math.floor(seconds / 60).toString().padStart(2, '0')}:${(seconds % 60).toString().padStart(2, '0')}`;
