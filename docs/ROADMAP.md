@@ -135,6 +135,8 @@ Captured from Sean's September 20 feedback and the [September 21 playtest](playt
 
 ### Speed replay after completion
 
+**Status:** In progress on `feat/replay` ([design](plans/2026-09-27-speed-replay-design.md)): a replay page in the Home look, opened from the completion card and Home's solved card.
+
 **Player benefit:** Watch a quick animation of the solve, showing entries in the order they were made.
 
 - Add an optional Replay action to the completion screen; play a compressed animation from the initial givens through the player's actual actions.
