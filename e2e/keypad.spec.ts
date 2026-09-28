@@ -50,7 +50,7 @@ test('the mode indicator sits on the chosen mode', async ({ page }) => {
 });
 
 // Full-screen phones, phones in Safari with the browser bars showing, small and folding phones, laptops, and iPads.
-const SIZES = [[390, 844], [375, 667], [393, 659], [375, 628], [390, 664], [360, 640], [375, 553], [320, 568], [466, 678], [466, 590], [890, 626], [626, 890], [1440, 790], [1280, 761], [1280, 720], [1024, 768], [1440, 900], [700, 560], [660, 520], [800, 640], [375, 600], [390, 610], [414, 620], [700, 580]].map(([width, height]) => ({ width, height }));
+const SIZES = [[390, 844], [375, 667], [393, 659], [375, 628], [390, 664], [360, 640], [375, 553], [320, 568], [466, 678], [466, 590], [890, 626], [626, 890], [1440, 790], [1280, 761], [1280, 720], [1024, 768], [1440, 900], [700, 560], [660, 520], [800, 640], [375, 600], [390, 610], [414, 620], [700, 580], [683, 657], [700, 630], [720, 680], [799, 640]].map(([width, height]) => ({ width, height }));
 for (const size of SIZES) {
   test(`the game fits without scrolling at ${size.width} × ${size.height}`, async ({ page }) => {
     await page.setViewportSize(size);
@@ -188,4 +188,27 @@ test('the desktop caption stays on Home at side-by-side sizes', async ({ page })
   await page.setViewportSize({ width: 1440, height: 790 });
   await page.goto('/');
   await expect(page.locator('.desktop-caption')).toBeVisible();
+});
+
+for (const [width, height] of [[375, 629], [375, 553], [390, 664]] as const) {
+  test(`a lesson fits without scrolling at ${width} × ${height}`, async ({ page }) => {
+    await page.setViewportSize({ width, height });
+    await page.goto('/');
+    await page.locator('.home-lesson').click();
+    await expect(page.locator('.lesson-footer')).toBeVisible();
+    for (const phase of ['watch', 'practice']) {
+      if (phase === 'practice') { await page.locator('.lesson-footer').click(); await page.waitForTimeout(300); }
+      expect(await page.evaluate(() => document.documentElement.scrollHeight <= innerHeight), phase).toBe(true);
+    }
+  });
+}
+
+test('on short portrait screens Home and Settings line up with the board', async ({ page }) => {
+  for (const [width, height] of [[375, 553], [700, 620]] as const) {
+    await page.setViewportSize({ width, height });
+    await seed(page);
+    await openGame(page);
+    const [board, settings] = await Promise.all([box(page, '.board-wrap'), box(page, '.app-bar .settings-button')]);
+    expect(Math.abs(settings.x + settings.width - (board.x + board.width))).toBeLessThan(2);
+  }
 });

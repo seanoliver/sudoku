@@ -14,7 +14,7 @@ Roadmap item: R8, number grid keypad. On September 28 Sean chose A, tools beside
 On September 28 Sean asked how the grid fits the iPhone Duo's squat screens, then chose these after seeing them rendered (references: ../designs/keypad-side-by-side.png and ../designs/keypad-short-portrait.png):
 
 - **Wide, short screens** (at least 5:4 and 500–820px tall: a folding phone open, laptops, iPads in landscape): the board takes the height on the left, up to 560px, and the modes, grid, and any lesson button sit beside it in one column, centered. The board is also capped by the width left for that column.
-- **Short portrait screens** (under 630px tall and narrower than 5:4: a folding phone closed, or an iPhone SE, in Safari): the app bar folds into the difficulty and timer row, the focus bar shrinks to 36px, and the 3 × 3 grid stays. The logo and Install are left for Home. Sean chose this over falling back to the one-row keypad.
+- **Short portrait screens** (under 630px tall and narrower than 5:4: a folding phone closed, or an iPhone SE, in Safari): the app bar folds into the difficulty and timer row, the focus bar shrinks to 36px, and the 3 × 3 grid stays. The logo and Install are left for Home; Home and Settings line up with the board's right edge. The same layout covers windows wider than 600px and under 700px tall. On lesson screens the board also budgets for the lesson header and footer button. Sean chose this over falling back to the one-row keypad.
 - **Landscape phones** (under 500px tall): unchanged; the page scrolls.
 - The height formula reads the app bar's height from `--bar-height`, so the installed app's taller bar is counted.
 
@@ -25,4 +25,4 @@ On September 28 Sean asked how the grid fits the iPhone Duo's squat screens, the
 
 ## Tests
 
-- **Browser:** the keys form three rows of three in order; the modes stack to the left of the grid with Erase below them; the indicator sits on the active mode; the game fits without scrolling up or sideways at 24 phone, folding phone, laptop, and iPad sizes, including the 5:4 and 600–629px boundaries; a lesson's button can be tapped beside the board; keys and tools stay at least 36px tall; Notes mode puts each digit in its note position.
+- **Browser:** the keys form three rows of three in order; the modes stack to the left of the grid with Erase below them; the indicator sits on the active mode; the game fits without scrolling up or sideways at 28 phone, folding phone, laptop, and iPad sizes, including the 5:4, 600–629px, and 630–699px boundaries; lessons fit on short phones; a lesson's button can be tapped beside the board; keys and tools stay at least 36px tall; Notes mode puts each digit in its note position.
