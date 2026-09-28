@@ -9,9 +9,10 @@ const seed = (page: Page, game: string) => page.addInitScript(([key, value]) => 
 
 test('a first visit offers the four difficulties and the first lesson, and starts a puzzle on request', async ({ page }) => {
   await page.goto('/');
-  await expect(page.getByRole('heading', { name: 'Pick your first puzzle' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Ready for your first puzzle?' })).toBeVisible();
   await expect(page.locator('.board')).toHaveCount(0);
-  await expect(page.locator('.home-lesson strong')).toHaveText('Start with: Naked single');
+  await expect(page.locator('.home-lesson strong')).toHaveText('Naked single');
+  await expect(page.locator('.home-solved-count')).toHaveCount(0);
   await page.getByRole('button', { name: /^New easy puzzle/ }).click();
   await expect(page.locator('.board .cell').first()).toBeVisible();
   await expect(page.getByRole('button', { name: 'Home' })).toBeVisible();
@@ -20,7 +21,7 @@ test('a first visit offers the four difficulties and the first lesson, and start
 test('the app opens on Home with the game waiting, and Home is one tap away from the game', async ({ page }) => {
   await seed(page, inProgress);
   await page.goto('/');
-  await expect(page.getByRole('heading', { name: 'Expert puzzle' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: /^Your expert puzzle/ })).toBeVisible();
   const before = await saved(page);
   await page.getByRole('button', { name: 'Continue' }).click();
   await expect(page.locator('.board')).toBeVisible();
@@ -54,10 +55,10 @@ test('a finished game shows as solved with Play another', async ({ page }) => {
   const game = JSON.parse(inProgress);
   await seed(page, JSON.stringify({ ...game, values: game.solution }));
   await page.goto('/');
-  await expect(page.getByRole('heading', { name: 'Play another' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: /^Nicely solved/ })).toBeVisible();
   await expect(page.locator('.home-eyebrow.solved')).toHaveText('Solved');
   await expect(page.getByRole('button', { name: 'Continue' })).toHaveCount(0);
-  await expect(page.locator('.home-foot')).toHaveText('1 puzzle solved');
+  await expect(page.locator('.home-solved-count')).toHaveText('1 solved');
 });
 
 test('the game timer does not run on Home', async ({ page }) => {
@@ -76,7 +77,7 @@ test('a save that cannot be restored says so on Home', async ({ page }) => {
   await seed(page, '{"not":"a game"}');
   await page.goto('/');
   await expect(page.locator('.notice[role="alert"]')).toContainText('could not be restored');
-  await expect(page.getByRole('heading', { name: 'Pick your first puzzle' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Ready for your first puzzle?' })).toBeVisible();
 });
 
 const almostSolved = () => {
@@ -95,7 +96,7 @@ test('solving a puzzle of any difficulty adds to the solved count on Home', asyn
   await page.keyboard.press(String(digit));
   await expect(page.locator('.completion')).toBeVisible();
   await page.getByRole('button', { name: 'Home' }).click();
-  await expect(page.locator('.home-foot')).toHaveText('1 puzzle solved');
+  await expect(page.locator('.home-solved-count')).toHaveText('1 solved');
 });
 
 test('restarting from Home’s settings resets the time', async ({ page }) => {
@@ -107,7 +108,7 @@ test('restarting from Home’s settings resets the time', async ({ page }) => {
   await page.getByRole('button', { name: 'Settings' }).click();
   await page.getByRole('button', { name: /^Restart/ }).first().click();
   await page.getByRole('button', { name: /^Restart/ }).last().click();
-  await expect(page.locator('.home-continue .home-meta')).toContainText('00:00');
+  await expect(page.locator('.home-continue-button .home-meta')).toContainText('00:00');
   await page.getByRole('button', { name: 'Continue' }).click();
   await expect(page.locator('.clock')).toHaveText(/^00:0[01]$/);
 });

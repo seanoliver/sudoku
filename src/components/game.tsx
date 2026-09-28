@@ -18,7 +18,7 @@ import { WalkthroughOverlay, WalkthroughPanel } from './hint-walkthrough';
 import { grade, hasLesson, LEARNED_KEY, LESSON_BANDS, lessonName, lessonOf, markLearned, practiceGame, readLearned, sameBoard, type Grade, type Learned, type LessonId } from '@/lib/lessons';
 import { LearnPage } from './learn-page';
 import { Home } from './home';
-import { homeState, nextLesson, readSolved, savedSeconds, SOLVED_KEY, storeSolved } from '@/lib/home';
+import { greeting, homeState, nextLesson, readSolved, savedSeconds, SOLVED_KEY, storeSolved } from '@/lib/home';
 import { LESSON_BANK } from '@/lib/lesson-bank';
 import { findStep } from '@/lib/steps';
 import { LessonBar, LessonDone, LessonFooter, LessonPrompt } from './lesson';
@@ -78,7 +78,7 @@ export default function SudokuGame() {
   const [held, setHeld] = useState<Held | null>(null);
   const [learnOpen, setLearnOpen] = useState(false);
   const [view, setView] = useState<'home' | 'game'>('home');
-  const [homeData, setHomeData] = useState<{ seconds: number | null; learned: Learned; solved: number }>({ seconds: null, learned: {}, solved: 0 });
+  const [homeData, setHomeData] = useState<{ seconds: number | null; learned: Learned; solved: number; greeting: string }>({ seconds: null, learned: {}, solved: 0, greeting: greeting(12) });
   const [learned, setLearned] = useState<Learned>({});
   const away = held !== null;
   // Watching, reading feedback, or done: the board is for looking at, so nothing may change it.
@@ -357,7 +357,7 @@ export default function SudokuGame() {
   const showBoard = (start: GameState) => { setGame(start); resetSelection(); setBlockedEntry(null); setFocusedDigit(null); setCelebration(null); setSelected(Math.max(0, start.values.indexOf(0))); };
   /** Home's numbers come from storage, read when Home is shown rather than during render. */
   function refreshHome(current: GameState | null) {
-    try { setHomeData({ seconds: current ? savedSeconds(localStorage.getItem(CLOCK_KEY), current.id) : null, learned: readLearned(localStorage.getItem(LEARNED_KEY)), solved: readSolved(localStorage.getItem(SOLVED_KEY)).length }); }
+    try { setHomeData({ seconds: current ? savedSeconds(localStorage.getItem(CLOCK_KEY), current.id) : null, learned: readLearned(localStorage.getItem(LEARNED_KEY)), solved: readSolved(localStorage.getItem(SOLVED_KEY)).length, greeting: greeting(new Date().getHours()) }); }
     catch { /* Home still works without its numbers. */ }
   }
   const showHome = (focus: string) => { setView('home'); refreshHome(held ? held.game : game); focusAfterRender.current = focus; };
@@ -471,7 +471,7 @@ export default function SudokuGame() {
   const onHome = view === 'home' && !lesson;
   return <div className="app" onKeyDown={onHome ? undefined : handleKey}>
     {onHome ? busy && !game ? <header className="app-bar"><h1 className="brand"><AppMark small/><span>Sudoku</span></h1></header> : <Home state={homeState(game)} game={game} seconds={preferences.hideTimer ? null : homeData.seconds} learned={LESSON_BANDS.flatMap(band => band.lessons).filter(id => homeData.learned[id]).length}
-      next={nextLesson(homeData.learned)} solved={homeData.solved} onContinue={continueGame} onPlay={playLevel} onLesson={id => openLesson(id, 'home')} onLearn={openLearn} onSettings={() => openSheet('settings')}
+      next={nextLesson(homeData.learned)} solved={homeData.solved} greeting={homeData.greeting} onContinue={continueGame} onPlay={playLevel} onLesson={id => openLesson(id, 'home')} onLearn={openLearn} onSettings={() => openSheet('settings')}
       notice={<>{error && <div className="notice" role="alert"><span>{error}</span><button onClick={() => setError('')} aria-label="Dismiss message"><Icon name="close" size={16}/></button></div>}{storageError && <p className="storage-warning" role="status">Saving is unavailable in this browser. Keep this tab open to continue your puzzle.</p>}</>}/> : <>
     {lesson ? <LessonBar name={lessonName(lesson.id)} done={lessonDone} current={lesson.phase === 'practice' ? lesson.board - 1 : null} count={lessonBoards.length - 1} back={{ hint: 'Your game', list: 'Learn', home: 'Home' }[lesson.from]} onExit={exitLesson}/> : <header className="app-bar">
       <h1 className="brand"><AppMark small/><span>Sudoku</span></h1>

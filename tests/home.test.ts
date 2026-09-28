@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { homeState, nextLesson, percentFilled, savedSeconds } from '../src/lib/home.ts';
+import { greeting, homeState, nextLesson, percentFilled, savedSeconds } from '../src/lib/home.ts';
 import { createGame } from '../src/lib/game.ts';
 import { buildPuzzle } from '../src/lib/sudoku.ts';
 import { LESSON_BANDS } from '../src/lib/lessons.ts';
@@ -43,4 +43,11 @@ test('solved games are counted once each, whatever their difficulty, and bad sto
   assert.deepEqual(readSolved('{"ids":["a"]}'), ['a']);
   assert.deepEqual(recordSolved(recordSolved([], 'easy-1'), 'easy-1'), ['easy-1']);
   assert.deepEqual(recordSolved(['easy-1'], 'hard-2'), ['easy-1', 'hard-2']);
+});
+
+test('the greeting follows the time of day', () => {
+  assert.equal(greeting(2), 'Up late');
+  assert.equal(greeting(8), 'Good morning');
+  assert.equal(greeting(13), 'Good afternoon');
+  assert.equal(greeting(20), 'Good evening');
 });

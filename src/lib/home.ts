@@ -34,3 +34,6 @@ export const serializeSolved = (ids: readonly string[]) => JSON.stringify({ ids 
 export function storeSolved(id: string) {
   try { localStorage.setItem(SOLVED_KEY, serializeSolved(recordSolved(readSolved(localStorage.getItem(SOLVED_KEY)), id))); } catch { /* The count is optional. */ }
 }
+
+/** Home's hello, by the hour it is read. */
+export const greeting = (hour: number) => hour < 5 ? 'Up late' : hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';

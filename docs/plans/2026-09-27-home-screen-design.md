@@ -4,15 +4,18 @@ The app opened straight into a game, and Learn sat behind a small book button. A
 
 ## Direction
 
-Sean chose A from three renders (continue first, two tiles, menu), after seeing its first-visit and just-finished states. The app opens on Home every time.
+Sean first chose A (continue first), then judged the built version too utilitarian for the first screen. From a second round (D greeting, E stage, F journey) he chose D: a warm greeting, the board as the hero, and color-coded levels. The app opens on Home every time.
 
 ## Home
 
-- **Game in progress:** a card with a mini board, difficulty, percent filled, time, and a Continue button. Below it, four difficulty buttons start a new puzzle. They open the existing new-puzzle sheet, preset to that difficulty, because it already warns that the current puzzle will be replaced.
-- **First visit** (no saved game): "Pick your first puzzle", with the four difficulties and their notes as the main card. The app no longer generates a puzzle before the player asks for one.
-- **Just finished:** a small Solved card (board and time), then "Play another" with the four difficulties.
-- **Learn:** a card for the next unlearned lesson, easiest first ("Start with" when none are learned). Tapping it opens that lesson, which returns to Home. "All techniques" opens the Learn page, which also returns to Home.
-- A solved count sits at the bottom once there is one. Settings opens the existing settings sheet.
+- **Greeting:** "Good morning", "Good afternoon", "Good evening", or "Up late", from the hour when Home is shown.
+- **Game in progress:** "Your expert puzzle is right where you left it". The board floats, slightly tilted, in a hero card with percent filled and time; the whole card is the Continue button.
+- **First visit** (no saved game): "Ready for your first puzzle?" over a decorative sample board. The app no longer generates a puzzle before the player asks for one.
+- **Just finished:** "Nicely solved. Up for another?" over the solved board, marked Solved, with its time.
+- **Levels:** four color tiles (easy green, medium blue, hard amber, expert purple). Each has a small 3×3 that fills in more as the level gets harder. They open the existing new-puzzle sheet when a game is in progress, since it warns before replacing it.
+- **Chips:** the solved count (once there is one) and techniques learned. The techniques chip opens the Learn page.
+- **Learn:** a card for the next unlearned lesson, easiest first. It opens that lesson, which returns to Home.
+- Hide timer also hides the time on Home.
 
 ## Game screen
 
@@ -21,5 +24,5 @@ Sean chose A from three renders (continue first, two tiles, menu), after seeing 
 
 ## Tests
 
-- **Unit:** home state (new, playing, done), percent filled, next lesson, and reading the saved time.
+- **Unit:** home state (new, playing, done), percent filled, next lesson, the saved time, the solved list, and the greeting.
 - **Browser:** every state of Home; continue and return with the game unchanged; start a first puzzle; a new puzzle from Home replaces the game only after the sheet's confirmation; the next lesson and All techniques both return to Home. Existing browser tests enter the game through Continue.
