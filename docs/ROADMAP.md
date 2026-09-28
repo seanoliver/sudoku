@@ -390,7 +390,8 @@ Captured from Sean on September 24. Long-term scope, modeled on the way Good Sud
 ### R11. Home screen
 
 - **Idea:** A home screen for starting or continuing a game, opening the Learn module, and later seeing history and achievements. Sean mentioned it on September 24 as a future entry point for the Learn module.
-- **Output:** Three rendered directions, then a scope proposal. Today the app opens straight into the game.
+- **Output:** Three rendered directions, then a scope proposal.
+- **Status:** On `feat/home` ([design](plans/2026-09-27-home-screen-design.md)): the app opens on Home, with the game in progress and Continue, four difficulties, the next lesson and All techniques, and a solved count. First visits pick their first puzzle. History and achievements come later.
 
 ## Very low priority: desktop experience
 

@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { answer, crossOut, footer, gameBefore, prompt, tapFooter } from './fixtures.ts';
+import { answer, crossOut, footer, gameBefore, openGame, prompt, tapFooter } from './fixtures.ts';
 import { SAVE_KEY } from '../src/lib/game.ts';
 import { LESSON_BANK } from '../src/lib/lesson-bank.ts';
 import { LEARNED_KEY, lessonOf, practiceGame } from '../src/lib/lessons.ts';
@@ -11,8 +11,7 @@ const saved = (page: Page, key: string) => page.evaluate(k => localStorage.getIt
 
 async function openLesson(page: Page) {
   await page.addInitScript(([key, value]) => { if (!sessionStorage.getItem('seeded')) { localStorage.setItem(key, value); sessionStorage.setItem('seeded', '1'); } }, [SAVE_KEY, pointingGame]);
-  await page.goto('/');
-  await page.locator('.board .cell').first().waitFor();
+  await openGame(page);
   const before = await saved(page, SAVE_KEY);
   await page.getByRole('button', { name: 'Show a hint' }).click();
   await page.locator('.hint-action').click();
@@ -91,8 +90,7 @@ test('the game timer does not run during a lesson', async ({ page }) => {
 test('a placement lesson grades the right digit as right, even where the cell had crossings-out', async ({ page }) => {
   const single = gameBefore(step => lessonOf(step) === 'naked-single');
   await page.addInitScript(([key, value]) => { if (!sessionStorage.getItem('seeded')) { localStorage.setItem(key, value); sessionStorage.setItem('seeded', '1'); } }, [SAVE_KEY, single]);
-  await page.goto('/');
-  await page.locator('.board .cell').first().waitFor();
+  await openGame(page);
   await page.getByRole('button', { name: 'Show a hint' }).click();
   await page.locator('.hint-action').click();
   await page.locator('.hint-action').click();
