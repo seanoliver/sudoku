@@ -296,6 +296,9 @@ h1,h2,h3,p { margin: 0; }
 .home-lesson-copy { flex: 1; display: flex; flex-direction: column; gap: 2px; }
 .home-lesson-copy small { font-size: 12px; font-weight: 600; color: var(--hint-strong); }
 .home-lesson-copy strong { font-size: 16px; }
-.home-lesson > svg:last-child { flex-shrink: 0; transform: rotate(-90deg); color: var(--muted); }
-@media (hover: hover) { .home-level:hover { border-color: color-mix(in srgb, var(--level) 45%, transparent); } .home-lesson:hover, .home-chip.home-all:hover, .home-hero:not(.quiet):hover { border-color: var(--box-line); } }
+.home-install { display: flex; align-items: center; gap: 14px; width: 100%; padding: 12px 14px; border-radius: 18px; background: var(--blue-soft); border: 1px solid var(--line); text-align: left; color: var(--ink); }
+.home-install strong { font-size: 15px; }
+.home-install small { order: 2; font-size: 12px; font-weight: 600; color: var(--blue-strong); }
+.home-lesson > svg:last-child, .home-install > svg:last-child { flex-shrink: 0; transform: rotate(-90deg); color: var(--muted); }
+@media (hover: hover) { .home-level:hover { border-color: color-mix(in srgb, var(--level) 45%, transparent); } .home-lesson:hover, .home-install:hover, .home-chip.home-all:hover, .home-hero:not(.quiet):hover { border-color: var(--box-line); } }
 @media (prefers-reduced-motion: reduce) { .home-hero .home-board { animation: none; } }

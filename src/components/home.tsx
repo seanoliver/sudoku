@@ -30,10 +30,12 @@ const LevelTiles = ({ level }: { level: Difficulty }) => <span className="level-
 export type HomeProps = {
   state: HomeState; game: GameState | null; seconds: number | null; learned: number; next: LessonId | null; solved: number; greeting: string;
   onContinue: () => void; onPlay: (level: Difficulty) => void; onLesson: (id: LessonId) => void; onLearn: () => void; onSettings: () => void;
+  /** Omitted once the app is installed. */
+  onInstall?: () => void;
   notice?: React.ReactNode;
 };
 
-export function Home({ state, game, seconds, learned, next, solved, greeting, onContinue, onPlay, onLesson, onLearn, onSettings, notice }: HomeProps) {
+export function Home({ state, game, seconds, learned, next, solved, greeting, onContinue, onPlay, onLesson, onLearn, onSettings, onInstall, notice }: HomeProps) {
   const clock = seconds === null ? '' : time(seconds);
   return <>
     <header className="app-bar">
@@ -73,6 +75,11 @@ export function Home({ state, game, seconds, learned, next, solved, greeting, on
         <Icon name="chevron" size={16}/>
       </button> : <button className="home-lesson" onClick={onLearn}>
         <span className="home-lesson-copy"><small>Every technique learned</small><strong>Revisit any lesson</strong></span>
+        <Icon name="chevron" size={16}/>
+      </button>}
+      {onInstall && <button className="home-install" onClick={onInstall}>
+        <AppMark small/>
+        <span className="home-lesson-copy"><strong>Add Sudoku to your home screen</strong><small>Opens in one tap and works offline</small></span>
         <Icon name="chevron" size={16}/>
       </button>}
     </main>
