@@ -46,7 +46,7 @@ h1,h2,h3,p { margin: 0; }
 .install-button { display: flex; align-items: center; gap: 7px; min-height: 44px; font-size: 13px; font-weight: 500; color: var(--secondary); }
 .icon-button { width: 40px; height: 40px; display: grid; place-items: center; border-radius: 50%; color: var(--secondary); }
 .settings-button { background: var(--surface); box-shadow: 0 1px 3px #23395508; border: 1px solid var(--line); }
-:root { --game-width: 444px; --around-board: 396px; }
+:root { --game-width: 444px; --around-board: 416px; }
 .game { max-width: var(--game-width); margin: 28px auto 0; }
 /* Shrinks the board on short screens so every key stays on screen. */
 .game.play { max-width: max(280px, min(var(--game-width), calc(100svh - var(--around-board) - var(--bar-height) - var(--safe-top) - max(0px, var(--safe-bottom) - var(--pad-bottom))))); }
@@ -120,7 +120,7 @@ h1,h2,h3,p { margin: 0; }
 @media (max-width: 600px) and (max-height: 760px) {
   :root { --bar-height: 53px; }:root { --game-width: 354px; --around-board: 297px; }.game { margin-top: 8px; }.game-meta { padding-bottom: 6px; }.progress-line { margin-top: 7px; }
 }
-@media (max-width: 360px) { .app { padding-left: 12px; padding-right: 12px; }.install-button>span { display: none; }.number-pad { gap: 4px; }.cell-number,.rejected-digit { font-size: 23px; }.number-key>span { font-size: 23px; }.sheet-content { padding-left: 20px; padding-right: 20px; } }
+@media (max-width: 360px) { .app { padding-left: 12px; padding-right: 12px; }.install-button>span { display: none; }.cell-number,.rejected-digit { font-size: 23px; }.number-key>span { font-size: 23px; }.sheet-content { padding-left: 20px; padding-right: 20px; } }
 @media (max-width: 600px) and (max-height: 640px) { .progress-line { margin-top: 5px; } }
 @media (display-mode: standalone) { :root { --bar-height: 60px; } }
 @media (min-width: 601px) and (max-height: 760px) { :root { --around-board: 352px; } }
@@ -399,10 +399,10 @@ h1,h2,h3,p { margin: 0; }
   .app:has(.game.play) .desktop-caption { display: none; }
 }
 /* Folding phones closed, and small phones in Safari. */
-@media (max-height: 629px) and (aspect-ratio < 5/4), (min-width: 601px) and (max-height: 699px) and (aspect-ratio < 5/4) {
+@media (max-height: 629px) and (aspect-ratio < 5/4), (min-width: 601px) and (max-height: 760px) and (aspect-ratio < 5/4) {
   :root { --play-width: max(260px, min(var(--game-width), calc(100svh - 260px - var(--pad-bottom) - var(--safe-top) - max(0px, var(--safe-bottom) - var(--pad-bottom))))); }
   /* A lesson keeps its header and adds a footer button. */
-  :root:has(.lesson-bar) { --play-width: max(200px, min(var(--game-width), calc(100svh - 328px - var(--bar-height) - var(--pad-bottom) - var(--safe-top) - max(0px, var(--safe-bottom) - var(--pad-bottom))))); }
+  :root:has(.lesson-bar) { --play-width: max(200px, min(var(--game-width), calc(100svh - 278px - var(--bar-height) - var(--pad-bottom) - var(--safe-top) - max(0px, var(--safe-bottom) - var(--pad-bottom))))); }
   .app-bar:not(.lesson-bar):has(~ .game.play) { height: 0; position: relative; max-width: var(--play-width); }
   .app-bar:not(.lesson-bar):has(~ .game.play) :is(.brand, .install-button) { display: none; }
   .app-bar:not(.lesson-bar):has(~ .game.play) .app-actions { position: absolute; top: 6px; right: 0; z-index: 3; gap: 4px; }

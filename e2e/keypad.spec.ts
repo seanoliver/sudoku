@@ -50,7 +50,7 @@ test('the mode indicator sits on the chosen mode', async ({ page }) => {
 });
 
 // Full-screen phones, phones in Safari with the browser bars showing, small and folding phones, laptops, and iPads.
-const SIZES = [[390, 844], [375, 667], [393, 659], [375, 628], [390, 664], [360, 640], [375, 553], [320, 568], [466, 678], [466, 590], [890, 626], [626, 890], [1440, 790], [1280, 761], [1280, 720], [1024, 768], [1440, 900], [700, 560], [660, 520], [800, 640], [375, 600], [390, 610], [414, 620], [700, 580], [683, 657], [700, 630], [720, 680], [799, 640]].map(([width, height]) => ({ width, height }));
+const SIZES = [[390, 844], [375, 667], [393, 659], [375, 628], [390, 664], [360, 640], [375, 553], [320, 568], [466, 678], [466, 590], [890, 626], [626, 890], [1440, 790], [1280, 761], [1280, 720], [1024, 768], [1440, 900], [700, 560], [660, 520], [800, 640], [375, 600], [390, 610], [414, 620], [700, 580], [683, 657], [700, 630], [720, 680], [799, 640], [1280, 951], [1440, 952], [700, 700], [874, 700]].map(([width, height]) => ({ width, height }));
 for (const size of SIZES) {
   test(`the game fits without scrolling at ${size.width} × ${size.height}`, async ({ page }) => {
     await page.setViewportSize(size);
@@ -118,10 +118,13 @@ test('on short screens the keys end level with Erase', async ({ page }) => {
 });
 
 test('on tall phones the keys end level with Erase', async ({ page }) => {
-  await seed(page);
-  await openGame(page);
-  const [nine, erase] = await Promise.all([key(page, 9), box(page, '.erase-control')]);
-  expect(Math.abs(nine.y + nine.height - (erase.y + erase.height))).toBeLessThan(1);
+  for (const [width, height] of [[390, 844], [360, 800]] as const) {
+    await page.setViewportSize({ width, height });
+    await seed(page);
+    await openGame(page);
+    const [nine, erase] = await Promise.all([key(page, 9), box(page, '.erase-control')]);
+    expect(Math.abs(nine.y + nine.height - (erase.y + erase.height))).toBeLessThan(1);
+  }
 });
 
 test('the mode buttons have room for their labels', async ({ page }) => {
@@ -200,6 +203,7 @@ for (const [width, height] of [[375, 629], [375, 553], [390, 664]] as const) {
       if (phase === 'practice') { await page.locator('.lesson-footer').click(); await page.waitForTimeout(300); }
       expect(await page.evaluate(() => document.documentElement.scrollHeight <= innerHeight), phase).toBe(true);
     }
+    if (height === 629) expect((await box(page, '.board-wrap')).width).toBeGreaterThanOrEqual(270);
   });
 }
 
