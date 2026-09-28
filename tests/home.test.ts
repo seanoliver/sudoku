@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { greeting, homeState, nextLesson, percentFilled, savedSeconds } from '../src/lib/home.ts';
+import { greeting, solvedCount, homeState, nextLesson, percentFilled, savedSeconds } from '../src/lib/home.ts';
 import { createGame } from '../src/lib/game.ts';
 import { buildPuzzle } from '../src/lib/sudoku.ts';
 import { LESSON_BANDS } from '../src/lib/lessons.ts';
@@ -50,4 +50,13 @@ test('the greeting follows the time of day', () => {
   assert.equal(greeting(8), 'Good morning');
   assert.equal(greeting(13), 'Good afternoon');
   assert.equal(greeting(20), 'Good evening');
+});
+
+test('the solved count includes Expert puzzles finished before the count existed, once each', () => {
+  assert.equal(solvedCount([], []), 0);
+  assert.equal(solvedCount([], ['k1', 'k2']), 2);
+  assert.equal(solvedCount(['7-easy', '9-hard'], ['k1']), 3);
+  // An Expert solve since the count existed is in both records; it counts once.
+  assert.equal(solvedCount(['7-easy', '12-expert'], ['k1', 'k2']), 3);
+  assert.equal(solvedCount(['7-easy', '7-easy'], ['k1', 'k1']), 2);
 });

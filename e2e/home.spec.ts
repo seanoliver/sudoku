@@ -194,3 +194,9 @@ test('the installed app shows no install card', async ({ page }) => {
   await expect(page.getByRole('heading', { name: 'Ready for your first puzzle?' })).toBeVisible();
   await expect(page.locator('.home-install')).toHaveCount(0);
 });
+
+test('Expert puzzles finished before the solved count existed still count on Home', async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem('sudoku.puzzle-history.v1', JSON.stringify({ seen: ['k1', 'k2', 'k3'], completed: ['k1', 'k2'] })));
+  await page.goto('/');
+  await expect(page.locator('.home-solved-count')).toHaveText('2 solved');
+});

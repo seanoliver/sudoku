@@ -18,7 +18,7 @@ import { WalkthroughOverlay, WalkthroughPanel } from './hint-walkthrough';
 import { grade, hasLesson, LEARNED_KEY, LESSON_BANDS, lessonName, lessonOf, markLearned, practiceGame, readLearned, sameBoard, type Grade, type Learned, type LessonId } from '@/lib/lessons';
 import { LearnPage } from './learn-page';
 import { Home } from './home';
-import { greeting, homeState, nextLesson, readSolved, savedSeconds, SOLVED_KEY, storeSolved } from '@/lib/home';
+import { greeting, homeState, nextLesson, readSolved, solvedCount, savedSeconds, SOLVED_KEY, storeSolved } from '@/lib/home';
 import { LESSON_BANK } from '@/lib/lesson-bank';
 import { findStep } from '@/lib/steps';
 import { LessonBar, LessonDone, LessonFooter, LessonPrompt } from './lesson';
@@ -166,7 +166,11 @@ export default function SudokuGame() {
           setGame(saved); setSelected(saved.values.indexOf(0) === -1 ? 0 : saved.values.indexOf(0));
           setDifficulty(saved.difficulty); setBusy(false);
           // Recorded here as well as on completion so the first Home screen already counts it.
-          if (isComplete(saved)) storeSolved(saved.id);
+          if (isComplete(saved)) {
+            storeSolved(saved.id);
+            const { source } = saved;
+            if (source) updateHistory(history => recordCompleted(history, source));
+          }
         } else {
           setBusy(false);
           if (raw) setError('Your saved puzzle could not be restored. Pick a new one.');
@@ -363,7 +367,7 @@ export default function SudokuGame() {
   const showBoard = (start: GameState) => { setGame(start); resetSelection(); setBlockedEntry(null); setFocusedDigit(null); setCelebration(null); setSelected(Math.max(0, start.values.indexOf(0))); };
   /** Home's numbers come from storage, read when Home is shown rather than during render. */
   function refreshHome(current: GameState | null) {
-    try { setHomeData({ seconds: current ? savedSeconds(localStorage.getItem(CLOCK_KEY), current.id) : null, learned: readLearned(localStorage.getItem(LEARNED_KEY)), solved: readSolved(localStorage.getItem(SOLVED_KEY)).length, greeting: greeting(new Date().getHours()) }); }
+    try { setHomeData({ seconds: current ? savedSeconds(localStorage.getItem(CLOCK_KEY), current.id) : null, learned: readLearned(localStorage.getItem(LEARNED_KEY)), solved: solvedCount(readSolved(localStorage.getItem(SOLVED_KEY)), readHistory(localStorage.getItem(HISTORY_KEY)).completed), greeting: greeting(new Date().getHours()) }); }
     catch { /* Home still works without its numbers. */ }
   }
   const showHome = (focus: string) => { setView('home'); refreshHome(held ? held.game : game); focusAfterRender.current = focus; };
