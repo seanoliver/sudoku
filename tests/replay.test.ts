@@ -78,3 +78,12 @@ test('stored recordings read back only when valid', () => {
   assert.deepEqual(readReplays('{"games":[{"id":"x","start":[[99,1,0,0]],"steps":[]}]}'), []);
   assert.deepEqual(readReplays('{"games":[{"id":"x","start":[],"steps":[[[0,10,0,0]]]}]}'), []);
 });
+
+test('erasing or undoing a correct number is not counted as a number, a note, or a fix', () => {
+  const solution = Array(81).fill(1).map((_, i) => i === 2 ? 4 : 1);
+  const right = withValues({ 2: 4 }, givens);
+  let replays: Replays = [];
+  for (const board of [givens, right, givens, right]) replays = recordBoard(replays, 'g1', board);
+  assert.deepEqual(stepKinds(replays[0], solution), ['number', 'other', 'number']);
+  assert.deepEqual(replayStats(replays[0], solution), { numbers: 2, notes: 0, fixes: 0 });
+});

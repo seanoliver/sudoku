@@ -6,7 +6,8 @@ export type Change = [cell: number, value: number, notes: number, exclusions: nu
 export type Replay = { id: string; start: Change[]; steps: Change[][] };
 /** Oldest first. */
 export type Replays = Replay[];
-export type StepKind = 'number' | 'note' | 'fix';
+/** `other` is a step that only removes correct numbers, such as an erase or an undo. */
+export type StepKind = 'number' | 'note' | 'fix' | 'other';
 
 export const REPLAYS_KEY = 'sudoku.replays.v1';
 export const REPLAY_GAMES = 20;
@@ -72,14 +73,15 @@ export function recordBoard(replays: Replays, id: string, board: Board, { restar
   return withinBudget([...others, { ...existing, steps }]);
 }
 
-/** A step that changes a number is a fix when the number it replaces was wrong; any other change of a number is a number; the rest are notes. */
+/** A step that removes or replaces a wrong number is a fix; one that fills an empty cell is a number; one that changes no number is a note. */
 export function stepKinds(replay: Replay, solution: readonly number[]): StepKind[] {
   const boards = boardsOf(replay);
   return replay.steps.map((step, k) => {
     const before = boards[k];
     const numbers = step.filter(([i, value]) => value !== before.values[i]);
     if (!numbers.length) return 'note';
-    return numbers.some(([i]) => before.values[i] && before.values[i] !== solution[i]) ? 'fix' : 'number';
+    if (numbers.some(([i]) => before.values[i] && before.values[i] !== solution[i])) return 'fix';
+    return numbers.some(([i, value]) => value && !before.values[i]) ? 'number' : 'other';
   });
 }
 

@@ -7,7 +7,7 @@ import { LevelTiles } from './home';
 import { Icon } from './icons';
 
 const STEP_MS = 180;
-const TICK = { number: 8, note: 5, fix: 18 } as const;
+const TICK = { number: 8, note: 5, fix: 18, other: 5 } as const;
 const SPEEDS = [1, 2, 4] as const;
 const EMPTY: number[] = [];
 const time = (seconds: number) => `${Math.floor(seconds / 60).toString().padStart(2, '0')}:${(seconds % 60).toString().padStart(2, '0')}`;
@@ -20,7 +20,10 @@ export function ReplayPage({ replay, givens, solution, level, seconds, onExit }:
   const [playing, setPlaying] = useState(false);
   const [speed, setSpeed] = useState<number>(1);
   const board = boards[index];
-  const changed = new Set(index > 0 ? replay.steps[index - 1].map(([cell]) => cell) : []);
+  // Outline the cell whose number changed; a step that only changes notes outlines the cells it touched.
+  const step = index > 0 ? replay.steps[index - 1] : [];
+  const numberCells = step.filter(([cell, value]) => value !== boards[index - 1]?.values[cell]).map(([cell]) => cell);
+  const changed = new Set(numberCells.length ? numberCells : step.map(([cell]) => cell));
 
   useEffect(() => {
     if (!playing) return;
@@ -35,6 +38,8 @@ export function ReplayPage({ replay, givens, solution, level, seconds, onExit }:
   useEffect(() => {
     // On the document so the keys work wherever focus is; buttons and the scrubber keep their own keys.
     const onKey = (event: globalThis.KeyboardEvent) => {
+      // Leave the browser's own shortcuts, such as Alt+Left for Back, alone.
+      if (event.altKey || event.metaKey || event.ctrlKey || event.repeat) return;
       const target = event.target as Element | null;
       // Buttons take Space themselves, and the scrubber takes the arrow keys but not Space.
       if (event.key === ' ') { if (target?.closest('button')) return; event.preventDefault(); keys.current.toggle(); }

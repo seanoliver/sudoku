@@ -32,6 +32,9 @@ type Sheet = 'restart' | 'new' | 'settings' | 'help' | 'install' | null;
 const GAME_ENTRY = 'sudokuGame';
 const inGameEntry = () => window.history.state?.[GAME_ENTRY] === true;
 const enterGameEntry = () => { if (!inGameEntry()) window.history.pushState({ [GAME_ENTRY]: true }, ''); };
+// A replay gets its own entry above whatever opened it, so Back closes it.
+const REPLAY_ENTRY = 'sudokuReplay';
+const inReplayEntry = () => window.history.state?.[REPLAY_ENTRY] === true;
 type InstallEvent = Event & { prompt: () => Promise<void>; userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }> };
 const DIGITS = [1,2,3,4,5,6,7,8,9];
 const EMPTY_NOTES: number[] = [];
@@ -175,8 +178,8 @@ export default function SudokuGame() {
   }, [resetSelection]);
 
   useEffect(() => {
-    // A reload always opens on Home, so a game entry left from before the reload no longer applies.
-    if (inGameEntry()) window.history.replaceState({}, '');
+    // A reload always opens on Home, so a game or replay entry left from before the reload no longer applies.
+    if (inGameEntry() || inReplayEntry()) window.history.replaceState({}, '');
     const timer = window.setTimeout(() => {
       try {
         const raw = localStorage.getItem(SAVE_KEY);
@@ -424,6 +427,8 @@ export default function SudokuGame() {
   const undoingForward = useRef(false);
   const onHistory = () => {
     if (undoingForward.current) { undoingForward.current = false; return; }
+    if (replayView && !inReplayEntry()) { closeReplay(); return; }
+    if (inReplayEntry() && !replayView) { undoingForward.current = true; window.history.back(); return; }
     if (inGameEntry()) {
       if (view !== 'home') return;
       // Forward can only reopen the game from Home itself; elsewhere it is undone so the browser stays on Home's entry.
@@ -432,11 +437,6 @@ export default function SudokuGame() {
     }
     // Generation has no Home to return to until it finishes, so back is undone.
     if (busy && view === 'game') { enterGameEntry(); return; }
-    if (replayView) {
-      // A replay opened from the finished game closes back to it; one opened from Home is already on Home's entry.
-      if (replayView.from === 'game') { exitReplay(); enterGameEntry(); return; }
-      setReplayView(null);
-    }
     if (lesson) {
       const fromHint = lesson.from === 'hint';
       closeSheet(); exitLesson();
@@ -464,9 +464,11 @@ export default function SudokuGame() {
     let seconds: number | null = null;
     try { seconds = preferences.hideTimer ? null : savedSeconds(localStorage.getItem(CLOCK_KEY), game.id); } catch { /* The time is optional. */ }
     setReplayView({ id: game.id, from, seconds });
+    window.history.pushState({ [REPLAY_ENTRY]: true, [GAME_ENTRY]: inGameEntry() }, '');
     focusAfterRender.current = '.replay-play';
   };
-  const exitReplay = () => {
+  const exitReplay = () => { if (inReplayEntry()) window.history.back(); else closeReplay(); };
+  const closeReplay = () => {
     const from = replayView?.from;
     setReplayView(null);
     if (from === 'home') showHome('.home-replay'); else focusAfterRender.current = '.replay-button';

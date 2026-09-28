@@ -8,11 +8,11 @@ const game = createGame(createPuzzle('easy', 4242));
 const open = game.givens.flatMap((v, i) => v ? [] : [i]);
 const prefs = { theme: 'system', blockIncorrectAnswers: false, highlightPeers: true, smartHighlighting: false, filterNumberKeys: false, hideTimer: false };
 
-async function start(page: Page, saved = JSON.stringify(game)) {
+async function start(page: Page, saved = JSON.stringify(game), preferences = prefs) {
   await page.addInitScript(([saveKey, value, prefsKey, p]) => {
     if (sessionStorage.getItem('seeded')) return;
     localStorage.setItem(saveKey, value); localStorage.setItem(prefsKey, p); sessionStorage.setItem('seeded', '1');
-  }, [SAVE_KEY, saved, PREFS_KEY, JSON.stringify(prefs)]);
+  }, [SAVE_KEY, saved, PREFS_KEY, JSON.stringify(preferences)]);
   await page.goto('/');
   await page.getByRole('button', { name: /^Continue/ }).click();
   await expect(page.locator('.board')).toBeVisible();
@@ -163,4 +163,45 @@ test('numbers entered before recording began are not shown as starting numbers',
   await page.getByRole('button', { name: 'Replay' }).click();
   await expect(page.locator(`.replay-board .cell.given`)).toHaveCount(81 - open.length);
   await expect(page.locator('.replay-board .cell.wrong')).toHaveCount(1);
+});
+
+test('Back and Forward move between Home and a replay opened there', async ({ page }) => {
+  await start(page);
+  await solveWithNoteAndFix(page);
+  await page.getByRole('button', { name: 'Home' }).click();
+  await page.getByRole('button', { name: 'Replay' }).click();
+  await expect(page.getByRole('heading', { name: 'Your easy solve' })).toBeVisible();
+  await page.goBack();
+  await expect(page.getByRole('heading', { name: /^Nicely solved/ })).toBeVisible();
+  await page.goForward();
+  await expect(page.getByRole('heading', { name: /^Nicely solved/ })).toBeVisible();
+  await page.getByRole('button', { name: 'Replay' }).click();
+  await page.getByRole('button', { name: 'Done' }).click();
+  await expect(page.getByRole('heading', { name: /^Nicely solved/ })).toBeVisible();
+  await page.goForward();
+  await page.waitForTimeout(300);
+  await expect(page.getByRole('heading', { name: /^Nicely solved/ })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Your easy solve' })).toHaveCount(0);
+});
+
+test('placing a number outlines only that cell, and browser shortcuts are left alone', async ({ page }) => {
+  await start(page);
+  await solveWithNoteAndFix(page);
+  await page.getByRole('button', { name: 'Replay' }).click();
+  const scrubber = page.getByRole('slider', { name: 'Replay position' });
+  await scrubber.fill(String(stepCount));
+  await expect(page.locator('.replay-board .cell.changed')).toHaveCount(1);
+  await page.locator('.replay-headline').click();
+  await scrubber.fill(String(5));
+  await page.locator('.replay-headline').click();
+  const prevented = await page.evaluate(() => { const e = new KeyboardEvent('keydown', { key: 'ArrowLeft', altKey: true, bubbles: true, cancelable: true }); document.body.dispatchEvent(e); return e.defaultPrevented; });
+  expect(prevented).toBe(false);
+  await expect(page.locator('.replay-count')).toHaveText(`6 of ${stepCount + 1}`);
+});
+
+test('Hide timer hides the time on the replay page', async ({ page }) => {
+  await start(page, JSON.stringify(game), { ...prefs, hideTimer: true });
+  await solveWithNoteAndFix(page);
+  await page.getByRole('button', { name: 'Replay' }).click();
+  await expect(page.locator('.replay-headline .home-meta')).not.toContainText(/\d\d:\d\d/);
 });
