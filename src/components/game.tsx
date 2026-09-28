@@ -30,11 +30,14 @@ import { LessonBar, LessonDone, LessonFooter, LessonPrompt } from './lesson';
 type Sheet = 'restart' | 'new' | 'settings' | 'help' | 'install' | null;
 // The game gets its own history entry above Home, so the browser's back button returns Home.
 const GAME_ENTRY = 'sudokuGame';
-const inGameEntry = () => window.history.state?.[GAME_ENTRY] === true;
-const enterGameEntry = () => { if (!inGameEntry()) window.history.pushState({ [GAME_ENTRY]: true }, ''); };
 // A replay gets its own entry above whatever opened it, so Back closes it.
 const REPLAY_ENTRY = 'sudokuReplay';
-const inReplayEntry = () => window.history.state?.[REPLAY_ENTRY] === true;
+// Mark entries with this token, never `true`: entries left from before a reload must not read as live.
+const PAGE_LOAD = Math.random().toString(36).slice(2);
+const inGameEntry = () => window.history.state?.[GAME_ENTRY] === PAGE_LOAD;
+const inReplayEntry = () => window.history.state?.[REPLAY_ENTRY] === PAGE_LOAD;
+const staleEntry = () => { const state = window.history.state; return Boolean(state && ((state[GAME_ENTRY] && state[GAME_ENTRY] !== PAGE_LOAD) || (state[REPLAY_ENTRY] && state[REPLAY_ENTRY] !== PAGE_LOAD))); };
+const enterGameEntry = () => { if (!inGameEntry()) window.history.pushState({ [GAME_ENTRY]: PAGE_LOAD }, ''); };
 type InstallEvent = Event & { prompt: () => Promise<void>; userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }> };
 const DIGITS = [1,2,3,4,5,6,7,8,9];
 const EMPTY_NOTES: number[] = [];
@@ -178,8 +181,8 @@ export default function SudokuGame() {
   }, [resetSelection]);
 
   useEffect(() => {
-    // A reload always opens on Home, so a game or replay entry left from before the reload no longer applies.
-    if (inGameEntry() || inReplayEntry()) window.history.replaceState({}, '');
+    // Not `replaceState({})`: Next.js reloads the page on Back or Forward to an entry missing its own keys.
+    if (staleEntry()) window.history.replaceState(Object.fromEntries(Object.entries(window.history.state).filter(([key]) => key !== GAME_ENTRY && key !== REPLAY_ENTRY)), '');
     const timer = window.setTimeout(() => {
       try {
         const raw = localStorage.getItem(SAVE_KEY);
@@ -427,6 +430,7 @@ export default function SudokuGame() {
   const undoingForward = useRef(false);
   const onHistory = () => {
     if (undoingForward.current) { undoingForward.current = false; return; }
+    if (staleEntry()) { window.history.back(); return; }
     if (replayView && !inReplayEntry()) { closeReplay(); return; }
     if (inReplayEntry() && !replayView) { undoingForward.current = true; window.history.back(); return; }
     if (inGameEntry()) {
@@ -464,11 +468,17 @@ export default function SudokuGame() {
     let seconds: number | null = null;
     try { seconds = preferences.hideTimer ? null : savedSeconds(localStorage.getItem(CLOCK_KEY), game.id); } catch { /* The time is optional. */ }
     setReplayView({ id: game.id, from, seconds });
-    window.history.pushState({ [REPLAY_ENTRY]: true, [GAME_ENTRY]: inGameEntry() }, '');
+    window.history.pushState({ [REPLAY_ENTRY]: PAGE_LOAD, ...(inGameEntry() ? { [GAME_ENTRY]: PAGE_LOAD } : {}) }, '');
     focusAfterRender.current = '.replay-play';
   };
-  const exitReplay = () => { if (inReplayEntry()) window.history.back(); else closeReplay(); };
+  // Two quick exits would otherwise both step back, past where the replay was opened.
+  const closingReplay = useRef(false);
+  const exitReplay = () => {
+    if (closingReplay.current) return;
+    if (inReplayEntry()) { closingReplay.current = true; window.history.back(); } else closeReplay();
+  };
   const closeReplay = () => {
+    closingReplay.current = false;
     const from = replayView?.from;
     setReplayView(null);
     if (from === 'home') showHome('.home-replay'); else focusAfterRender.current = '.replay-button';

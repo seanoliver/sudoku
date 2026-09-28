@@ -140,3 +140,44 @@ test('the calendar and the solved chip name what they show', async ({ page }) =>
   await page.keyboard.press('Enter');
   await expect(page.getByRole('button', { name: 'Next month' })).toBeFocused();
 });
+
+test('Show more moves focus to the first newly shown solve', async ({ page }) => {
+  await seed(page, Array.from({ length: 35 }, (_, k) => solve(`m${k}`, 'easy', 300 + k, 0)));
+  await page.goto('/');
+  await page.locator('.home-solved-count').click();
+  await expect(page.locator('.history-row')).toHaveCount(30);
+  await page.getByRole('button', { name: 'Show more' }).focus();
+  await page.keyboard.press('Enter');
+  await expect(page.locator('.history-row')).toHaveCount(35);
+  await expect(page.locator('.history-row').nth(30)).toBeFocused();
+});
+
+test('the header never counts fewer solves than History lists', async ({ page }) => {
+  await seed(page, [solve('a', 'expert', 900, 0), solve('b', 'expert', 950, 1), solve('c', 'expert', 990, 2)]);
+  await page.addInitScript(key => localStorage.setItem(key, JSON.stringify({ ids: ['a'] })), SOLVED_KEY);
+  await page.goto('/');
+  await page.locator('.home-solved-count').click();
+  await expect(page.locator('.learn-count')).toHaveText('3 solved');
+  await expect(page.locator('.history-earlier')).toHaveCount(0);
+});
+
+test('a day in an earlier year names its year', async ({ page }) => {
+  const d = new Date(); d.setFullYear(d.getFullYear() - 1);
+  await seed(page, [{ ...solve('a', 'easy', 300, 0), day: dayKey(d) }]);
+  await page.goto('/');
+  await page.locator('.home-solved-count').click();
+  for (let k = 0; k < 12; k++) await page.getByRole('button', { name: 'Previous month' }).click();
+  await expect(page.locator(`.history-day[data-day="${dayKey(d)}"]`)).toHaveAttribute('aria-label', new RegExp(`${d.getFullYear()}`));
+});
+
+test('History left open past midnight moves Today to the new day', async ({ page }) => {
+  const late = new Date(); late.setHours(23, 59, 30, 0);
+  await page.clock.install({ time: late });
+  await seed(page, [{ ...solve('a', 'easy', 300, 0), day: dayKey(late) }]);
+  await page.goto('/');
+  await page.locator('.home-solved-count').click();
+  await expect(page.locator(`.history-day.today[data-day="${dayKey(late)}"]`)).toHaveCount(1);
+  await page.clock.fastForward('01:00');
+  const next = new Date(late); next.setDate(next.getDate() + 1);
+  await expect(page.locator('.history-day.today')).toHaveAttribute('data-day', dayKey(next));
+});

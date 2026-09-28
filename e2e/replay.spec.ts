@@ -205,3 +205,40 @@ test('Hide timer hides the time on the replay page', async ({ page }) => {
   await page.getByRole('button', { name: 'Replay' }).click();
   await expect(page.locator('.replay-headline .home-meta')).not.toContainText(/\d\d:\d\d/);
 });
+
+test('after a reload on a replay, Back goes to Home once and never reopens the finished game', async ({ page }) => {
+  await page.goto('about:blank');
+  await start(page);
+  await solveWithNoteAndFix(page);
+  await page.getByRole('button', { name: 'Replay' }).click();
+  await page.reload();
+  await expect(page.getByRole('heading', { name: /^Nicely solved/ })).toBeVisible();
+  await page.evaluate(() => { (window as unknown as { marker: number }).marker = 1; });
+  await page.goBack();
+  await page.waitForTimeout(300);
+  await expect(page.locator('.completion')).toHaveCount(0);
+  await expect(page.getByRole('heading', { name: /^Nicely solved/ })).toBeVisible();
+  expect(await page.evaluate(() => (window as unknown as { marker?: number }).marker)).toBe(1);
+});
+
+test('two quick Escapes close the replay once', async ({ page }) => {
+  await start(page);
+  await solveWithNoteAndFix(page);
+  await page.getByRole('button', { name: 'Replay' }).click();
+  await expect(page.getByRole('heading', { name: 'Your easy solve' })).toBeVisible();
+  await page.evaluate(() => { for (let k = 0; k < 2; k++) document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); });
+  await expect(page.locator('.completion')).toBeVisible();
+  await page.waitForTimeout(300);
+  await expect(page.locator('.completion')).toBeVisible();
+});
+
+test('notes from Fill notes replay in their own color', async ({ page }) => {
+  await start(page);
+  await page.getByRole('button', { name: 'Settings' }).click();
+  await page.getByRole('button', { name: /^Fill notes/ }).click();
+  await page.keyboard.press('Escape');
+  for (const cell of open) await enter(page, cell, game.solution[cell]);
+  await page.getByRole('button', { name: 'Replay' }).click();
+  await page.getByRole('slider', { name: 'Replay position' }).fill('1');
+  await expect(page.locator('.replay-board .note-generated[data-visible="true"]').first()).toBeVisible();
+});
