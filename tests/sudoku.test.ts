@@ -119,8 +119,8 @@ test('possible cells follow current entries, ignore notes and restore after undo
   const mistaken = enter(game, { index, value: wrongDigit });
   for (const peer of peers(index)) assert.equal(possibleCells(mistaken.values, wrongDigit).has(peer), false);
 });
-test('smart highlighting is opt-in and restored without resetting existing preferences', () => {
-  assert.equal(DEFAULT_PREFS.smartHighlighting, false);
+test('smart highlighting starts on for new players and is restored without resetting existing preferences', () => {
+  assert.equal(DEFAULT_PREFS.smartHighlighting, true);
   const prefs = { theme: 'dark', blockIncorrectAnswers: false, highlightPeers: false };
   for (const smartHighlighting of [true, false]) {
     const saved = { ...prefs, smartHighlighting };

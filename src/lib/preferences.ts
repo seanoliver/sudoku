@@ -1,7 +1,7 @@
 export type Theme = 'system' | 'light' | 'dark';
 export type Preferences = { theme: Theme; blockIncorrectAnswers: boolean; highlightPeers: boolean; smartHighlighting: boolean; filterNumberKeys: boolean; hideTimer: boolean };
 export const PREFS_KEY = 'sudoku.preferences.v1';
-export const DEFAULT_PREFS: Preferences = { theme: 'system', blockIncorrectAnswers: true, highlightPeers: true, smartHighlighting: false, filterNumberKeys: false, hideTimer: false };
+export const DEFAULT_PREFS: Preferences = { theme: 'system', blockIncorrectAnswers: true, highlightPeers: true, smartHighlighting: true, filterNumberKeys: true, hideTimer: false };
 export function restorePreferences(raw: string | null): Preferences {
   try {
     const prefs = JSON.parse(raw ?? 'null');
