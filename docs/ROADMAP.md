@@ -398,6 +398,13 @@ Captured from Sean on September 24. Long-term scope, modeled on the way Good Sud
 - **Output:** Three rendered directions, then a scope proposal.
 - **Status:** Shipped in [PR #42](https://github.com/seanoliver/sudoku/pull/42) ([design](plans/2026-09-27-home-screen-design.md)), with the install card ([PR #44](https://github.com/seanoliver/sudoku/pull/44)), the back button returning to Home ([PR #45](https://github.com/seanoliver/sudoku/pull/45)) and earlier Expert solves in the count ([PR #46](https://github.com/seanoliver/sudoku/pull/46)): the app opens on Home, with the game in progress and Continue, four difficulties, the next lesson and All techniques, and a solved count. First visits pick their first puzzle. The solved count opens History ([PR #47](https://github.com/seanoliver/sudoku/pull/47)); achievements come later.
 
+### R12. Brand and identity
+
+- **Idea:** Rework the brand for the app's new direction: a powerful Sudoku that teaches you how to become an expert. Sean raised this on September 28, after Learn, hints, History, and speed replay shifted the app from a calm casual game toward teaching.
+- **Current identity:** the name "Sudoku", the blue four-square mark, the line "A calm Sudoku that teaches you every technique, one move at a time" (page metadata, link-preview image and its alt text, README), the desktop caption "A simple game. A little space to think.", and Home's greeting and headlines.
+- **Research:** Decide what carries the new positioning: the name, the mark and app icon, a tagline, color and type, and the tone of in-app copy. List every surface that shows the brand: the app icon and manifest, the install sheet, Home, the share and link-preview images, README, and the landing copy on seanoliver.dev.
+- **Output:** Three rendered brand directions, each shown on the app icon, Home, and the link-preview image, then a scope proposal.
+
 ## Very low priority: desktop experience
 
 **Player benefit:** Make desktop feel intentionally designed for a larger screen, with comfortable mouse and keyboard play.
