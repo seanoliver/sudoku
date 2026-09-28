@@ -30,7 +30,7 @@ The build generates `public/sw.js` after Next.js finishes, precaching the comple
 
 - The app opens on Home: continue the puzzle in progress, start an Easy, Medium, Hard or Expert puzzle, open the next lesson, or browse all techniques. Home also shows how many puzzles you have solved and, until the app is installed, an install card. The Home button or the browser's back button returns there from a game.
 - Select an empty cell, then a number to enter it. With a filled cell selected, the number pad and digit keys focus that digit without replacing the value. Starting numbers cannot be changed. With Block incorrect answers on, a wrong number is refused and shown struck through in red.
-- The Numbers | Notes | Exclude control switches what the number keys do. Notes add or remove pencil marks; Exclude crosses out digits and removes those cells from Smart highlighting for that digit.
+- The Numbers, Notes, and Exclude buttons beside the number grid switch what the number keys do. Notes add or remove pencil marks; Exclude crosses out digits and removes those cells from Smart highlighting for that digit.
 - Drag across empty cells, or hold one, to select several. A number then toggles that note or exclusion in every selected cell. Tap a filled cell or press Escape to finish.
 - Erase clears your number or annotations from the selected cell. It stays visible and dims when there is nothing to erase.
 - Fill notes in Settings replaces notes in every empty cell with all candidates allowed by placed numbers, keeping crossed-out exclusions. Generated notes are blue. One undo restores the previous annotations. Entering a number removes matching notes and exclusions from related cells.

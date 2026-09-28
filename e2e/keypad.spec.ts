@@ -49,8 +49,8 @@ test('the mode indicator sits on the chosen mode', async ({ page }) => {
   }
 });
 
-// Full-screen phones, phones in Safari with the browser bars showing, laptops, and an iPad in landscape.
-const SIZES = [[390, 844], [375, 667], [393, 659], [375, 628], [390, 664], [360, 640], [1440, 790], [1280, 761], [1024, 768], [1440, 900]].map(([width, height]) => ({ width, height }));
+// Full-screen phones, phones in Safari with the browser bars showing, small and folding phones, laptops, and iPads.
+const SIZES = [[390, 844], [375, 667], [393, 659], [375, 628], [390, 664], [360, 640], [375, 553], [320, 568], [466, 678], [466, 590], [890, 626], [626, 890], [1440, 790], [1280, 761], [1280, 720], [1024, 768], [1440, 900]].map(([width, height]) => ({ width, height }));
 for (const size of SIZES) {
   test(`the game fits without scrolling at ${size.width} × ${size.height}`, async ({ page }) => {
     await page.setViewportSize(size);
@@ -113,4 +113,58 @@ test('on short screens the keys end level with Erase', async ({ page }) => {
   await openGame(page);
   const [nine, erase] = await Promise.all([key(page, 9), box(page, '.erase-control')]);
   expect(Math.abs(nine.y + nine.height - (erase.y + erase.height))).toBeLessThan(1);
+});
+
+test('on tall phones the keys end level with Erase', async ({ page }) => {
+  await seed(page);
+  await openGame(page);
+  const [nine, erase] = await Promise.all([key(page, 9), box(page, '.erase-control')]);
+  expect(Math.abs(nine.y + nine.height - (erase.y + erase.height))).toBeLessThan(1);
+});
+
+test('the mode buttons have room for their labels', async ({ page }) => {
+  for (const [width, height] of [[390, 844], [375, 553]] as const) {
+    await page.setViewportSize({ width, height });
+    await seed(page);
+    await openGame(page);
+    for (const mode of ['value', 'note', 'exclude']) {
+      const fits = await page.locator(`.mode-option.mode-${mode}`).evaluate(el => el.scrollWidth <= el.clientWidth && el.getBoundingClientRect().right <= el.parentElement!.getBoundingClientRect().right);
+      expect(fits).toBe(true);
+    }
+  }
+});
+
+for (const [width, height] of [[890, 626], [1440, 790], [1024, 768]] as const) {
+  test(`at ${width} × ${height} the controls sit beside the board`, async ({ page }) => {
+    await page.setViewportSize({ width, height });
+    await seed(page);
+    await openGame(page);
+    const [board, pad] = await Promise.all([box(page, '.board-wrap'), box(page, '.number-pad')]);
+    expect(pad.x).toBeGreaterThan(board.x + board.width);
+    expect(board.width).toBeGreaterThan(400);
+  });
+}
+
+for (const [width, height] of [[375, 553], [466, 590]] as const) {
+  test(`at ${width} × ${height} the header is one row and the grid stays`, async ({ page }) => {
+    await page.setViewportSize({ width, height });
+    await seed(page);
+    await openGame(page);
+    const [difficulty, home, settings, one, four] = await Promise.all([box(page, '.difficulty-button'), box(page, '.home-button'), box(page, '.app-bar .settings-button'), key(page, 1), key(page, 4)]);
+    expect(Math.abs(difficulty.y + difficulty.height / 2 - (home.y + home.height / 2))).toBeLessThan(6);
+    expect(Math.abs(settings.y - home.y)).toBeLessThan(1);
+    expect(four.y).toBeGreaterThan(one.y + one.height - 1);
+    await expect(page.locator('.app-bar .brand')).toBeHidden();
+  });
+}
+
+test('the installed app on a short phone fits with its taller app bar', async ({ page }) => {
+  await page.setViewportSize({ width: 375, height: 667 });
+  await page.addInitScript(() => document.addEventListener('DOMContentLoaded', () => {
+    document.documentElement.style.setProperty('--safe-top', '20px');
+    document.documentElement.style.setProperty('--bar-height', '60px');
+  }));
+  await seed(page);
+  await openGame(page);
+  expect(await page.evaluate(() => document.documentElement.scrollHeight <= innerHeight)).toBe(true);
 });

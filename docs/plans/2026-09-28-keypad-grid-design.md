@@ -5,9 +5,18 @@ Roadmap item: R8, number grid keypad. On September 28 Sean chose A, tools beside
 ## Layout
 
 - The one-row number pad becomes a 3 × 3 grid on the right: 1 2 3, 4 5 6, 7 8 9, like a phone keypad and like a cell's notes.
-- On the left, Numbers, Notes, and Exclude stack vertically, with Erase below them. The mode indicator slides up and down to the active mode.
+- On the left, Numbers, Notes, and Exclude stack vertically, with Erase below them. The column is at least 122px wide, so the labels have room. The mode indicator slides up and down to the active mode.
 - Keys are 56px tall, and 48px below 760px of height, where the keys and the tool column end level; the mode buttons and Erase stay at least 36px.
 - On short screens (phones in Safari with the browser bars showing, laptops, iPad in landscape), the board shrinks to fit the height left after everything else, down to 280px wide, so the game doesn't scroll. The calculation includes the installed app's notch and home-bar padding. Only the play screen shrinks; Home, Learn, History, and Replay keep their width. Below 600px of height the board keeps its size and the page scrolls, since it couldn't fit anyway. On a 390 × 844 phone the board keeps its full width.
+
+## Other screen shapes
+
+On September 28 Sean asked how the grid fits the iPhone Duo's squat screens, then chose these after seeing them rendered (references: ../designs/keypad-side-by-side.png and ../designs/keypad-short-portrait.png):
+
+- **Wide, short screens** (at least 5:4 and 500–820px tall: a folding phone open, laptops, iPads in landscape): the board takes the height on the left, up to 560px, and the modes and grid sit beside it, centered.
+- **Short portrait screens** (under 600px tall: a folding phone closed, or an iPhone SE, in Safari): the app bar folds into the difficulty and timer row, the focus bar shrinks to 36px, and the 3 × 3 grid stays. The logo and Install are left for Home. Sean chose this over falling back to the one-row keypad.
+- **Landscape phones** (under 500px tall): unchanged; the page scrolls.
+- The height formula reads the app bar's height from `--bar-height`, so the installed app's taller bar is counted.
 
 ## Keys
 

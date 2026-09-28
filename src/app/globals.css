@@ -1,6 +1,6 @@
 :root {
   color-scheme: light;
-  --safe-top: env(safe-area-inset-top, 0px); --safe-bottom: env(safe-area-inset-bottom, 0px); --pad-bottom: 20px;
+  --safe-top: env(safe-area-inset-top, 0px); --safe-bottom: env(safe-area-inset-bottom, 0px); --pad-bottom: 20px; --bar-height: 94px;
   --note-red: #92545e; --note-blue: #346da8; --canvas: #f5f6f8; --surface: #fff; --ink: #273246; --secondary: #717c8e; --muted: #6b7485;
   --blue: #2776df; --blue-strong: #1965cd; --blue-soft: #e8f0fc; --selection: #d6e7ff;
   --possible: #e1f2e7; --peer: #f2f6fc; --matching: #e1edff; --line: #e3e7ed; --box-line: #adb9ca;
@@ -36,7 +36,7 @@ button { transition: transform 100ms ease, background-color 120ms ease, opacity 
 svg { flex-shrink: 0; display: inline-block; vertical-align: middle; }
 h1,h2,h3,p { margin: 0; }
 .app { min-height: 100svh; padding: var(--safe-top) max(20px, env(safe-area-inset-right)) max(var(--pad-bottom), var(--safe-bottom)) max(20px, env(safe-area-inset-left)); }
-.app-bar { max-width: 1040px; height: 94px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; }
+.app-bar { max-width: 1040px; height: var(--bar-height); margin: 0 auto; display: flex; align-items: center; justify-content: space-between; }
 .brand { display: flex; gap: 11px; align-items: center; font-size: 18px; font-weight: 650; letter-spacing: -.5px; }
 .app-mark { width: 62px; height: 62px; border-radius: 15px; display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 16px; background: linear-gradient(155deg, #65acff, #2878e8 65%, #1d63d1); box-shadow: inset 0 1px 1px #ffffff80, 0 2px 4px #2064bc24; }
 .app-mark i { display: block; border-radius: 2px; background: white; }
@@ -46,10 +46,9 @@ h1,h2,h3,p { margin: 0; }
 .install-button { display: flex; align-items: center; gap: 7px; min-height: 44px; font-size: 13px; font-weight: 500; color: var(--secondary); }
 .icon-button { width: 40px; height: 40px; display: grid; place-items: center; border-radius: 50%; color: var(--secondary); }
 .settings-button { background: var(--surface); box-shadow: 0 1px 3px #23395508; border: 1px solid var(--line); }
-.game { --game-width: 444px; --around-board: 490px; max-width: var(--game-width); margin: 28px auto 0; }
+.game { --game-width: 444px; --around-board: 396px; max-width: var(--game-width); margin: 28px auto 0; }
 /* The board's width is capped by the height left after everything else, so a short screen shrinks the board instead of hiding keys. */
-.game.play { max-width: max(280px, min(var(--game-width), calc(100svh - var(--around-board) - var(--safe-top) - max(0px, var(--safe-bottom) - var(--pad-bottom))))); }
-@media (max-height: 599px) { .game.play { max-width: var(--game-width); } }
+.game.play { max-width: max(280px, min(var(--game-width), calc(100svh - var(--around-board) - var(--bar-height) - var(--safe-top) - max(0px, var(--safe-bottom) - var(--pad-bottom))))); }
 .game-meta { position: relative; display: flex; align-items: center; justify-content: space-between; padding: 0 2px 11px; min-height: 55px; }
 .difficulty-button { display: flex; align-items: center; gap: 8px; color: var(--secondary); font-size: 13px; font-weight: 550; min-height: 30px; }
 .capitalize { text-transform: capitalize; }
@@ -107,22 +106,23 @@ h1,h2,h3,p { margin: 0; }
   .icon-button:hover { background: var(--line); }
   .install-button:hover { color: var(--blue); }
 }
-@media (min-width: 601px) and (max-height: 950px) { .app-bar { height: 68px; }.game { margin-top: 12px; --game-width: 420px; --around-board: 452px; }.desktop-caption { margin-top: 22px; } }
+@media (min-width: 601px) and (max-height: 950px) { :root { --bar-height: 68px; }.game { margin-top: 12px; --game-width: 420px; --around-board: 384px; }.desktop-caption { margin-top: 22px; } }
 @media (max-width: 600px) {
   :root { --pad-bottom: 10px; }
   .app { padding-left: max(17px,env(safe-area-inset-left)); padding-right: max(17px,env(safe-area-inset-right)); }
-  .app-bar { height: 66px; }.brand { font-size: 16px; }.app-actions { gap: 12px; }.settings-button { width: 34px; height: 34px; }.install-button { font-size: 12px; }
-  .game { margin-top: 19px; --around-board: 410px; }
-  .game-meta { padding-bottom: 9px; }.number-pad { gap: 5px; }.number-key { border-radius: 7px; }.number-key>span { font-size: 25px; }.desktop-caption { display: none; }
+  :root { --bar-height: 66px; }.brand { font-size: 16px; }.app-actions { gap: 12px; }.settings-button { width: 34px; height: 34px; }.install-button { font-size: 12px; }
+  .game { margin-top: 19px; --around-board: 344px; }
+  .game-meta { padding-bottom: 9px; }.number-key { border-radius: 7px; }.number-key>span { font-size: 25px; }.desktop-caption { display: none; }
   .sheet { width: 100%; max-width: 100%; max-height: 92svh; margin: auto 0 0; border-radius: 22px 22px 0 0; border-bottom: 0; }.sheet-content { padding: 31px 25px max(20px,env(safe-area-inset-bottom)); }.sheet-handle { display: block; position: absolute; width: 32px; height: 4px; border-radius: 4px; background: var(--line); top: 10px; left: calc(50% - 16px); }.sheet-close { top: 15px; }.sheet h2 { font-size: 23px; }
   .completion { gap: 10px; }.completion h2 { font-size: 19px; }.completion p { font-size: 11px; }.completion .primary-button { font-size: 12px; padding: 0 12px; }
 }
 @media (max-width: 600px) and (max-height: 760px) {
-  .app-bar { height: 53px; }.game { margin-top: 8px; --game-width: 354px; --around-board: 350px; }.game-meta { padding-bottom: 6px; }.progress-line { margin-top: 7px; }
+  :root { --bar-height: 53px; }.game { margin-top: 8px; --game-width: 354px; --around-board: 297px; }.game-meta { padding-bottom: 6px; }.progress-line { margin-top: 7px; }
 }
 @media (max-width: 360px) { .app { padding-left: 12px; padding-right: 12px; }.install-button>span { display: none; }.number-pad { gap: 4px; }.cell-number,.rejected-digit { font-size: 23px; }.number-key>span { font-size: 23px; }.sheet-content { padding-left: 20px; padding-right: 20px; } }
 @media (max-width: 600px) and (max-height: 640px) { .progress-line { margin-top: 5px; } }
-@media (display-mode: standalone) { .app-bar { height: 60px; } }
+@media (display-mode: standalone) { :root { --bar-height: 60px; } }
+@media (min-width: 601px) and (max-height: 760px) { .game { --around-board: 352px; } }
 @media (prefers-reduced-motion: reduce) { *,*::before,*::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; } }
 @media (prefers-reduced-motion: reduce) { .rejected-digit,.rejection-source { animation: none !important; } }
 @media (prefers-reduced-motion: reduce) { .unit-celebration { animation: none !important; opacity: 1; } }
@@ -168,7 +168,7 @@ h1,h2,h3,p { margin: 0; }
 
 .note-controls { display: flex; flex-direction: column; align-items: stretch; gap: 8px; }
 .mode-switch { position: relative; flex: 1; display: grid; grid-template-rows: repeat(3, 1fr); padding: 3px; border-radius: 10px; background: color-mix(in srgb, var(--line) 70%, var(--canvas)); }
-.mode-option { position: relative; z-index: 1; transition: color .22s ease; display: flex; align-items: center; justify-content: flex-start; gap: 6px; min-height: 42px; padding: 0 8px; border-radius: 8px; font-size: 13px; font-weight: 500; color: var(--secondary); }
+.mode-option { position: relative; z-index: 1; transition: color .22s ease; display: flex; align-items: center; justify-content: flex-start; gap: 6px; min-height: 42px; padding: 0 12px; border-radius: 8px; font-size: 13px; font-weight: 500; color: var(--secondary); }
 .mode-option:disabled { opacity: .4; }
 .mode-indicator { position: absolute; top: 3px; left: 3px; right: 3px; height: calc((100% - 6px) / 3); border-radius: 8px; box-shadow: 0 1px 2px rgb(0 0 0 / .12); transition: transform .22s ease, background-color .22s ease; }
 .mode-indicator-value { background: var(--surface); }.mode-indicator-note { transform: translateY(100%); background: var(--blue-soft); }.mode-indicator-exclude { transform: translateY(200%); background: var(--red-soft); }
@@ -214,7 +214,7 @@ h1,h2,h3,p { margin: 0; }
 .walk-strike { stroke: var(--red); stroke-width: 2px; vector-effect: non-scaling-stroke; stroke-linecap: round; }
 .walk-ghost { position: absolute; inset: 0; display: grid; place-items: center; font-size: clamp(23px, 6.4vw, 29px); line-height: 1; font-weight: 460; color: var(--hint-strong); pointer-events: none; }
 .board-wrap.walkthrough .cell.walk-answer .notes { visibility: hidden; }
-.controls-area { position: relative; display: grid; grid-template-columns: minmax(96px, 30%) minmax(0, 1fr); gap: 10px; margin-top: 12px; }
+.controls-area { position: relative; display: grid; grid-template-columns: minmax(122px, 36%) minmax(0, 1fr); gap: 10px; margin-top: 12px; }
 @media (max-height: 760px) { .number-pad { gap: 6px; } .number-pad .number-key { height: 48px; } .controls-area { margin-top: 8px; } .note-controls { gap: 6px; } .mode-option { min-height: 36px; } .erase-control { min-height: 36px; } }
 
 .walk-panel { position: absolute; top: 0; left: 0; right: 0; min-height: 100%; z-index: 5; display: flex; flex-direction: column; gap: 8px; padding: 12px 16px; border-radius: 16px; background: var(--hint-soft); border: 1px solid color-mix(in srgb, var(--hint) 35%, transparent); }
@@ -384,3 +384,24 @@ h1,h2,h3,p { margin: 0; }
 @media (hover: hover) { .history-day:is(button):hover { background: var(--peer); } }
 @media (hover: hover) { .home-level:hover { border-color: color-mix(in srgb, var(--level) 45%, transparent); } .home-lesson:hover, .home-install:hover, .home-chip.home-all:hover, .home-chip.home-solved-count:hover, .home-hero:not(.quiet):hover { border-color: var(--box-line); } }
 @media (prefers-reduced-motion: reduce) { .home-hero .home-board { animation: none; } }
+/* Wide, short screens (a folding phone open, laptops, iPads in landscape): the board takes the height and the controls sit beside it. */
+@media (min-aspect-ratio: 5/4) and (min-height: 500px) and (max-height: 820px) {
+  .game.play { --board: max(200px, min(560px, calc(100svh - 144px - var(--bar-height) - var(--safe-top) - max(0px, var(--safe-bottom) - var(--pad-bottom))))); max-width: calc(var(--board) + 28px + 320px); display: grid; grid-template-columns: var(--board) 320px; column-gap: 28px; align-items: start; }
+  .game.play > .game-meta { grid-column: 1; grid-row: 1; }
+  .game.play > .puzzle-panel { grid-column: 1; grid-row: 2; }
+  .game.play > .progress-line { grid-column: 1; grid-row: 3; }
+  .game.play > :is(.controls-area, .completion, .lesson-footer, .notice) { grid-column: 2; grid-row: 1 / span 3; align-self: center; margin-top: 0; }
+  .desktop-caption { display: none; }
+}
+/* Short portrait screens: the app bar folds into the game's top row, so the 3 × 3 grid still fits under the board. */
+@media (max-height: 599px) and (max-aspect-ratio: 5/4) {
+  .app-bar:not(.lesson-bar):has(~ .game.play) { height: 0; }
+  .app-bar:not(.lesson-bar):has(~ .game.play) :is(.brand, .install-button) { display: none; }
+  .app-bar:not(.lesson-bar):has(~ .game.play) .app-actions { position: absolute; top: calc(var(--safe-top) + 6px); right: max(17px, env(safe-area-inset-right)); z-index: 3; gap: 4px; }
+  .app-bar:not(.lesson-bar):has(~ .game.play) .icon-button { width: 36px; height: 36px; }
+  .game.play { margin-top: 6px; max-width: max(260px, min(var(--game-width), calc(100svh - 270px - var(--safe-top) - max(0px, var(--safe-bottom) - var(--pad-bottom))))); }
+  .game.play .game-meta { min-height: 40px; padding: 0 84px 6px 0; }
+  .game.play .digit-focus-bar { height: 36px; font-size: 12px; }
+}
+/* Landscape phones are too short for either layout, so the board keeps its size and the page scrolls. */
+@media (max-height: 499px) and (min-aspect-ratio: 5/4) { .game.play { max-width: var(--game-width); } }
