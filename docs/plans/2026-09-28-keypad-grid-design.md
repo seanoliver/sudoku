@@ -6,7 +6,8 @@ Roadmap item: R8, number grid keypad. On September 28 Sean chose A, tools beside
 
 - The one-row number pad becomes a 3 × 3 grid on the right: 1 2 3, 4 5 6, 7 8 9, like a phone keypad and like a cell's notes.
 - On the left, Numbers, Notes, and Exclude stack vertically, with Erase below them. The mode indicator slides up and down to the active mode.
-- The board keeps its size. Keys shrink on short screens so the game never scrolls: 56px tall on a 390 × 844 phone, smaller below 760px of height.
+- Keys are 56px tall, and 46px below 760px of height; the mode buttons and Erase stay at least 36px.
+- On short screens (phones in Safari with the browser bars showing, laptops, iPad in landscape), the board shrinks to fit the height left after everything else, down to 280px wide, so the game doesn't scroll. On a 390 × 844 phone the board keeps its full width.
 
 ## Keys
 
@@ -15,4 +16,4 @@ Roadmap item: R8, number grid keypad. On September 28 Sean chose A, tools beside
 
 ## Tests
 
-- **Browser:** the keys form three rows of three in order; the modes stack to the left of the grid with Erase below them; the indicator sits on the active mode; the game fits without scrolling at 390 × 844 and 375 × 667.
+- **Browser:** the keys form three rows of three in order; the modes stack to the left of the grid with Erase below them; the indicator sits on the active mode; the game fits without scrolling at ten phone, laptop, and iPad sizes; keys and tools stay at least 36px tall; Notes mode puts each digit in its note position.

@@ -49,7 +49,9 @@ test('the mode indicator sits on the chosen mode', async ({ page }) => {
   }
 });
 
-for (const size of [{ width: 390, height: 844 }, { width: 375, height: 667 }]) {
+// Full-screen phones, phones in Safari with the browser bars showing, laptops, and an iPad in landscape.
+const SIZES = [[390, 844], [375, 667], [393, 659], [375, 628], [390, 664], [360, 640], [1440, 790], [1280, 761], [1024, 768], [1440, 900]].map(([width, height]) => ({ width, height }));
+for (const size of SIZES) {
   test(`the game fits without scrolling at ${size.width} × ${size.height}`, async ({ page }) => {
     await page.setViewportSize(size);
     await seed(page);
@@ -59,3 +61,25 @@ for (const size of [{ width: 390, height: 844 }, { width: 375, height: 667 }]) {
     expect(layout.pad).toBeLessThanOrEqual(layout.height);
   });
 }
+
+test('keys and tools stay at least 36px tall on short screens', async ({ page }) => {
+  await page.setViewportSize({ width: 375, height: 628 });
+  await seed(page);
+  await openGame(page);
+  for (const selector of ['.number-pad .number-key', '.mode-option', '.erase-control']) {
+    expect((await page.locator(selector).first().boundingBox())!.height).toBeGreaterThanOrEqual(36);
+  }
+});
+
+test('in Notes mode each key shows its digit in that digit’s note position', async ({ page }) => {
+  await seed(page);
+  await openGame(page);
+  await page.locator('.mode-option.mode-note').click();
+  for (const digit of [1, 5, 9]) {
+    const [k, d] = await Promise.all([key(page, digit), box(page, `.number-pad .number-key:nth-child(${digit}) > span`)]);
+    const col = (d.x + d.width / 2 - k.x) / k.width, row = (d.y + d.height / 2 - k.y) / k.height;
+    const expected = (digit - 1) % 3, expectedRow = Math.floor((digit - 1) / 3);
+    expect(Math.floor(col * 3)).toBe(expected);
+    expect(Math.floor(row * 3)).toBe(expectedRow);
+  }
+});
