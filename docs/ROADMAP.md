@@ -261,6 +261,7 @@ Status: queued for research. The feature outcomes below are uncommitted. Complet
 - **Idea:** Replace the one-row number pad with a 3 × 3 number grid, as Good Sudoku does. Sean asked on September 23 to keep this as a separate, larger redesign.
 - **Research:** Compare a 3 × 3 grid with the current row on a 390px-wide phone: key size, reach, how the grid sits beside or below the board, and how entry modes (Numbers, Notes, Exclude), Erase, digit focus, number filtering, and the batch keypad fit. Check how the grid mirrors a cell's note layout.
 - **Output:** Three rendered layout directions for Sean, then a scope proposal. Coordinate with the entry mode switch (R3) and the number-row presentation (R4).
+- **Status:** In progress on `feat/keypad-grid` ([design](plans/2026-09-28-keypad-grid-design.md)): Sean chose a 3 × 3 grid with the entry modes stacked beside it.
 
 ### R10. Puzzle history
 
@@ -403,6 +404,7 @@ Captured from Sean on September 24. Long-term scope, modeled on the way Good Sud
 - **Current identity:** the name "Sudoku", the blue four-square mark, the line "A calm Sudoku that teaches you every technique, one move at a time" (page metadata, link-preview image and its alt text, README), the desktop caption "A simple game. A little space to think.", and Home's greeting and headlines.
 - **Research:** Decide what carries the new positioning: the name, the mark and app icon, a tagline, color and type, and the tone of in-app copy. List every surface that shows the brand: the app icon and manifest, the install sheet, Home, the share and link-preview images, README, and the landing copy on seanoliver.dev.
 - **Output:** Three rendered brand directions, each shown on the app icon, Home, and the link-preview image, then a scope proposal.
+- **Also in scope:** a single top row on the play screen for every phone, combining the app bar and the difficulty and timer row. Short portrait screens already use it (R8); on taller phones it would give the board about 90px more.
 
 ## Very low priority: desktop experience
 
