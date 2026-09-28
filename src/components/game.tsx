@@ -606,7 +606,7 @@ export default function SudokuGame() {
       </div>
     </header>}
 
-    <main className="game">
+    <main className="game play">
       <div className={`game-meta ${lesson ? 'lesson-hidden' : ''}`}>
         <button className="difficulty-button" disabled={busy} onClick={() => { setDifficulty(game?.difficulty ?? 'easy'); openSheet('new'); }} aria-label={`Difficulty: ${game?.difficulty ?? 'easy'}. Start a new puzzle`}><LevelBars level={game?.difficulty ?? 'easy'}/><span className="capitalize">{game?.difficulty ?? 'easy'}</span><Icon name="chevron" size={14}/></button>
         <div className="time-controls">{clockId ? <Clock key={clockId} id={clockId} resetRevision={clockResetRevision} hidden={preferences.hideTimer} running={!paused && !sheet && !busy && !complete && !away}/> : <span className="clock">00:00</span>}<button className="pause-button" aria-label={paused ? 'Resume game' : 'Pause game'} disabled={busy || complete || !game} onClick={() => { resetSelection(); setBlockedEntry(null); setCelebration(null); setPaused(value => !value); }}><Icon name={paused ? 'play' : 'pause'} size={15}/></button></div>

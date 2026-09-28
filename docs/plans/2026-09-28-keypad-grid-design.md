@@ -6,8 +6,8 @@ Roadmap item: R8, number grid keypad. On September 28 Sean chose A, tools beside
 
 - The one-row number pad becomes a 3 × 3 grid on the right: 1 2 3, 4 5 6, 7 8 9, like a phone keypad and like a cell's notes.
 - On the left, Numbers, Notes, and Exclude stack vertically, with Erase below them. The mode indicator slides up and down to the active mode.
-- Keys are 56px tall, and 46px below 760px of height; the mode buttons and Erase stay at least 36px.
-- On short screens (phones in Safari with the browser bars showing, laptops, iPad in landscape), the board shrinks to fit the height left after everything else, down to 280px wide, so the game doesn't scroll. On a 390 × 844 phone the board keeps its full width.
+- Keys are 56px tall, and 48px below 760px of height, where the keys and the tool column end level; the mode buttons and Erase stay at least 36px.
+- On short screens (phones in Safari with the browser bars showing, laptops, iPad in landscape), the board shrinks to fit the height left after everything else, down to 280px wide, so the game doesn't scroll. The calculation includes the installed app's notch and home-bar padding. Only the play screen shrinks; Home, Learn, History, and Replay keep their width. Below 600px of height the board keeps its size and the page scrolls, since it couldn't fit anyway. On a 390 × 844 phone the board keeps its full width.
 
 ## Keys
 

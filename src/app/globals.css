@@ -1,5 +1,6 @@
 :root {
   color-scheme: light;
+  --safe-top: env(safe-area-inset-top, 0px); --safe-bottom: env(safe-area-inset-bottom, 0px); --pad-bottom: 20px;
   --note-red: #92545e; --note-blue: #346da8; --canvas: #f5f6f8; --surface: #fff; --ink: #273246; --secondary: #717c8e; --muted: #6b7485;
   --blue: #2776df; --blue-strong: #1965cd; --blue-soft: #e8f0fc; --selection: #d6e7ff;
   --possible: #e1f2e7; --peer: #f2f6fc; --matching: #e1edff; --line: #e3e7ed; --box-line: #adb9ca;
@@ -34,7 +35,7 @@ button:not(:disabled):active { transform: scale(.96); }
 button { transition: transform 100ms ease, background-color 120ms ease, opacity 120ms ease; }
 svg { flex-shrink: 0; display: inline-block; vertical-align: middle; }
 h1,h2,h3,p { margin: 0; }
-.app { min-height: 100svh; padding: env(safe-area-inset-top) max(20px, env(safe-area-inset-right)) max(20px, env(safe-area-inset-bottom)) max(20px, env(safe-area-inset-left)); }
+.app { min-height: 100svh; padding: var(--safe-top) max(20px, env(safe-area-inset-right)) max(var(--pad-bottom), var(--safe-bottom)) max(20px, env(safe-area-inset-left)); }
 .app-bar { max-width: 1040px; height: 94px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; }
 .brand { display: flex; gap: 11px; align-items: center; font-size: 18px; font-weight: 650; letter-spacing: -.5px; }
 .app-mark { width: 62px; height: 62px; border-radius: 15px; display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 16px; background: linear-gradient(155deg, #65acff, #2878e8 65%, #1d63d1); box-shadow: inset 0 1px 1px #ffffff80, 0 2px 4px #2064bc24; }
@@ -45,7 +46,10 @@ h1,h2,h3,p { margin: 0; }
 .install-button { display: flex; align-items: center; gap: 7px; min-height: 44px; font-size: 13px; font-weight: 500; color: var(--secondary); }
 .icon-button { width: 40px; height: 40px; display: grid; place-items: center; border-radius: 50%; color: var(--secondary); }
 .settings-button { background: var(--surface); box-shadow: 0 1px 3px #23395508; border: 1px solid var(--line); }
-.game { --game-width: 444px; --around-board: 490px; max-width: max(280px, min(var(--game-width), calc(100svh - var(--around-board)))); margin: 28px auto 0; }
+.game { --game-width: 444px; --around-board: 490px; max-width: var(--game-width); margin: 28px auto 0; }
+/* The board's width is capped by the height left after everything else, so a short screen shrinks the board instead of hiding keys. */
+.game.play { max-width: max(280px, min(var(--game-width), calc(100svh - var(--around-board) - var(--safe-top) - max(0px, var(--safe-bottom) - var(--pad-bottom))))); }
+@media (max-height: 599px) { .game.play { max-width: var(--game-width); } }
 .game-meta { position: relative; display: flex; align-items: center; justify-content: space-between; padding: 0 2px 11px; min-height: 55px; }
 .difficulty-button { display: flex; align-items: center; gap: 8px; color: var(--secondary); font-size: 13px; font-weight: 550; min-height: 30px; }
 .capitalize { text-transform: capitalize; }
@@ -105,7 +109,8 @@ h1,h2,h3,p { margin: 0; }
 }
 @media (min-width: 601px) and (max-height: 950px) { .app-bar { height: 68px; }.game { margin-top: 12px; --game-width: 420px; --around-board: 452px; }.desktop-caption { margin-top: 22px; } }
 @media (max-width: 600px) {
-  .app { padding-left: max(17px,env(safe-area-inset-left)); padding-right: max(17px,env(safe-area-inset-right)); padding-bottom: max(10px,env(safe-area-inset-bottom)); }
+  :root { --pad-bottom: 10px; }
+  .app { padding-left: max(17px,env(safe-area-inset-left)); padding-right: max(17px,env(safe-area-inset-right)); }
   .app-bar { height: 66px; }.brand { font-size: 16px; }.app-actions { gap: 12px; }.settings-button { width: 34px; height: 34px; }.install-button { font-size: 12px; }
   .game { margin-top: 19px; --around-board: 410px; }
   .game-meta { padding-bottom: 9px; }.number-pad { gap: 5px; }.number-key { border-radius: 7px; }.number-key>span { font-size: 25px; }.desktop-caption { display: none; }
@@ -163,7 +168,7 @@ h1,h2,h3,p { margin: 0; }
 
 .note-controls { display: flex; flex-direction: column; align-items: stretch; gap: 8px; }
 .mode-switch { position: relative; flex: 1; display: grid; grid-template-rows: repeat(3, 1fr); padding: 3px; border-radius: 10px; background: color-mix(in srgb, var(--line) 70%, var(--canvas)); }
-.mode-option { position: relative; z-index: 1; transition: color .22s ease; display: flex; align-items: center; justify-content: flex-start; gap: 6px; min-height: 42px; padding: 0 10px; border-radius: 8px; font-size: 13px; font-weight: 500; color: var(--secondary); }
+.mode-option { position: relative; z-index: 1; transition: color .22s ease; display: flex; align-items: center; justify-content: flex-start; gap: 6px; min-height: 42px; padding: 0 8px; border-radius: 8px; font-size: 13px; font-weight: 500; color: var(--secondary); }
 .mode-option:disabled { opacity: .4; }
 .mode-indicator { position: absolute; top: 3px; left: 3px; right: 3px; height: calc((100% - 6px) / 3); border-radius: 8px; box-shadow: 0 1px 2px rgb(0 0 0 / .12); transition: transform .22s ease, background-color .22s ease; }
 .mode-indicator-value { background: var(--surface); }.mode-indicator-note { transform: translateY(100%); background: var(--blue-soft); }.mode-indicator-exclude { transform: translateY(200%); background: var(--red-soft); }
@@ -210,7 +215,7 @@ h1,h2,h3,p { margin: 0; }
 .walk-ghost { position: absolute; inset: 0; display: grid; place-items: center; font-size: clamp(23px, 6.4vw, 29px); line-height: 1; font-weight: 460; color: var(--hint-strong); pointer-events: none; }
 .board-wrap.walkthrough .cell.walk-answer .notes { visibility: hidden; }
 .controls-area { position: relative; display: grid; grid-template-columns: minmax(96px, 30%) minmax(0, 1fr); gap: 10px; margin-top: 12px; }
-@media (max-height: 760px) { .number-pad { gap: 6px; } .number-pad .number-key { height: 46px; } .controls-area { margin-top: 8px; } .note-controls { gap: 6px; } .mode-option { min-height: 36px; } .erase-control { min-height: 38px; } }
+@media (max-height: 760px) { .number-pad { gap: 6px; } .number-pad .number-key { height: 48px; } .controls-area { margin-top: 8px; } .note-controls { gap: 6px; } .mode-option { min-height: 36px; } .erase-control { min-height: 36px; } }
 
 .walk-panel { position: absolute; top: 0; left: 0; right: 0; min-height: 100%; z-index: 5; display: flex; flex-direction: column; gap: 8px; padding: 12px 16px; border-radius: 16px; background: var(--hint-soft); border: 1px solid color-mix(in srgb, var(--hint) 35%, transparent); }
 .walk-panel-head { display: flex; align-items: center; justify-content: space-between; font-size: 13px; color: var(--hint-strong); text-transform: uppercase; letter-spacing: .04em; }

@@ -83,3 +83,34 @@ test('in Notes mode each key shows its digit in that digit’s note position', a
     expect(Math.floor(row * 3)).toBe(expectedRow);
   }
 });
+
+test('only the play screen shrinks; Home keeps its full width on short screens', async ({ page }) => {
+  for (const [width, height, expected] of [[390, 664, 354], [1440, 790, 420]] as const) {
+    await page.setViewportSize({ width, height });
+    await page.goto('/');
+    await expect(page.locator('main.home')).toBeVisible();
+    expect(Math.round((await page.locator('main.home').boundingBox())!.width)).toBe(expected);
+  }
+});
+
+// The installed iPhone app pads the page by the notch and home-bar areas; the variables stand in for env(safe-area-inset-*).
+for (const [width, height, top, bottom] of [[375, 667, 20, 0], [375, 812, 50, 34], [390, 844, 47, 34]] as const) {
+  test(`the installed app fits at ${width} × ${height} with ${top}px and ${bottom}px safe areas`, async ({ page }) => {
+    await page.setViewportSize({ width, height });
+    await page.addInitScript(([t, b]) => document.addEventListener('DOMContentLoaded', () => {
+      document.documentElement.style.setProperty('--safe-top', `${t}px`);
+      document.documentElement.style.setProperty('--safe-bottom', `${b}px`);
+    }), [top, bottom]);
+    await seed(page);
+    await openGame(page);
+    expect(await page.evaluate(() => document.documentElement.scrollHeight <= innerHeight)).toBe(true);
+  });
+}
+
+test('on short screens the keys end level with Erase', async ({ page }) => {
+  await page.setViewportSize({ width: 375, height: 667 });
+  await seed(page);
+  await openGame(page);
+  const [nine, erase] = await Promise.all([key(page, 9), box(page, '.erase-control')]);
+  expect(Math.abs(nine.y + nine.height - (erase.y + erase.height))).toBeLessThan(1);
+});
