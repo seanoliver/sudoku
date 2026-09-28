@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { boardsOf, diffBoards, readReplays, recordBoard, replayStats, stepKinds, REPLAY_GAMES, REPLAY_STEPS, type Board, type Replays } from '../src/lib/replay.ts';
+import { boardsOf, diffBoards, readReplays, recordBoard, replayStats, serializeReplays, stepKinds, REPLAY_BYTES, REPLAY_GAMES, REPLAY_STEPS, type Board, type Replays } from '../src/lib/replay.ts';
 
 const empty = (): Board => ({ values: Array(81).fill(0), notes: Array.from({ length: 81 }, () => []), exclusions: Array.from({ length: 81 }, () => []) });
 const withValues = (entries: Record<number, number>, base = empty()): Board => ({ ...base, values: base.values.map((v, i) => entries[i] ?? v) });
@@ -51,6 +51,24 @@ test('only the most recent games are kept, and a long game stops growing', () =>
   let long = recordBoard([], 'long', givens);
   for (let k = 0; k < REPLAY_STEPS + 5; k++) long = recordBoard(long, 'long', withValues({ 5: k % 2 ? 1 : 2 }, givens));
   assert.equal(long[0].steps.length, REPLAY_STEPS);
+});
+
+test('past the step limit, new changes fold into the last step so the replay still ends on the final board', () => {
+  let long = recordBoard([], 'long', givens);
+  for (let k = 0; k < REPLAY_STEPS; k++) long = recordBoard(long, 'long', withValues({ 5: k % 2 ? 1 : 2 }, givens));
+  const final = withValues({ 5: 3, 6: 9 }, givens);
+  long = recordBoard(long, 'long', final);
+  assert.equal(long[0].steps.length, REPLAY_STEPS);
+  assert.deepEqual(boardsOf(long[0]).at(-1), final);
+});
+
+test('recordings stay within a storage budget by dropping the oldest games', () => {
+  const noisy = (k: number): Board => ({ ...givens, notes: givens.notes.map((_, i) => i % 2 === k % 2 ? [1, 2, 3, 4, 5, 6, 7, 8, 9] : []) });
+  let replays: Replays = [];
+  for (let game = 0; game < REPLAY_GAMES; game++) for (let k = 0; k < 400; k++) replays = recordBoard(replays, `g${game}`, noisy(k));
+  assert.ok(serializeReplays(replays).length <= REPLAY_BYTES, `${serializeReplays(replays).length} bytes`);
+  assert.equal(replays.at(-1)?.id, `g${REPLAY_GAMES - 1}`);
+  assert.ok(replays.length < REPLAY_GAMES);
 });
 
 test('stored recordings read back only when valid', () => {

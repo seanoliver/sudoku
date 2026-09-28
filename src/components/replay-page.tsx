@@ -7,11 +7,12 @@ import { LevelTiles } from './home';
 import { Icon } from './icons';
 
 const STEP_MS = 180;
+const TICK = { number: 8, note: 5, fix: 18 } as const;
 const SPEEDS = [1, 2, 4] as const;
 const EMPTY: number[] = [];
 const time = (seconds: number) => `${Math.floor(seconds / 60).toString().padStart(2, '0')}:${(seconds % 60).toString().padStart(2, '0')}`;
 
-export function ReplayPage({ replay, solution, level, seconds, onExit }: { replay: Replay; solution: readonly number[]; level: Difficulty; seconds: number | null; onExit: () => void }) {
+export function ReplayPage({ replay, givens, solution, level, seconds, onExit }: { replay: Replay; givens: readonly number[]; solution: readonly number[]; level: Difficulty; seconds: number | null; onExit: () => void }) {
   const boards = useMemo(() => boardsOf(replay), [replay]);
   const kinds = useMemo(() => stepKinds(replay, solution), [replay, solution]);
   const last = boards.length - 1;
@@ -20,7 +21,6 @@ export function ReplayPage({ replay, solution, level, seconds, onExit }: { repla
   const [speed, setSpeed] = useState<number>(1);
   const board = boards[index];
   const changed = new Set(index > 0 ? replay.steps[index - 1].map(([cell]) => cell) : []);
-  const givens = boards[0].values;
 
   useEffect(() => {
     if (!playing) return;
@@ -35,8 +35,10 @@ export function ReplayPage({ replay, solution, level, seconds, onExit }: { repla
   useEffect(() => {
     // On the document so the keys work wherever focus is; buttons and the scrubber keep their own keys.
     const onKey = (event: globalThis.KeyboardEvent) => {
-      if ((event.target as Element | null)?.closest('button, input')) return;
-      if (event.key === ' ') { event.preventDefault(); keys.current.toggle(); }
+      const target = event.target as Element | null;
+      // Buttons take Space themselves, and the scrubber takes the arrow keys but not Space.
+      if (event.key === ' ') { if (target?.closest('button')) return; event.preventDefault(); keys.current.toggle(); }
+      else if (target?.closest('input')) return;
       else if (event.key === 'ArrowRight') { event.preventDefault(); keys.current.seek(keys.current.index + 1); }
       else if (event.key === 'ArrowLeft') { event.preventDefault(); keys.current.seek(keys.current.index - 1); }
     };
@@ -67,6 +69,7 @@ export function ReplayPage({ replay, solution, level, seconds, onExit }: { repla
                 const wrong = value !== 0 && !given && value !== solution[i];
                 return <div key={i} className="cell-slot"><div className={['cell', given ? 'given' : 'entered', wrong ? 'wrong' : '', changed.has(i) ? 'changed' : ''].filter(Boolean).join(' ')}>
                   {value ? <span className="cell-number">{value}</span> : null}
+                  {wrong && <span className="conflict-dot"/>}
                   <CellNotes filled={value !== 0} manual={board.notes[i]} automatic={EMPTY} excluded={board.exclusions[i]} boardKey="replay"/>
                 </div></div>;
               })}
@@ -81,7 +84,10 @@ export function ReplayPage({ replay, solution, level, seconds, onExit }: { repla
         <span className="replay-stat replay-fixes"><b>{count('fix')}</b>fixed</span>
       </div>
       <div className="replay-timeline">
-        <div className="replay-ticks" aria-hidden="true">{kinds.map((kind, k) => <i key={k} className={`${kind}${k < index ? ' past' : ''}`}/>)}</div>
+        {/* One unit per step, stretched to the card's width, so any number of steps fits. */}
+        <svg className="replay-ticks" viewBox={`0 0 ${kinds.length} ${TICK.fix}`} preserveAspectRatio="none" aria-hidden="true">
+          {kinds.map((kind, k) => <rect key={k} x={k} y={TICK.fix - TICK[kind]} width={kinds.length > 120 ? 1 : .8} height={TICK[kind]} className={`${kind}${k < index ? ' past' : ''}`}/>)}
+        </svg>
         <input type="range" min={0} max={last} value={index} onChange={event => seek(Number(event.target.value))} aria-label="Replay position" aria-valuetext={`Step ${index + 1} of ${boards.length}`}/>
         <div className="replay-row">
           <span className="replay-count">{index + 1} of {boards.length}</span>

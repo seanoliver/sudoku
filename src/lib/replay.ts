@@ -11,6 +11,23 @@ export type StepKind = 'number' | 'note' | 'fix';
 export const REPLAYS_KEY = 'sudoku.replays.v1';
 export const REPLAY_GAMES = 20;
 export const REPLAY_STEPS = 2000;
+/** Recordings share the device's storage with the game's save, so all of them together stay under this many bytes. */
+export const REPLAY_BYTES = 1_000_000;
+// An upper bound on stored size: the longest change is "[80,9,1022,1022]," (17 characters), each step adds "[]," and each game its id and keys.
+const sizeOf = (replay: Replay) => 80 + replay.id.length + 17 * (replay.start.length + replay.steps.reduce((n, step) => n + step.length, 0)) + 3 * replay.steps.length;
+/** Drops the oldest games until the rest fit the budget; the newest game always stays. */
+function withinBudget(replays: Replays): Replays {
+  let total = replays.reduce((n, replay) => n + sizeOf(replay), 0);
+  let first = 0;
+  while (total > REPLAY_BYTES && first < replays.length - 1) total -= sizeOf(replays[first++]);
+  return first ? replays.slice(first) : replays;
+}
+/** Later changes to a cell replace earlier ones. */
+const merge = (earlier: Change[], later: Change[]): Change[] => {
+  const cells = new Map(earlier.map(change => [change[0], change] as const));
+  for (const change of later) cells.set(change[0], change);
+  return [...cells.values()].sort((a, b) => a[0] - b[0]);
+};
 
 const mask = (digits: readonly number[]) => digits.reduce((m, d) => m | (1 << d), 0);
 const digitsOf = (m: number) => [1, 2, 3, 4, 5, 6, 7, 8, 9].filter(d => m & (1 << d));
@@ -42,15 +59,17 @@ const lastBoard = (replay: Replay) => replay.steps.reduce(apply, apply(emptyBoar
 
 /**
  * Adds a board to a game's recording. The first board for a game, or one marked `restart`, starts a new recording.
- * A board with no changes, or one past the step limit, adds no step. The game becomes the most recent either way.
+ * A board with no changes adds no step; past the step limit, changes fold into the last step so the replay still ends on
+ * the latest board. The game becomes the most recent either way.
  */
 export function recordBoard(replays: Replays, id: string, board: Board, { restart = false }: { restart?: boolean } = {}): Replays {
   const existing = replays.find(r => r.id === id);
   const others = replays.filter(r => r.id !== id);
-  if (!existing || restart) return [...others, { id, start: diffBoards(emptyBoard(), board), steps: [] }].slice(-REPLAY_GAMES);
-  const step = existing.steps.length < REPLAY_STEPS ? diffBoards(lastBoard(existing), board) : [];
+  if (!existing || restart) return withinBudget([...others, { id, start: diffBoards(emptyBoard(), board), steps: [] }].slice(-REPLAY_GAMES));
+  const step = diffBoards(lastBoard(existing), board);
   if (!step.length) return replays.at(-1) === existing ? replays : [...others, existing];
-  return [...others, { ...existing, steps: [...existing.steps, step] }];
+  const steps = existing.steps.length < REPLAY_STEPS ? [...existing.steps, step] : [...existing.steps.slice(0, -1), merge(existing.steps.at(-1) ?? [], step)];
+  return withinBudget([...others, { ...existing, steps }]);
 }
 
 /** A step that changes a number is a fix when the number it replaces was wrong; any other change of a number is a number; the rest are notes. */

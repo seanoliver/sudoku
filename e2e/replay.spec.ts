@@ -62,9 +62,9 @@ test('the scrubber, Space, and Escape control the replay', async ({ page }) => {
   await scrubber.fill(String(2));
   await expect(page.locator('.replay-count')).toHaveText(`3 of ${stepCount + 1}`);
   await expect(page.locator('.replay-board .cell.wrong')).toHaveCount(1);
+  await expect(page.locator('.replay-board .cell.wrong .conflict-dot')).toHaveCount(1);
   await scrubber.fill(String(3));
   await expect(page.locator('.replay-board .cell.wrong')).toHaveCount(0);
-  await page.locator('.replay-headline').click();
   await page.keyboard.press(' ');
   await expect(page.getByRole('button', { name: 'Pause' })).toBeVisible();
   await page.keyboard.press(' ');
@@ -110,4 +110,57 @@ test('lesson boards are not recorded', async ({ page }) => {
   await page.keyboard.press('5');
   await page.waitForTimeout(300);
   expect(await page.evaluate(key => JSON.parse(localStorage.getItem(key) ?? '{"games":[]}').games.length, REPLAYS_KEY)).toBe(0);
+});
+
+test('opening a replay puts focus on Play, so Space plays it', async ({ page }) => {
+  await start(page);
+  await solveWithNoteAndFix(page);
+  await page.getByRole('button', { name: 'Replay' }).click();
+  await expect(page.getByRole('button', { name: 'Play' })).toBeFocused();
+  await page.keyboard.press(' ');
+  await expect(page.getByRole('button', { name: 'Pause' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Your easy solve' })).toBeVisible();
+  await page.keyboard.press(' ');
+  await page.keyboard.press('ArrowRight');
+  await expect(page.getByRole('heading', { name: 'Your easy solve' })).toBeVisible();
+});
+
+test('back from a replay opened on the completion card returns to the card', async ({ page }) => {
+  await start(page);
+  await solveWithNoteAndFix(page);
+  await page.getByRole('button', { name: 'Replay' }).click();
+  await expect(page.getByRole('heading', { name: 'Your easy solve' })).toBeVisible();
+  await page.goBack();
+  await expect(page.locator('.completion')).toBeVisible();
+});
+
+test('a long replay keeps its whole timeline on screen', async ({ page }) => {
+  const solved = { ...game, values: game.solution };
+  const steps = Array.from({ length: 700 }, (_, k) => [[open[0], 0, 1 << (k % 9 + 1), 0]]);
+  steps.push(open.map(i => [i, game.solution[i], 0, 0]));
+  await page.addInitScript(([saveKey, value, replaysKey, replays]) => { localStorage.setItem(saveKey, value); localStorage.setItem(replaysKey, replays); },
+    [SAVE_KEY, JSON.stringify(solved), REPLAYS_KEY, JSON.stringify({ games: [{ id: game.id, start: game.givens.flatMap((v, i) => v ? [[i, v, 0, 0]] : []), steps }] })]);
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Replay' }).click();
+  const layout = await page.locator('.replay-ticks').evaluate(el => {
+    const box = el.getBoundingClientRect();
+    const marks = [...el.querySelectorAll('i, rect')].map(mark => mark.getBoundingClientRect());
+    return { width: box.width, overflow: Math.max(...marks.map(mark => mark.right)) - box.right, visible: marks.filter(mark => mark.width > 0).length, count: marks.length };
+  });
+  expect(layout.width).toBeGreaterThan(200);
+  expect(layout.overflow).toBeLessThanOrEqual(1);
+  expect(layout.visible).toBe(layout.count);
+});
+
+test('numbers entered before recording began are not shown as starting numbers', async ({ page }) => {
+  const wrongCell = open[0];
+  const wrong = game.solution[wrongCell] % 9 + 1;
+  const inProgress = { ...game, values: game.values.map((v, i) => i === wrongCell ? wrong : i === open[1] ? game.solution[i] : v) };
+  await start(page, JSON.stringify(inProgress));
+  await page.locator(`.board [data-index="${wrongCell}"]`).click();
+  await page.keyboard.press('Backspace');
+  for (const cell of open.filter(i => i !== open[1])) await enter(page, cell, game.solution[cell]);
+  await page.getByRole('button', { name: 'Replay' }).click();
+  await expect(page.locator(`.replay-board .cell.given`)).toHaveCount(81 - open.length);
+  await expect(page.locator('.replay-board .cell.wrong')).toHaveCount(1);
 });

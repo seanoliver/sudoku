@@ -432,7 +432,11 @@ export default function SudokuGame() {
     }
     // Generation has no Home to return to until it finishes, so back is undone.
     if (busy && view === 'game') { enterGameEntry(); return; }
-    if (replayView) setReplayView(null);
+    if (replayView) {
+      // A replay opened from the finished game closes back to it; one opened from Home is already on Home's entry.
+      if (replayView.from === 'game') { exitReplay(); enterGameEntry(); return; }
+      setReplayView(null);
+    }
     if (lesson) {
       const fromHint = lesson.from === 'hint';
       closeSheet(); exitLesson();
@@ -460,7 +464,7 @@ export default function SudokuGame() {
     let seconds: number | null = null;
     try { seconds = preferences.hideTimer ? null : savedSeconds(localStorage.getItem(CLOCK_KEY), game.id); } catch { /* The time is optional. */ }
     setReplayView({ id: game.id, from, seconds });
-    focusAfterRender.current = '.lesson-back';
+    focusAfterRender.current = '.replay-play';
   };
   const exitReplay = () => {
     const from = replayView?.from;
@@ -573,7 +577,7 @@ export default function SudokuGame() {
   const lessonDone = lesson ? lesson.phase === 'done' ? lessonBoards.length - 1 : lesson.phase === 'practice' ? lesson.board - 1 + (lesson.result?.correct ? 1 : 0) : 0 : 0;
   const clockId = held ? held.game?.id : game?.id;
   const replaying = replayView && game ? replayOf(replayView.id) : undefined;
-  if (replayView && replaying && game) return <div className="app"><ReplayPage replay={replaying} solution={game.solution} level={game.difficulty} seconds={replayView.seconds} onExit={exitReplay}/></div>;
+  if (replayView && replaying && game) return <div className="app"><ReplayPage replay={replaying} givens={game.givens} solution={game.solution} level={game.difficulty} seconds={replayView.seconds} onExit={exitReplay}/></div>;
   if (historyData) return <div className="app"><HistoryPage hideTimer={preferences.hideTimer} solves={historyData.solves} total={homeData.solved} today={historyData.today} onExit={exitHistory}/></div>;
   if (learnOpen) return <div className="app"><LearnPage learned={learned} onOpen={id => openLesson(id, 'list')} onExit={exitLearn}/></div>;
   const onHome = view === 'home' && !lesson;

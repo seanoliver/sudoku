@@ -362,11 +362,11 @@ h1,h2,h3,p { margin: 0; }
 .replay-stat.replay-notes { background: var(--hint-soft); color: var(--hint-strong); }
 .replay-stat.replay-fixes { background: var(--red-soft); color: var(--red); }
 .replay-timeline { display: flex; flex-direction: column; gap: 10px; padding: 14px; border-radius: 18px; background: var(--surface); border: 1px solid var(--line); }
-.replay-ticks { display: flex; gap: 1px; height: 18px; align-items: flex-end; }
-.replay-ticks i { flex: 1; height: 8px; border-radius: 1px; background: var(--line); }
-.replay-ticks i.number.past { background: var(--blue); }
-.replay-ticks i.note { height: 5px; } .replay-ticks i.note.past { background: var(--hint); }
-.replay-ticks i.fix { height: 18px; } .replay-ticks i.fix.past { background: var(--red); }
+.replay-ticks { display: block; width: 100%; height: 18px; }
+.replay-ticks rect { fill: var(--line); }
+.replay-ticks rect.number.past { fill: var(--blue); }
+.replay-ticks rect.note.past { fill: var(--hint); }
+.replay-ticks rect.fix { fill: color-mix(in srgb, var(--red) 35%, var(--line)); } .replay-ticks rect.fix.past { fill: var(--red); }
 .replay-timeline input { width: 100%; margin: 0; accent-color: var(--blue); }
 .replay-row { display: flex; align-items: center; justify-content: space-between; }
 .replay-count { font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
