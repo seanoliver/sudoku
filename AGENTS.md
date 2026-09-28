@@ -9,21 +9,18 @@
 
 ## Feature design workflow
 
-- Before implementing a new feature, generate three distinct visual design directions as images for Sean to review. Show the relevant states in the actual app context, keeping unrelated UI consistent.
-- Present the images directly and wait for Sean to choose a direction before implementation. Use the chosen rendering as the visual reference, then verify the implemented UI with real browser screenshots.
-- This is the default for future feature development; Sean may explicitly skip or adjust the process.
+- Before implementing a new feature, render three distinct design directions in the real app and wait for Sean to choose one. Sean may explicitly skip or adjust this.
+- Procedure: `.claude/skills/rendering-design-directions/SKILL.md`.
 
-## Screenshots for sharing
+## Skills
 
-- Default to a phone-sized portrait viewport: **390 × 844 CSS pixels**. Keep the board large and the side margins tight.
-- Capture the actual app at that viewport with `fullPage: false` and `scale: 'css'`. Use a fresh browser capture when changing framing.
-- Avoid full-page screenshots for social posts. Scrollbars and layout changes during capture can produce uneven margins.
-- Before capture, measure `.board-wrap` with `getBoundingClientRect()`. Compare `rect.left` with `window.innerWidth - rect.right`; they must match within 1 CSS pixel. At 390px wide, the expected margins are **17px on each side**.
-- Check that `document.documentElement.clientWidth === window.innerWidth` so a vertical scrollbar is not consuming image width. If content overflows, increase viewport height and remeasure before capture.
-- Show the feature in use: enable Smart highlighting and select a filled cell so green possible cells are visible. Wait for the layout and color transitions to settle, or emulate reduced motion.
-- Inspect the saved image before uploading. Confirm equal margins, readable numbers, visible highlighting, and no clipped controls or browser chrome.
-- Save captures in `docs/screenshots/`. Reference: `docs/screenshots/smart-highlighting-phone-centered.png`.
-- When replacing media in Typefully, fetch the latest post first and preserve the user's text, enabled platforms, and scheduled time. Include descriptive alt text and verify the new media is attached.
+Repository workflows live in `.claude/skills/`. Read the matching `SKILL.md` before starting:
+
+- `capturing-share-screenshots`: phone screenshots for posts, PRs, and docs (390 × 844, equal 17px margins, saved in `docs/screenshots/`).
+- `rendering-design-directions`: three directions before a feature.
+- `adding-a-solving-technique`: a new deduction through solver, hints, and Learn.
+- `recording-playtest-notes`: Sean's playtest feedback into `docs/playtests/` and the roadmap.
+- `syncing-docs`: bring README, ROADMAP, AGENTS.md, and skills in line with the app.
 
 ## Deployment
 
