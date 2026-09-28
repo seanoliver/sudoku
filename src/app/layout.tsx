@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import './globals.css';
 export const metadata: Metadata = {
   title: 'Sudoku — a little time to focus',
-  description: 'A simple, free Sudoku game. Play at your own pace, save your progress, and enjoy puzzles offline.',
+  description: 'A calm Sudoku that teaches you every technique, one move at a time. Free, private, and playable offline.',
   applicationName: 'Sudoku',
   metadataBase: new URL('https://sudoku.seanoliver.dev'),
   openGraph: { type: 'website', url: '/', siteName: 'Sudoku', title: 'Sudoku', description: 'A calm Sudoku that teaches you every technique, one move at a time.' },
