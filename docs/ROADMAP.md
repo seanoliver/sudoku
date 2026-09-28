@@ -264,6 +264,7 @@ Status: queued for research. The feature outcomes below are uncommitted. Complet
 - **Idea:** Show players the puzzles they have completed, as Good Sudoku does. Sean raised this on September 24.
 - **Data:** Expert already records seen and completed bank puzzles on the device (`sudoku.puzzle-history.v1`). Other levels are generated and would need their own record, such as a board key or completion stats.
 - **Output:** Three rendered directions for a history or stats view, then a scope proposal.
+- **Status:** Shipped ([design](plans/2026-09-27-puzzle-history-design.md)). The solved chip on Home opens History: a streak, a month calendar of solves, each level's count and best time, and recent solves. Solves from before History show as a count only.
 
 ### R9. Native iOS app
 
@@ -391,7 +392,7 @@ Captured from Sean on September 24. Long-term scope, modeled on the way Good Sud
 
 - **Idea:** A home screen for starting or continuing a game, opening the Learn module, and later seeing history and achievements. Sean mentioned it on September 24 as a future entry point for the Learn module.
 - **Output:** Three rendered directions, then a scope proposal.
-- **Status:** On `feat/home` ([design](plans/2026-09-27-home-screen-design.md)): the app opens on Home, with the game in progress and Continue, four difficulties, the next lesson and All techniques, and a solved count. First visits pick their first puzzle. History and achievements come later.
+- **Status:** Shipped in [PR #42](https://github.com/seanoliver/sudoku/pull/42) ([design](plans/2026-09-27-home-screen-design.md)): the app opens on Home with a greeting, the game in progress as the Continue card, four color-coded difficulties, the next lesson, and solved and technique counts. Follow-ups shipped in #43 to #46: every aid on for new players, an install card, the back button returning Home, and earlier Expert solves in the count. History opens from the solved count; achievements come later.
 
 ## Very low priority: desktop experience
 

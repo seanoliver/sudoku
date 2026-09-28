@@ -23,19 +23,20 @@ function MiniBoard({ values, givens, size }: { values: readonly number[]; givens
 }
 
 /** A 3×3 of tiles, more of them filled the harder the level. */
-const LevelTiles = ({ level }: { level: Difficulty }) => <span className="level-tiles" aria-hidden="true">
+export const LevelTiles = ({ level }: { level: Difficulty }) => <span className="level-tiles" aria-hidden="true">
   {Array.from({ length: 9 }, (_, k) => <i key={k} className={[0, 4, 8, 2, 6, 1, 3, 5, 7].indexOf(k) < 2 + LEVELS.indexOf(level) * 2 ? 'on' : ''}/>)}
 </span>;
 
 export type HomeProps = {
   state: HomeState; game: GameState | null; seconds: number | null; learned: number; next: LessonId | null; solved: number; greeting: string;
   onContinue: () => void; onPlay: (level: Difficulty) => void; onLesson: (id: LessonId) => void; onLearn: () => void; onSettings: () => void;
+  onHistory: () => void;
   /** Omitted once the app is installed. */
   onInstall?: () => void;
   notice?: React.ReactNode;
 };
 
-export function Home({ state, game, seconds, learned, next, solved, greeting, onContinue, onPlay, onLesson, onLearn, onSettings, onInstall, notice }: HomeProps) {
+export function Home({ state, game, seconds, learned, next, solved, greeting, onContinue, onPlay, onLesson, onLearn, onSettings, onHistory, onInstall, notice }: HomeProps) {
   const clock = seconds === null ? '' : time(seconds);
   return <>
     <header className="app-bar">
@@ -66,7 +67,7 @@ export function Home({ state, game, seconds, learned, next, solved, greeting, on
         <LevelTiles level={level}/><strong>{capital(level)}</strong><small>{LEVEL_NOTES[level]}</small>
       </button>)}</div>
       <div className="home-chips">
-        {solved > 0 && <span className="home-chip home-solved-count"><Icon name="check" size={15}/>{solved} solved</span>}
+        {solved > 0 && <button className="home-chip home-solved-count" onClick={onHistory}><Icon name="check" size={15}/>{solved} solved</button>}
         <button className="home-chip home-all" aria-label="All techniques" onClick={onLearn}><Icon name="learn" size={15}/>{learned ? `${learned} of ${LESSON_COUNT} techniques` : `${LESSON_COUNT} techniques`}</button>
       </div>
       {next ? <button className="home-lesson" onClick={() => onLesson(next)}>

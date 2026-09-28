@@ -300,5 +300,44 @@ h1,h2,h3,p { margin: 0; }
 .home-install strong { font-size: 15px; }
 .home-install small { order: 2; font-size: 12px; font-weight: 600; color: var(--blue-strong); }
 .home-lesson > svg:last-child, .home-install > svg:last-child { flex-shrink: 0; transform: rotate(-90deg); color: var(--muted); }
-@media (hover: hover) { .home-level:hover { border-color: color-mix(in srgb, var(--level) 45%, transparent); } .home-lesson:hover, .home-install:hover, .home-chip.home-all:hover, .home-hero:not(.quiet):hover { border-color: var(--box-line); } }
+.history { display: flex; flex-direction: column; gap: 12px; padding-bottom: 24px; }
+.history-streak { align-self: flex-start; display: inline-flex; align-items: center; gap: 6px; margin: 0; padding: 7px 12px; border-radius: 99px; background: var(--hint-soft); color: var(--hint-strong); font-size: 13px; }
+.history-streak b { font-weight: 700; }
+.history-calendar { padding: 14px; border-radius: 20px; background: var(--surface); border: 1px solid var(--line); }
+.history-month { display: flex; align-items: center; justify-content: space-between; }
+.history-month h2 { margin: 0; font-size: 17px; }
+.history-month button { width: 40px; height: 40px; display: grid; place-items: center; border-radius: 50%; color: var(--secondary); }
+.history-month button:first-child svg { transform: rotate(90deg); }
+.history-month button:last-child svg { transform: rotate(-90deg); }
+.history-month button:disabled { opacity: .3; cursor: default; }
+.history-week, .history-days { display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; }
+.history-week { margin: 8px 0 4px; font-size: 11px; font-weight: 600; color: var(--muted); }
+.history-day { display: flex; flex-direction: column; align-items: center; gap: 3px; min-height: 40px; padding: 5px 0; border-radius: 10px; font-size: 14px; font-variant-numeric: tabular-nums; }
+.history-day i { display: flex; gap: 2px; height: 6px; }
+.history-dot { width: 6px; height: 6px; border-radius: 2px; background: var(--level); }
+.history-day.today > span { color: var(--blue-strong); font-weight: 700; }
+.history-day.future { opacity: .35; }
+.history-day[aria-pressed='true'] { background: var(--blue-soft); box-shadow: inset 0 0 0 1.5px var(--blue); }
+.history-levels { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.history-level { display: grid; grid-template-columns: auto 1fr; column-gap: 12px; align-items: center; padding: 14px; border-radius: 18px; background: var(--level-soft); }
+.history-level .level-tiles { grid-row: span 2; }
+.history-level-count { display: flex; align-items: baseline; gap: 6px; }
+.history-level-count b { font-size: 26px; letter-spacing: -1px; color: var(--ink); }
+.history-level-count small { font-size: 14px; font-weight: 600; color: var(--ink); }
+.history-level em { font-style: normal; font-size: 12px; font-weight: 600; color: color-mix(in srgb, var(--level) 55%, var(--ink)); }
+.history-heading { margin: 8px 0 0; font-size: 17px; letter-spacing: -.3px; }
+.history-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.history-row { display: flex; align-items: center; gap: 12px; padding: 8px 14px 8px 8px; border-radius: 14px; background: var(--surface); border: 1px solid var(--line); border-left: 4px solid var(--level); }
+.history-pattern { flex-shrink: 0; border-radius: 6px; }
+.history-pattern-bg { fill: var(--level-soft); }
+.history-pattern-given { fill: var(--level); }
+.history-pattern line { stroke: var(--surface); stroke-width: .12; }
+.history-row-copy { flex: 1; display: flex; flex-direction: column; }
+.history-row-copy strong { font-size: 15px; }
+.history-row-copy small { font-size: 12px; color: var(--muted); }
+.history-time { font-size: 16px; font-weight: 650; font-variant-numeric: tabular-nums; }
+.history-more { align-self: center; width: auto; }
+.history-earlier { margin: 4px 0 0; text-align: center; font-size: 13px; color: var(--muted); }
+@media (hover: hover) { .history-day:is(button):hover { background: var(--peer); } }
+@media (hover: hover) { .home-level:hover { border-color: color-mix(in srgb, var(--level) 45%, transparent); } .home-lesson:hover, .home-install:hover, .home-chip.home-all:hover, .home-chip.home-solved-count:hover, .home-hero:not(.quiet):hover { border-color: var(--box-line); } }
 @media (prefers-reduced-motion: reduce) { .home-hero .home-board { animation: none; } }
