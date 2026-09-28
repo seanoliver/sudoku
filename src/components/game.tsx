@@ -10,12 +10,14 @@ import { CellNotes } from './cell-notes';
 import { AppMark, Icon } from './icons';
 import { Clock, CLOCK_KEY } from './clock';
 import { restorePreferences, DEFAULT_PREFS, PREFS_KEY, type Theme, type Preferences } from '@/lib/preferences';
+import { dayKey, readSolves, recordSolve, serializeSolves, SOLVES_KEY, type Solve } from '@/lib/solves';
 import { HISTORY_KEY, readHistory, recordCompleted, recordSeen, type PuzzleHistory } from '@/lib/history';
 import { applyHint, nextHint, type Hint } from '@/lib/hints';
 import { hintView, type HintLevel } from '@/lib/hint-view';
 import { explainStep, type ExplainLine } from '@/lib/explain';
 import { WalkthroughOverlay, WalkthroughPanel } from './hint-walkthrough';
 import { grade, hasLesson, LEARNED_KEY, LESSON_BANDS, lessonName, lessonOf, markLearned, practiceGame, readLearned, sameBoard, type Grade, type Learned, type LessonId } from '@/lib/lessons';
+import { HistoryPage } from './history-page';
 import { LearnPage } from './learn-page';
 import { Home, LEVEL_NOTES } from './home';
 import { greeting, homeState, nextLesson, readSolved, solvedCount, savedSeconds, SOLVED_KEY, storeSolved } from '@/lib/home';
@@ -80,6 +82,7 @@ export default function SudokuGame() {
   const [lesson, setLesson] = useState<LessonState | null>(null);
   const [held, setHeld] = useState<Held | null>(null);
   const [learnOpen, setLearnOpen] = useState(false);
+  const [historyData, setHistoryData] = useState<{ solves: Solve[]; today: string } | null>(null);
   const [view, setView] = useState<'home' | 'game'>('home');
   const [homeData, setHomeData] = useState<{ seconds: number | null; learned: Learned; solved: number; greeting: string }>({ seconds: null, learned: {}, solved: 0, greeting: greeting(12) });
   const [learned, setLearned] = useState<Learned>({});
@@ -95,8 +98,21 @@ export default function SudokuGame() {
   const hintDisplay = activeHint ? hintView(activeHint.hint, activeHint.level) : null;
   const completedSource = complete ? game?.source : undefined;
   useEffect(() => { if (completedSource) updateHistory(history => recordCompleted(history, completedSource)); }, [completedSource]);
+  // A save that loads already finished was solved on an earlier day, so History doesn't record it as today's.
+  const restoredSolved = useRef<string | null>(null);
   const solvedId = complete && !away ? game?.id : undefined;
-  useEffect(() => { if (solvedId) storeSolved(solvedId); }, [solvedId]);
+  const solvedDifficulty = solvedId ? game?.difficulty : undefined;
+  const solvedGivens = solvedId ? game?.givens.join('') : undefined;
+  useEffect(() => {
+    if (!solvedId || !solvedDifficulty || !solvedGivens) return;
+    storeSolved(solvedId);
+    if (solvedId === restoredSolved.current) return;
+    try {
+      // The clock saves its final time when it stops, which happens before this effect runs.
+      const seconds = savedSeconds(localStorage.getItem(CLOCK_KEY), solvedId);
+      if (seconds !== null) localStorage.setItem(SOLVES_KEY, serializeSolves(recordSolve(readSolves(localStorage.getItem(SOLVES_KEY)), { id: solvedId, difficulty: solvedDifficulty, seconds, day: dayKey(new Date()), givens: solvedGivens })));
+    } catch { /* History is optional. */ }
+  }, [solvedId, solvedDifficulty, solvedGivens]);
   const selectCell = (index: number) => {
     setSelected(index); setBlockedEntry(null);
     if (focusedDigit !== null && game?.values[index]) setFocusedDigit(game.values[index]);
@@ -166,6 +182,7 @@ export default function SudokuGame() {
           setDifficulty(saved.difficulty); setBusy(false);
           // Recorded here as well as on completion so the first Home screen already counts it.
           if (isComplete(saved)) {
+            restoredSolved.current = saved.id;
             storeSolved(saved.id);
             const { source } = saved;
             if (source) updateHistory(history => recordCompleted(history, source));
@@ -243,6 +260,7 @@ export default function SudokuGame() {
   const restartPuzzle = () => {
     if (!game || busy) return;
     const restarted = restartGame(game);
+    restoredSolved.current = null;
     setGame(restarted); resetSelection(); setFocusedDigit(null);
     // The clock may not be mounted (restarting from Home), so the reset has to reach its storage directly.
     try { localStorage.setItem(CLOCK_KEY, JSON.stringify({ id: restarted.id, seconds: 0 })); } catch { /* The clock tolerates missing storage. */ }
@@ -269,7 +287,10 @@ export default function SudokuGame() {
   };
   useEffect(() => {
     if (focusAfterRender.current === null) return;
-    document.querySelector<HTMLElement>(focusAfterRender.current)?.focus();
+    // An unrelated render can commit before the one that shows the target, so the target stays pending until it exists.
+    const target = document.querySelector<HTMLElement>(focusAfterRender.current);
+    if (!target) return;
+    target.focus();
     focusAfterRender.current = null;
   });
   const showHint = () => {
@@ -392,9 +413,14 @@ export default function SudokuGame() {
   };
   /** The Home button steps back through the game's history entry, so it and the back button stay in step. */
   const leaveGame = () => { if (inGameEntry()) window.history.back(); else goHome(); };
+  // Set while undoing a forward step, so the back event that undo causes is not read as the player pressing Back.
+  const undoingForward = useRef(false);
   const onHistory = () => {
+    if (undoingForward.current) { undoingForward.current = false; return; }
     if (inGameEntry()) {
-      if (view === 'home' && game && !lesson && !learnOpen) continueGame();
+      if (view !== 'home') return;
+      // Forward can only reopen the game from Home itself; elsewhere it is undone so the browser stays on Home's entry.
+      if (game && !lesson && !learnOpen && !historyData) continueGame(); else { undoingForward.current = true; window.history.back(); }
       return;
     }
     // Generation has no Home to return to until it finishes, so back is undone.
@@ -414,6 +440,22 @@ export default function SudokuGame() {
     window.addEventListener('popstate', onPop);
     return () => window.removeEventListener('popstate', onPop);
   }, []);
+  const openHistory = () => {
+    let solves: Solve[] = [];
+    try { solves = readSolves(localStorage.getItem(SOLVES_KEY)); } catch { /* An empty history still shows the count. */ }
+    setHistoryData({ solves, today: dayKey(new Date()) });
+    focusAfterRender.current = '.lesson-back';
+  };
+  const exitHistory = () => { setHistoryData(null); showHome('.home-solved-count'); };
+  const exitHistoryRef = useRef(exitHistory);
+  useEffect(() => { exitHistoryRef.current = exitHistory; });
+  const historyOpen = historyData !== null;
+  useEffect(() => {
+    if (!historyOpen) return;
+    const onKey = (event: globalThis.KeyboardEvent) => { if (event.key === 'Escape') exitHistoryRef.current(); };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [historyOpen]);
   const exitLearn = () => { setLearnOpen(false); restoreGame(); showHome('.home-all'); };
   const exitLearnRef = useRef(exitLearn);
   useEffect(() => { exitLearnRef.current = exitLearn; });
@@ -500,11 +542,12 @@ export default function SudokuGame() {
 
   const lessonDone = lesson ? lesson.phase === 'done' ? lessonBoards.length - 1 : lesson.phase === 'practice' ? lesson.board - 1 + (lesson.result?.correct ? 1 : 0) : 0 : 0;
   const clockId = held ? held.game?.id : game?.id;
+  if (historyData) return <div className="app"><HistoryPage hideTimer={preferences.hideTimer} solves={historyData.solves} total={homeData.solved} today={historyData.today} onExit={exitHistory}/></div>;
   if (learnOpen) return <div className="app"><LearnPage learned={learned} onOpen={id => openLesson(id, 'list')} onExit={exitLearn}/></div>;
   const onHome = view === 'home' && !lesson;
   return <div className="app" onKeyDown={onHome ? undefined : handleKey}>
     {onHome ? busy && !game ? <header className="app-bar"><h1 className="brand"><AppMark small/><span>Sudoku</span></h1></header> : <Home state={homeState(game)} game={game} seconds={preferences.hideTimer ? null : homeData.seconds} learned={LESSON_BANDS.flatMap(band => band.lessons).filter(id => homeData.learned[id]).length}
-      next={nextLesson(homeData.learned)} solved={homeData.solved} greeting={homeData.greeting} onContinue={continueGame} onPlay={playLevel} onLesson={id => openLesson(id, 'home')} onLearn={openLearn} onSettings={() => openSheet('settings')} onInstall={installed ? undefined : () => openSheet('install')}
+      next={nextLesson(homeData.learned)} solved={homeData.solved} greeting={homeData.greeting} onContinue={continueGame} onPlay={playLevel} onLesson={id => openLesson(id, 'home')} onLearn={openLearn} onSettings={() => openSheet('settings')} onHistory={openHistory} onInstall={installed ? undefined : () => openSheet('install')}
       notice={<>{error && <div className="notice" role="alert"><span>{error}</span><button onClick={() => setError('')} aria-label="Dismiss message"><Icon name="close" size={16}/></button></div>}{storageError && <p className="storage-warning" role="status">Saving is unavailable in this browser. Keep this tab open to continue your puzzle.</p>}</>}/> : <>
     {lesson ? <LessonBar name={lessonName(lesson.id)} done={lessonDone} current={lesson.phase === 'practice' ? lesson.board - 1 : null} count={lessonBoards.length - 1} back={{ hint: 'Your game', list: 'Learn', home: 'Home' }[lesson.from]} onExit={exitLesson}/> : <header className="app-bar">
       <h1 className="brand"><AppMark small/><span>Sudoku</span></h1>

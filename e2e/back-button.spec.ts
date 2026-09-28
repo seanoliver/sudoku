@@ -88,3 +88,29 @@ test('after a reload in the game, Continue and back still move between Home and 
   await page.goBack();
   await onHome(page);
 });
+
+for (const from of ['home', 'learn'] as const) {
+  test(`forward during a lesson opened from ${from === 'home' ? 'Home' : 'the Learn page'} keeps the lesson open`, async ({ page }) => {
+    await seed(page);
+    await page.goto('about:blank');
+    await page.goto('/');
+    await page.getByRole('button', { name: 'Continue' }).click();
+    await inGame(page);
+    await page.goBack();
+    await onHome(page);
+    if (from === 'home') await page.locator('.home-lesson').click();
+    else {
+      await page.getByRole('button', { name: 'All techniques' }).click();
+      await page.locator('.learn-row').first().click();
+    }
+    await expect(page.locator('.lesson-bar .lesson-title')).toBeVisible();
+    await page.goForward();
+    await page.waitForTimeout(300);
+    await expect(page.locator('.lesson-footer')).toBeVisible();
+    await page.locator('.lesson-back').click();
+    if (from === 'learn') await page.locator('.lesson-back').click();
+    await onHome(page);
+    await page.goBack();
+    await expect(page).toHaveURL('about:blank');
+  });
+}
