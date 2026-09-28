@@ -32,7 +32,7 @@ type Sheet = 'restart' | 'new' | 'settings' | 'help' | 'install' | null;
 const GAME_ENTRY = 'sudokuGame';
 // A replay gets its own entry above whatever opened it, so Back closes it.
 const REPLAY_ENTRY = 'sudokuReplay';
-// Entries carry this page load's token. A reload reopens on Home, so entries from an earlier load no longer mean anything.
+// Mark entries with this token, never `true`: entries left from before a reload must not read as live.
 const PAGE_LOAD = Math.random().toString(36).slice(2);
 const inGameEntry = () => window.history.state?.[GAME_ENTRY] === PAGE_LOAD;
 const inReplayEntry = () => window.history.state?.[REPLAY_ENTRY] === PAGE_LOAD;
@@ -181,8 +181,7 @@ export default function SudokuGame() {
   }, [resetSelection]);
 
   useEffect(() => {
-    // A reload always opens on Home, so the entry it reloaded stops being a game or replay entry. Next.js keeps its own state in
-    // the entry and reloads the page on Back or Forward to an entry without it, so only this app's keys are removed.
+    // Not `replaceState({})`: Next.js reloads the page on Back or Forward to an entry missing its own keys.
     if (staleEntry()) window.history.replaceState(Object.fromEntries(Object.entries(window.history.state).filter(([key]) => key !== GAME_ENTRY && key !== REPLAY_ENTRY)), '');
     const timer = window.setTimeout(() => {
       try {
@@ -431,7 +430,6 @@ export default function SudokuGame() {
   const undoingForward = useRef(false);
   const onHistory = () => {
     if (undoingForward.current) { undoingForward.current = false; return; }
-    // Entries from before a reload are stepped past, in whichever direction the player went.
     if (staleEntry()) { window.history.back(); return; }
     if (replayView && !inReplayEntry()) { closeReplay(); return; }
     if (inReplayEntry() && !replayView) { undoingForward.current = true; window.history.back(); return; }

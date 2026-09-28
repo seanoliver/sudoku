@@ -25,11 +25,10 @@ function Pattern({ givens }: { givens: string }) {
 }
 
 export function HistoryPage({ solves, total: counted, today: opened, hideTimer, onExit }: { solves: Solve[]; total: number; today: string; hideTimer: boolean; onExit: () => void }) {
-  // The solved count counts Expert puzzles once each, while History lists every solve, so the header never shows fewer than the list.
+  // `total` counts each Expert puzzle once, so it can be lower than the solves listed.
   const total = Math.max(counted, solves.length);
   const [today, setToday] = useState(opened);
   useEffect(() => {
-    // Left open past midnight, the page moves Today, the streak, and the labels to the new day.
     const now = new Date();
     const midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1).getTime() - now.getTime();
     const timer = window.setTimeout(() => setToday(dayKey(new Date())), midnight + 50);
@@ -96,7 +95,7 @@ export function HistoryPage({ solves, total: counted, today: opened, hideTimer, 
         {!hideTimer && <span className="history-time">{solveTime(solve.seconds)}</span>}
       </li>)}</ol>
       {listed.length > shown && <button className="text-button history-more" onClick={() => {
-        // The button can disappear with the last page, so focus moves to the first new solve.
+        // The button unmounts after the last page, so focus moves to the first new solve.
         const first = shown;
         setShown(first + PAGE);
         requestAnimationFrame(() => (list.current?.children[first] as HTMLElement | undefined)?.focus());

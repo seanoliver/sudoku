@@ -51,7 +51,6 @@ export function diffBoards(before: Board, after: Board): Change[] {
 
 function apply(board: Board, changes: readonly Change[]): Board {
   const next: Board = { values: [...board.values], notes: [...board.notes], exclusions: [...board.exclusions] };
-  // Origins are tracked only once a recording has generated notes, so older recordings rebuild exactly as before.
   if (board.generated || changes.some(change => change[4])) next.generated = board.generated ? [...board.generated] : Array(81).fill(false);
   for (const [i, value, notes, exclusions, generated] of changes) {
     next.values[i] = value; next.notes[i] = digitsOf(notes); next.exclusions[i] = digitsOf(exclusions);
@@ -77,7 +76,6 @@ export function recordBoard(replays: Replays, id: string, board: Board, { restar
   const existing = replays.find(r => r.id === id);
   const others = replays.filter(r => r.id !== id);
   if (!existing || restart) return withinBudget([...others, { id, start: diffBoards(emptyBoard(), board), steps: [] }].slice(-REPLAY_GAMES));
-  // `last`, when the caller already has it, saves rebuilding the board from every step.
   const step = diffBoards(last ?? lastBoard(existing), board);
   if (!step.length) return replays.at(-1) === existing ? replays : [...others, existing];
   const steps = existing.steps.length < REPLAY_STEPS ? [...existing.steps, step] : [...existing.steps.slice(0, -1), merge(existing.steps.at(-1) ?? [], step)];

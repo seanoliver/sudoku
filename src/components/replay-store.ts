@@ -6,11 +6,9 @@ import type { GameState } from '@/lib/game';
 const EMPTY: Replays = [];
 const SAVE_DELAY_MS = 400;
 let cache: Replays | null = null;
-// Each game's last recorded board, so a move doesn't rebuild the board from every step.
 const lastBoards = new Map<string, Board>();
 const listeners = new Set<() => void>();
 let saveTimer: number | undefined;
-// Games this tab has recorded since it last saved, which another tab's save must not overwrite.
 const unsaved = new Set<string>();
 let watching = false;
 
@@ -27,7 +25,7 @@ function watch() {
   // Moves are saved in batches; leaving or hiding the page saves at once so nothing is lost.
   window.addEventListener('pagehide', save);
   document.addEventListener('visibilitychange', () => { if (document.hidden) save(); });
-  // Another tab's recordings replace this tab's copy, so this tab's next save keeps them.
+  // Keep this tab's unsaved games: another tab's copy doesn't have them.
   window.addEventListener('storage', event => {
     if (event.key !== REPLAYS_KEY) return;
     const mine = (cache ?? []).filter(replay => unsaved.has(replay.id));
