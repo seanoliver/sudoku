@@ -1,7 +1,10 @@
-/** The parts of a game a replay shows. */
-export type Board = { values: number[]; notes: number[][]; exclusions: number[][] };
-/** One cell's full state after a change: cell, value, and notes and exclusions as 9-bit masks (bit d for digit d). */
-export type Change = [cell: number, value: number, notes: number, exclusions: number];
+/** The parts of a game a replay shows. `generated` marks cells whose notes came from Fill notes. */
+export type Board = { values: number[]; notes: number[][]; exclusions: number[][]; generated?: boolean[] };
+/**
+ * One cell's full state after a change: cell, value, and notes and exclusions as 9-bit masks (bit d for digit d).
+ * A fifth element of 1 marks notes from Fill notes; recordings made before it existed have four elements.
+ */
+export type Change = [cell: number, value: number, notes: number, exclusions: number, generated?: 1];
 /** `start` is the first board recorded, as changes from an empty board; each step is the cells one action changed. */
 export type Replay = { id: string; start: Change[]; steps: Change[][] };
 /** Oldest first. */
@@ -14,8 +17,8 @@ export const REPLAY_GAMES = 20;
 export const REPLAY_STEPS = 2000;
 /** Recordings share the device's storage with the game's save, so all of them together stay under this many bytes. */
 export const REPLAY_BYTES = 1_000_000;
-// An upper bound on stored size: the longest change is "[80,9,1022,1022]," (17 characters), each step adds "[]," and each game its id and keys.
-const sizeOf = (replay: Replay) => 80 + replay.id.length + 17 * (replay.start.length + replay.steps.reduce((n, step) => n + step.length, 0)) + 3 * replay.steps.length;
+// An upper bound on stored size: the longest change is "[80,9,1022,1022,1]," (19 characters), each step adds "[]," and each game its id and keys.
+const sizeOf = (replay: Replay) => 80 + replay.id.length + 19 * (replay.start.length + replay.steps.reduce((n, step) => n + step.length, 0)) + 3 * replay.steps.length;
 /** Drops the oldest games until the rest fit the budget; the newest game always stays. */
 function withinBudget(replays: Replays): Replays {
   let total = replays.reduce((n, replay) => n + sizeOf(replay), 0);
@@ -33,20 +36,27 @@ const merge = (earlier: Change[], later: Change[]): Change[] => {
 const mask = (digits: readonly number[]) => digits.reduce((m, d) => m | (1 << d), 0);
 const digitsOf = (m: number) => [1, 2, 3, 4, 5, 6, 7, 8, 9].filter(d => m & (1 << d));
 const emptyBoard = (): Board => ({ values: Array(81).fill(0), notes: Array.from({ length: 81 }, () => []), exclusions: Array.from({ length: 81 }, () => []) });
-const cellState = (board: Board, i: number): Change => [i, board.values[i], mask(board.notes[i]), mask(board.exclusions[i])];
+const cellState = (board: Board, i: number): Change => board.generated?.[i] && board.notes[i].length
+  ? [i, board.values[i], mask(board.notes[i]), mask(board.exclusions[i]), 1]
+  : [i, board.values[i], mask(board.notes[i]), mask(board.exclusions[i])];
 
 export function diffBoards(before: Board, after: Board): Change[] {
   const changes: Change[] = [];
   for (let i = 0; i < 81; i++) {
     const a = cellState(before, i), b = cellState(after, i);
-    if (a[1] !== b[1] || a[2] !== b[2] || a[3] !== b[3]) changes.push(b);
+    if (a[1] !== b[1] || a[2] !== b[2] || a[3] !== b[3] || a[4] !== b[4]) changes.push(b);
   }
   return changes;
 }
 
 function apply(board: Board, changes: readonly Change[]): Board {
   const next: Board = { values: [...board.values], notes: [...board.notes], exclusions: [...board.exclusions] };
-  for (const [i, value, notes, exclusions] of changes) { next.values[i] = value; next.notes[i] = digitsOf(notes); next.exclusions[i] = digitsOf(exclusions); }
+  // Origins are tracked only once a recording has generated notes, so older recordings rebuild exactly as before.
+  if (board.generated || changes.some(change => change[4])) next.generated = board.generated ? [...board.generated] : Array(81).fill(false);
+  for (const [i, value, notes, exclusions, generated] of changes) {
+    next.values[i] = value; next.notes[i] = digitsOf(notes); next.exclusions[i] = digitsOf(exclusions);
+    if (next.generated) next.generated[i] = generated === 1;
+  }
   return next;
 }
 
@@ -63,11 +73,12 @@ const lastBoard = (replay: Replay) => replay.steps.reduce(apply, apply(emptyBoar
  * A board with no changes adds no step; past the step limit, changes fold into the last step so the replay still ends on
  * the latest board. The game becomes the most recent either way.
  */
-export function recordBoard(replays: Replays, id: string, board: Board, { restart = false }: { restart?: boolean } = {}): Replays {
+export function recordBoard(replays: Replays, id: string, board: Board, { restart = false, last }: { restart?: boolean; last?: Board } = {}): Replays {
   const existing = replays.find(r => r.id === id);
   const others = replays.filter(r => r.id !== id);
   if (!existing || restart) return withinBudget([...others, { id, start: diffBoards(emptyBoard(), board), steps: [] }].slice(-REPLAY_GAMES));
-  const step = diffBoards(lastBoard(existing), board);
+  // `last`, when the caller already has it, saves rebuilding the board from every step.
+  const step = diffBoards(last ?? lastBoard(existing), board);
   if (!step.length) return replays.at(-1) === existing ? replays : [...others, existing];
   const steps = existing.steps.length < REPLAY_STEPS ? [...existing.steps, step] : [...existing.steps.slice(0, -1), merge(existing.steps.at(-1) ?? [], step)];
   return withinBudget([...others, { ...existing, steps }]);
@@ -90,7 +101,7 @@ export function replayStats(replay: Replay, solution: readonly number[]) {
   return { numbers: kinds.filter(k => k === 'number').length, notes: kinds.filter(k => k === 'note').length, fixes: kinds.filter(k => k === 'fix').length };
 }
 
-const isChange = (c: unknown): c is Change => Array.isArray(c) && c.length === 4
+const isChange = (c: unknown): c is Change => Array.isArray(c) && (c.length === 4 || (c.length === 5 && c[4] === 1))
   && Number.isInteger(c[0]) && c[0] >= 0 && c[0] < 81 && Number.isInteger(c[1]) && c[1] >= 0 && c[1] <= 9
   && Number.isInteger(c[2]) && c[2] >= 0 && c[2] < 1024 && Number.isInteger(c[3]) && c[3] >= 0 && c[3] < 1024;
 const isReplay = (r: unknown): r is Replay => {

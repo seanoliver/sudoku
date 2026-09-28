@@ -1,6 +1,6 @@
 'use client';
-import { useState } from 'react';
-import { levelStats, monthGrid, streak, type Solve } from '@/lib/solves';
+import { useEffect, useRef, useState } from 'react';
+import { dayKey, levelStats, monthGrid, streak, type Solve } from '@/lib/solves';
 import type { Difficulty } from '@/lib/sudoku';
 import { LevelTiles } from './home';
 import { Icon } from './icons';
@@ -24,7 +24,18 @@ function Pattern({ givens }: { givens: string }) {
   </svg>;
 }
 
-export function HistoryPage({ solves, total, today, hideTimer, onExit }: { solves: Solve[]; total: number; today: string; hideTimer: boolean; onExit: () => void }) {
+export function HistoryPage({ solves, total: counted, today: opened, hideTimer, onExit }: { solves: Solve[]; total: number; today: string; hideTimer: boolean; onExit: () => void }) {
+  // The solved count counts Expert puzzles once each, while History lists every solve, so the header never shows fewer than the list.
+  const total = Math.max(counted, solves.length);
+  const [today, setToday] = useState(opened);
+  useEffect(() => {
+    // Left open past midnight, the page moves Today, the streak, and the labels to the new day.
+    const now = new Date();
+    const midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1).getTime() - now.getTime();
+    const timer = window.setTimeout(() => setToday(dayKey(new Date())), midnight + 50);
+    return () => clearTimeout(timer);
+  }, [today]);
+  const list = useRef<HTMLOListElement>(null);
   const [monthOffset, setMonthOffset] = useState(0);
   const [selected, setSelected] = useState<string | null>(null);
   const [shown, setShown] = useState(PAGE);
@@ -67,7 +78,7 @@ export function HistoryPage({ solves, total, today, hideTimer, onExit }: { solve
             const label = <><span>{dateOf(day).getDate()}</span><i aria-hidden="true">{mine.slice(0, 4).map(s => <em key={s.id} className={`history-dot level-${s.difficulty}`}/>)}{mine.length > 4 && <b className="history-more-dots">+</b>}</i></>;
             const className = `history-day${day === today ? ' today' : ''}${day > today ? ' future' : ''}`;
             return mine.length ? <button key={day} className={className} data-day={day} aria-pressed={selected === day}
-              aria-label={`${dateOf(day).toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}: ${mine.length} ${mine.length === 1 ? 'solve' : 'solves'}: ${LEVELS.map(level => [level, mine.filter(s => s.difficulty === level).length] as const).filter(([, n]) => n).map(([level, n]) => `${n} ${level}`).join(', ')}`}
+              aria-label={`${dateOf(day).toLocaleDateString('en-US', dateOf(day).getFullYear() === now.getFullYear() ? { month: 'long', day: 'numeric' } : { month: 'long', day: 'numeric', year: 'numeric' })}: ${mine.length} ${mine.length === 1 ? 'solve' : 'solves'}: ${LEVELS.map(level => [level, mine.filter(s => s.difficulty === level).length] as const).filter(([, n]) => n).map(([level, n]) => `${n} ${level}`).join(', ')}`}
               onClick={() => { setSelected(current => current === day ? null : day); setShown(PAGE); }}>{label}</button>
               : <span key={day} className={className} data-day={day}>{label}</span>;
           })}
@@ -79,12 +90,17 @@ export function HistoryPage({ solves, total, today, hideTimer, onExit }: { solve
         {!hideTimer && <em>{stats[level].best === null ? '–' : `Best ${solveTime(stats[level].best)}`}</em>}
       </div>)}</div>
       <h2 className="history-heading">{selected ? dateOf(selected).toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' }) : 'Recent'}</h2>
-      <ol className="history-list">{listed.slice(0, shown).map(solve => <li key={solve.id} className={`history-row level-${solve.difficulty}`}>
+      <ol className="history-list" ref={list}>{listed.slice(0, shown).map(solve => <li key={solve.id} className={`history-row level-${solve.difficulty}`} tabIndex={-1}>
         <Pattern givens={solve.givens}/>
         <span className="history-row-copy"><strong>{capital(solve.difficulty)}</strong><small>{when(solve.day)}</small></span>
         {!hideTimer && <span className="history-time">{solveTime(solve.seconds)}</span>}
       </li>)}</ol>
-      {listed.length > shown && <button className="text-button history-more" onClick={() => setShown(count => count + PAGE)}>Show more</button>}
+      {listed.length > shown && <button className="text-button history-more" onClick={() => {
+        // The button can disappear with the last page, so focus moves to the first new solve.
+        const first = shown;
+        setShown(first + PAGE);
+        requestAnimationFrame(() => (list.current?.children[first] as HTMLElement | undefined)?.focus());
+      }}>Show more</button>}
       {!selected && earlier > 0 && <p className="history-earlier">+{earlier} earlier</p>}
     </main>
   </>;

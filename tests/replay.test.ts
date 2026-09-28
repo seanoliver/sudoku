@@ -87,3 +87,24 @@ test('erasing or undoing a correct number is not counted as a number, a note, or
   assert.deepEqual(stepKinds(replays[0], solution), ['number', 'other', 'number']);
   assert.deepEqual(replayStats(replays[0], solution), { numbers: 2, notes: 0, fixes: 0 });
 });
+
+test('notes from Fill notes keep their origin through a replay', () => {
+  const filled: Board = { ...givens, notes: givens.notes.map((n, i) => i === 9 ? [2, 6] : n), generated: givens.values.map((_, i) => i === 9) };
+  const typed = withValues({ 3: 5 }, filled);
+  let replays: Replays = [];
+  for (const board of [givens, filled, typed]) replays = recordBoard(replays, 'g1', board);
+  const boards = boardsOf(replays[0]);
+  assert.equal(boards[1].generated?.[9], true);
+  assert.equal(boards[2].generated?.[9], true);
+  assert.deepEqual(boards[2].notes[9], [2, 6]);
+  assert.deepEqual(readReplays(serializeReplays(replays)), replays);
+});
+
+test('passing the last recorded board gives the same recording as rebuilding it', () => {
+  const boards = [givens, withValues({ 2: 4 }, givens), withValues({ 2: 4, 3: 1 }, givens)];
+  let rebuilt: Replays = [];
+  let cached: Replays = [];
+  let last: Board | undefined;
+  for (const board of boards) { rebuilt = recordBoard(rebuilt, 'g1', board); cached = recordBoard(cached, 'g1', board, { last }); last = board; }
+  assert.deepEqual(cached, rebuilt);
+});

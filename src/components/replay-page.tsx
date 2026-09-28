@@ -75,7 +75,7 @@ export function ReplayPage({ replay, givens, solution, level, seconds, onExit }:
                 return <div key={i} className="cell-slot"><div className={['cell', given ? 'given' : 'entered', wrong ? 'wrong' : '', changed.has(i) ? 'changed' : ''].filter(Boolean).join(' ')}>
                   {value ? <span className="cell-number">{value}</span> : null}
                   {wrong && <span className="conflict-dot"/>}
-                  <CellNotes filled={value !== 0} manual={board.notes[i]} automatic={EMPTY} excluded={board.exclusions[i]} boardKey="replay"/>
+                  <CellNotes filled={value !== 0} manual={board.generated?.[i] ? EMPTY : board.notes[i]} automatic={board.generated?.[i] ? board.notes[i] : EMPTY} excluded={board.exclusions[i]} boardKey="replay"/>
                 </div></div>;
               })}
             </div>)}
