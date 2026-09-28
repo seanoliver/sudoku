@@ -21,3 +21,12 @@ test('timer visibility defaults to visible and persists independently of other p
     assert.equal(restorePreferences(JSON.stringify({ ...legacy, hideTimer })).hideTimer, false);
   }
 });
+
+test('a new player starts with every aid on and the timer showing', () => {
+  assert.deepEqual(restorePreferences(null), { theme: 'system', blockIncorrectAnswers: true, highlightPeers: true, smartHighlighting: true, filterNumberKeys: true, hideTimer: false });
+});
+
+test('an existing player keeps the settings they saved', () => {
+  const saved = { theme: 'light', blockIncorrectAnswers: true, highlightPeers: true, smartHighlighting: false, filterNumberKeys: false, hideTimer: false };
+  assert.deepEqual(restorePreferences(JSON.stringify(saved)), saved);
+});

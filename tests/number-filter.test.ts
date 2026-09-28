@@ -15,8 +15,8 @@ test('filtered entry rejects row, column, and box repeats without changing annot
   }
 });
 
-test('filtering defaults off and migrates missing or invalid flags without resetting other preferences', () => {
-  assert.equal(DEFAULT_PREFS.filterNumberKeys, false);
+test('filtering starts on for new players, and a saved preference from before it existed stays off', () => {
+  assert.equal(DEFAULT_PREFS.filterNumberKeys, true);
   const legacy = { theme: 'dark', blockIncorrectAnswers: false, highlightPeers: false, smartHighlighting: true };
   for (const flag of [undefined, null, 1, 'true']) {
     assert.deepEqual(restorePreferences(JSON.stringify({ ...legacy, filterNumberKeys: flag })), { ...legacy, filterNumberKeys: false, hideTimer: false });
