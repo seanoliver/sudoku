@@ -37,3 +37,10 @@ export function storeSolved(id: string) {
 
 /** Home's hello, by the hour it is read. */
 export const greeting = (hour: number) => hour < 5 ? 'Up late' : hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
+
+/**
+ * Every solve on record. Expert puzzles come from the bank and have been recorded by source in play history since
+ * before this count existed, so they are counted from there; the count's own list adds the other difficulties.
+ */
+export const solvedCount = (solved: readonly string[], completedExpert: readonly string[]) =>
+  new Set(completedExpert).size + new Set(solved.filter(id => !id.endsWith('-expert'))).size;
