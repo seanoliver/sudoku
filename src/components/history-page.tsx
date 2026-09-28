@@ -24,7 +24,7 @@ function Pattern({ givens }: { givens: string }) {
   </svg>;
 }
 
-export function HistoryPage({ solves, total, today, onExit }: { solves: Solve[]; total: number; today: string; onExit: () => void }) {
+export function HistoryPage({ solves, total, today, hideTimer, onExit }: { solves: Solve[]; total: number; today: string; hideTimer: boolean; onExit: () => void }) {
   const [monthOffset, setMonthOffset] = useState(0);
   const [selected, setSelected] = useState<string | null>(null);
   const [shown, setShown] = useState(PAGE);
@@ -57,17 +57,17 @@ export function HistoryPage({ solves, total, today, onExit }: { solves: Solve[];
         <div className="history-month">
           <button aria-label="Previous month" onClick={() => { setMonthOffset(offset => offset - 1); setSelected(null); }}><Icon name="chevron" size={16}/></button>
           <h2 id="history-month" aria-live="polite">{monthName}</h2>
-          <button aria-label="Next month" disabled={monthOffset === 0} onClick={() => { setMonthOffset(offset => offset + 1); setSelected(null); }}><Icon name="chevron" size={16}/></button>
+          <button aria-label="Next month" aria-disabled={monthOffset === 0} onClick={() => { if (monthOffset === 0) return; setMonthOffset(offset => offset + 1); setSelected(null); }}><Icon name="chevron" size={16}/></button>
         </div>
         <div className="history-week" aria-hidden="true">{['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((d, k) => <span key={k}>{d}</span>)}</div>
         <div className="history-days">
           {Array.from({ length: grid.lead }, (_, k) => <span key={`lead${k}`}/>)}
           {grid.days.map(day => {
             const mine = byDay.get(day) ?? [];
-            const label = <><span>{dateOf(day).getDate()}</span><i aria-hidden="true">{mine.slice(0, 4).map(s => <em key={s.id} className={`history-dot level-${s.difficulty}`}/>)}</i></>;
+            const label = <><span>{dateOf(day).getDate()}</span><i aria-hidden="true">{mine.slice(0, 4).map(s => <em key={s.id} className={`history-dot level-${s.difficulty}`}/>)}{mine.length > 4 && <b className="history-more-dots">+</b>}</i></>;
             const className = `history-day${day === today ? ' today' : ''}${day > today ? ' future' : ''}`;
             return mine.length ? <button key={day} className={className} data-day={day} aria-pressed={selected === day}
-              aria-label={`${dateOf(day).toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}: ${mine.length} ${mine.length === 1 ? 'solve' : 'solves'}`}
+              aria-label={`${dateOf(day).toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}: ${mine.length} ${mine.length === 1 ? 'solve' : 'solves'}: ${LEVELS.map(level => [level, mine.filter(s => s.difficulty === level).length] as const).filter(([, n]) => n).map(([level, n]) => `${n} ${level}`).join(', ')}`}
               onClick={() => { setSelected(current => current === day ? null : day); setShown(PAGE); }}>{label}</button>
               : <span key={day} className={className} data-day={day}>{label}</span>;
           })}
@@ -76,13 +76,13 @@ export function HistoryPage({ solves, total, today, onExit }: { solves: Solve[];
       <div className="history-levels">{LEVELS.map(level => <div key={level} className={`history-level level-${level}`}>
         <LevelTiles level={level}/>
         <span className="history-level-count"><b>{stats[level].count}</b><small>{capital(level)}</small></span>
-        <em>{stats[level].best === null ? '–' : `Best ${solveTime(stats[level].best)}`}</em>
+        {!hideTimer && <em>{stats[level].best === null ? '–' : `Best ${solveTime(stats[level].best)}`}</em>}
       </div>)}</div>
       <h2 className="history-heading">{selected ? dateOf(selected).toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' }) : 'Recent'}</h2>
       <ol className="history-list">{listed.slice(0, shown).map(solve => <li key={solve.id} className={`history-row level-${solve.difficulty}`}>
         <Pattern givens={solve.givens}/>
         <span className="history-row-copy"><strong>{capital(solve.difficulty)}</strong><small>{when(solve.day)}</small></span>
-        <span className="history-time">{solveTime(solve.seconds)}</span>
+        {!hideTimer && <span className="history-time">{solveTime(solve.seconds)}</span>}
       </li>)}</ol>
       {listed.length > shown && <button className="text-button history-more" onClick={() => setShown(count => count + PAGE)}>Show more</button>}
       {!selected && earlier > 0 && <p className="history-earlier">+{earlier} earlier</p>}

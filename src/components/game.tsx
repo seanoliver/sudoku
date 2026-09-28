@@ -99,12 +99,15 @@ export default function SudokuGame() {
   const hintDisplay = activeHint ? hintView(activeHint.hint, activeHint.level) : null;
   const completedSource = complete ? game?.source : undefined;
   useEffect(() => { if (completedSource) updateHistory(history => recordCompleted(history, completedSource)); }, [completedSource]);
+  // A save that loads already finished was solved on an earlier day, so History doesn't record it as today's.
+  const restoredSolved = useRef<string | null>(null);
   const solvedId = complete && !away ? game?.id : undefined;
   const solvedDifficulty = solvedId ? game?.difficulty : undefined;
   const solvedGivens = solvedId ? game?.givens.join('') : undefined;
   useEffect(() => {
     if (!solvedId || !solvedDifficulty || !solvedGivens) return;
     storeSolved(solvedId);
+    if (solvedId === restoredSolved.current) return;
     try {
       // The clock saves its final time when it stops, which happens before this effect runs.
       const seconds = savedSeconds(localStorage.getItem(CLOCK_KEY), solvedId);
@@ -180,6 +183,7 @@ export default function SudokuGame() {
           setDifficulty(saved.difficulty); setBusy(false);
           // Recorded here as well as on completion so the first Home screen already counts it.
           if (isComplete(saved)) {
+            restoredSolved.current = saved.id;
             storeSolved(saved.id);
             const { source } = saved;
             if (source) updateHistory(history => recordCompleted(history, source));
@@ -257,6 +261,7 @@ export default function SudokuGame() {
   const restartPuzzle = () => {
     if (!game || busy) return;
     const restarted = restartGame(game);
+    restoredSolved.current = null;
     setGame(restarted); resetSelection(); setFocusedDigit(null);
     // The clock may not be mounted (restarting from Home), so the reset has to reach its storage directly.
     try { localStorage.setItem(CLOCK_KEY, JSON.stringify({ id: restarted.id, seconds: 0 })); } catch { /* The clock tolerates missing storage. */ }
@@ -283,7 +288,10 @@ export default function SudokuGame() {
   };
   useEffect(() => {
     if (focusAfterRender.current === null) return;
-    document.querySelector<HTMLElement>(focusAfterRender.current)?.focus();
+    // An unrelated render can commit before the one that shows the target, so the target stays pending until it exists.
+    const target = document.querySelector<HTMLElement>(focusAfterRender.current);
+    if (!target) return;
+    target.focus();
     focusAfterRender.current = null;
   });
   const showHint = () => {
@@ -408,7 +416,9 @@ export default function SudokuGame() {
   const leaveGame = () => { if (inGameEntry()) window.history.back(); else goHome(); };
   const onHistory = () => {
     if (inGameEntry()) {
-      if (view === 'home' && game && !lesson && !learnOpen) continueGame();
+      if (view !== 'home') return;
+      // Forward can only reopen the game from Home itself; elsewhere it is undone so the browser stays on Home's entry.
+      if (game && !lesson && !learnOpen && !historyData) continueGame(); else window.history.back();
       return;
     }
     // Generation has no Home to return to until it finishes, so back is undone.
@@ -530,7 +540,7 @@ export default function SudokuGame() {
 
   const lessonDone = lesson ? lesson.phase === 'done' ? lessonBoards.length - 1 : lesson.phase === 'practice' ? lesson.board - 1 + (lesson.result?.correct ? 1 : 0) : 0 : 0;
   const clockId = held ? held.game?.id : game?.id;
-  if (historyData) return <div className="app"><HistoryPage solves={historyData.solves} total={homeData.solved} today={historyData.today} onExit={exitHistory}/></div>;
+  if (historyData) return <div className="app"><HistoryPage hideTimer={preferences.hideTimer} solves={historyData.solves} total={homeData.solved} today={historyData.today} onExit={exitHistory}/></div>;
   if (learnOpen) return <div className="app"><LearnPage learned={learned} onOpen={id => openLesson(id, 'list')} onExit={exitLearn}/></div>;
   const onHome = view === 'home' && !lesson;
   return <div className="app" onKeyDown={onHome ? undefined : handleKey}>

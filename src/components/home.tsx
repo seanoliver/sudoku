@@ -67,7 +67,7 @@ export function Home({ state, game, seconds, learned, next, solved, greeting, on
         <LevelTiles level={level}/><strong>{capital(level)}</strong><small>{LEVEL_NOTES[level]}</small>
       </button>)}</div>
       <div className="home-chips">
-        {solved > 0 && <button className="home-chip home-solved-count" onClick={onHistory}><Icon name="check" size={15}/>{solved} solved</button>}
+        {solved > 0 && <button className="home-chip home-solved-count" aria-label={`History, ${solved} solved`} onClick={onHistory}><Icon name="check" size={15}/>{solved} solved</button>}
         <button className="home-chip home-all" aria-label="All techniques" onClick={onLearn}><Icon name="learn" size={15}/>{learned ? `${learned} of ${LESSON_COUNT} techniques` : `${LESSON_COUNT} techniques`}</button>
       </div>
       {next ? <button className="home-lesson" onClick={() => onLesson(next)}>

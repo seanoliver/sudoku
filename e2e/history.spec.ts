@@ -77,7 +77,7 @@ test('the calendar pages back through earlier months but not past this one', asy
   await page.locator('.home-solved-count').click();
   const month = (offset: number) => { const d = new Date(); d.setDate(1); d.setMonth(d.getMonth() + offset); return d.toLocaleDateString('en-US', { month: 'long' }); };
   await expect(page.locator('.history-month')).toContainText(month(0));
-  await expect(page.getByRole('button', { name: 'Next month' })).toBeDisabled();
+  await expect(page.getByRole('button', { name: 'Next month' })).toHaveAttribute('aria-disabled', 'true');
   await page.getByRole('button', { name: 'Previous month' }).click();
   await expect(page.locator('.history-month')).toContainText(month(-1));
 });
@@ -89,4 +89,54 @@ test('Escape returns Home from History', async ({ page }) => {
   await expect(page.getByRole('heading', { name: 'History', level: 1 })).toBeVisible();
   await page.keyboard.press('Escape');
   await expect(page.locator('.home-solved-count')).toBeFocused();
+});
+
+test('reopening a game that was already finished does not record it again as solved today', async ({ page }) => {
+  const game = JSON.parse(almostSolved().game);
+  await page.addInitScript(([key, value, id]) => { localStorage.setItem(key, value); localStorage.setItem('sudoku.clock.v1', JSON.stringify({ id, seconds: 777 })); }, [SAVE_KEY, JSON.stringify({ ...game, values: game.solution }), game.id]);
+  await page.goto('/');
+  await expect(page.getByRole('heading', { name: /^Nicely solved/ })).toBeVisible();
+  await page.waitForTimeout(300);
+  expect(await page.evaluate(k => localStorage.getItem(k), SOLVES_KEY)).toBeNull();
+});
+
+test('forward while History is open leaves Home and the browser in step', async ({ page }) => {
+  await seed(page, [solve('a', 'easy', 300, 0)]);
+  await page.addInitScript(([key, value]) => { if (!sessionStorage.getItem('seeded')) { localStorage.setItem(key, value); sessionStorage.setItem('seeded', '1'); } }, [SAVE_KEY, inProgress]);
+  await page.goto('about:blank');
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Continue' }).click();
+  await page.goBack();
+  await page.locator('.home-solved-count').click();
+  await expect(page.getByRole('heading', { name: 'History', level: 1 })).toBeVisible();
+  await page.goForward();
+  await expect(page.getByRole('heading', { name: 'History', level: 1 })).toBeVisible();
+  await page.getByRole('button', { name: 'Home' }).click();
+  await expect(page.getByRole('button', { name: 'Continue' })).toBeVisible();
+  await page.goBack();
+  await expect(page).toHaveURL('about:blank');
+});
+
+test('History hides times when Hide timer is on', async ({ page }) => {
+  await seed(page, [solve('a', 'easy', 300, 0)]);
+  await page.addInitScript(() => localStorage.setItem('sudoku.preferences.v1', JSON.stringify({ theme: 'system', blockIncorrectAnswers: true, highlightPeers: true, hideTimer: true })));
+  await page.goto('/');
+  await page.locator('.home-solved-count').click();
+  await expect(page.locator('.history-row')).toHaveCount(1);
+  await expect(page.locator('.history-time')).toHaveCount(0);
+  await expect(page.locator('.history-level.level-easy')).not.toContainText('Best');
+});
+
+test('the calendar and the solved chip name what they show', async ({ page }) => {
+  await seed(page, [solve('a', 'easy', 300, 0), solve('b', 'hard', 905, 0), ...['c', 'd', 'e'].map(id => solve(id, 'medium', 400, 0))]);
+  await page.goto('/');
+  await expect(page.getByRole('button', { name: 'History, 5 solved' })).toBeVisible();
+  await page.locator('.home-solved-count').click();
+  const today = page.locator(`.history-day[data-day="${daysAgo(0)}"]`);
+  await expect(today).toHaveAttribute('aria-label', /5 solves: 1 easy, 3 medium, 1 hard$/);
+  await expect(today.locator('.history-more-dots')).toHaveCount(1);
+  await page.getByRole('button', { name: 'Previous month' }).click();
+  await page.getByRole('button', { name: 'Next month' }).focus();
+  await page.keyboard.press('Enter');
+  await expect(page.getByRole('button', { name: 'Next month' })).toBeFocused();
 });
