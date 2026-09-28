@@ -261,6 +261,7 @@ Status: queued for research. The feature outcomes below are uncommitted. Complet
 - **Idea:** Replace the one-row number pad with a 3 × 3 number grid, as Good Sudoku does. Sean asked on September 23 to keep this as a separate, larger redesign.
 - **Research:** Compare a 3 × 3 grid with the current row on a 390px-wide phone: key size, reach, how the grid sits beside or below the board, and how entry modes (Numbers, Notes, Exclude), Erase, digit focus, number filtering, and the batch keypad fit. Check how the grid mirrors a cell's note layout.
 - **Output:** Three rendered layout directions for Sean, then a scope proposal. Coordinate with the entry mode switch (R3) and the number-row presentation (R4).
+- **Status:** In progress on `feat/keypad-grid` ([design](plans/2026-09-28-keypad-grid-design.md)): Sean chose a 3 × 3 grid with the entry modes stacked beside it.
 
 ### R10. Puzzle history
 
