@@ -1,8 +1,12 @@
-# Sudoku
+<a href="https://sudoku.seanoliver.dev"><img src="src/app/opengraph-image.png" alt="Sudoku: a color wrap hint walking through a chain of linked 4s on the board, beside the line “A calm Sudoku that teaches you every technique, one move at a time.”"></a>
 
-[Play Sudoku](https://sudoku.seanoliver.dev)
+**[Play Sudoku →](https://sudoku.seanoliver.dev)**
 
-A small, free, mobile-friendly Sudoku PWA built with Next.js, React, and TypeScript. Things 3 inspired the restrained colors, system typography, controls, and interaction style.
+A small, free, mobile-friendly Sudoku PWA built with Next.js, React, and TypeScript. It grades every puzzle by the techniques it needs, gives hints that explain themselves one step at a time, and has a lesson for every technique. Things 3 inspired the restrained colors, system typography, controls, and interaction style.
+
+| Home | Smart highlighting | Hints that explain | Learn |
+| :---: | :---: | :---: | :---: |
+| <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/readme-home-dark.png"><img src="docs/screenshots/readme-home.png" width="200" alt="Home screen: the Expert puzzle in progress with a Continue button, four difficulty levels, and the next lesson."></picture> | <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/readme-board-dark.png"><img src="docs/screenshots/readme-board.png" width="200" alt="An Expert board with 3 selected: green cells show where a 3 can still go, and one faded red cell is ruled out."></picture> | <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/readme-hint-dark.png"><img src="docs/screenshots/readme-hint.png" width="200" alt="An XY-wing hint walkthrough on step 4 of 4: the pivot and wings are ringed, the removed candidates are marked in red, with a link to learn XY-wing."></picture> | <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/readme-learn-dark.png"><img src="docs/screenshots/readme-learn.png" width="200" alt="The Learn page: lessons grouped from Easy to Expert, each with a small board diagram, five of them checked as learned."></picture> |
 
 ## Run
 
