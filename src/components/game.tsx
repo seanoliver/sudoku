@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, type KeyboardEvent } from 'react';
 import { createGame, restartGame, enter, toggleNotes, toggleExclusions, batchHasMark, fillNotes, undo, redo, restore, isComplete, rejectEntry, SAVE_KEY, type GameState, type Rejection } from '@/lib/game';
 import { peers, getEntryDigits, completedUnits, celebrationLabel, type Difficulty, type Puzzle } from '@/lib/sudoku';
 import { candidateCells, excludedCells, getPlayableCandidates } from '@/lib/candidates';
@@ -18,6 +18,8 @@ import { explainStep, type ExplainLine } from '@/lib/explain';
 import { WalkthroughOverlay, WalkthroughPanel } from './hint-walkthrough';
 import { grade, hasLesson, LEARNED_KEY, LESSON_BANDS, lessonName, lessonOf, markLearned, practiceGame, readLearned, sameBoard, type Grade, type Learned, type LessonId } from '@/lib/lessons';
 import { HistoryPage } from './history-page';
+import { ReplayPage } from './replay-page';
+import { replayStore } from './replay-store';
 import { LearnPage } from './learn-page';
 import { Home, LEVEL_NOTES } from './home';
 import { greeting, homeState, nextLesson, readSolved, solvedCount, savedSeconds, SOLVED_KEY, storeSolved } from '@/lib/home';
@@ -30,6 +32,9 @@ type Sheet = 'restart' | 'new' | 'settings' | 'help' | 'install' | null;
 const GAME_ENTRY = 'sudokuGame';
 const inGameEntry = () => window.history.state?.[GAME_ENTRY] === true;
 const enterGameEntry = () => { if (!inGameEntry()) window.history.pushState({ [GAME_ENTRY]: true }, ''); };
+// A replay gets its own entry above whatever opened it, so Back closes it.
+const REPLAY_ENTRY = 'sudokuReplay';
+const inReplayEntry = () => window.history.state?.[REPLAY_ENTRY] === true;
 type InstallEvent = Event & { prompt: () => Promise<void>; userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }> };
 const DIGITS = [1,2,3,4,5,6,7,8,9];
 const EMPTY_NOTES: number[] = [];
@@ -83,6 +88,8 @@ export default function SudokuGame() {
   const [held, setHeld] = useState<Held | null>(null);
   const [learnOpen, setLearnOpen] = useState(false);
   const [historyData, setHistoryData] = useState<{ solves: Solve[]; today: string } | null>(null);
+  const [replayView, setReplayView] = useState<{ id: string; from: 'game' | 'home'; seconds: number | null } | null>(null);
+  const replays = useSyncExternalStore(replayStore.subscribe, replayStore.snapshot, replayStore.serverSnapshot);
   const [view, setView] = useState<'home' | 'game'>('home');
   const [homeData, setHomeData] = useState<{ seconds: number | null; learned: Learned; solved: number; greeting: string }>({ seconds: null, learned: {}, solved: 0, greeting: greeting(12) });
   const [learned, setLearned] = useState<Learned>({});
@@ -171,8 +178,8 @@ export default function SudokuGame() {
   }, [resetSelection]);
 
   useEffect(() => {
-    // A reload always opens on Home, so a game entry left from before the reload no longer applies.
-    if (inGameEntry()) window.history.replaceState({}, '');
+    // A reload always opens on Home, so a game or replay entry left from before the reload no longer applies.
+    if (inGameEntry() || inReplayEntry()) window.history.replaceState({}, '');
     const timer = window.setTimeout(() => {
       try {
         const raw = localStorage.getItem(SAVE_KEY);
@@ -211,6 +218,8 @@ export default function SudokuGame() {
     catch { timer = window.setTimeout(() => setStorageError(true), 0); }
     return () => clearTimeout(timer);
   }, [game, away]);
+  // Every change to the board while playing is recorded for replay; lessons are not.
+  useEffect(() => { if (game && !away) replayStore.record(game.id, game); }, [game, away]);
 
   useEffect(() => {
     const onPrompt = (event: Event) => { event.preventDefault(); setInstallEvent(event as InstallEvent); };
@@ -260,6 +269,7 @@ export default function SudokuGame() {
   const restartPuzzle = () => {
     if (!game || busy) return;
     const restarted = restartGame(game);
+    replayStore.record(restarted.id, restarted, { restart: true });
     restoredSolved.current = null;
     setGame(restarted); resetSelection(); setFocusedDigit(null);
     // The clock may not be mounted (restarting from Home), so the reset has to reach its storage directly.
@@ -417,10 +427,12 @@ export default function SudokuGame() {
   const undoingForward = useRef(false);
   const onHistory = () => {
     if (undoingForward.current) { undoingForward.current = false; return; }
+    if (replayView && !inReplayEntry()) { closeReplay(); return; }
+    if (inReplayEntry() && !replayView) { undoingForward.current = true; window.history.back(); return; }
     if (inGameEntry()) {
       if (view !== 'home') return;
       // Forward can only reopen the game from Home itself; elsewhere it is undone so the browser stays on Home's entry.
-      if (game && !lesson && !learnOpen && !historyData) continueGame(); else { undoingForward.current = true; window.history.back(); }
+      if (game && !lesson && !learnOpen && !historyData && !replayView) continueGame(); else { undoingForward.current = true; window.history.back(); }
       return;
     }
     // Generation has no Home to return to until it finishes, so back is undone.
@@ -446,6 +458,30 @@ export default function SudokuGame() {
     setHistoryData({ solves, today: dayKey(new Date()) });
     focusAfterRender.current = '.lesson-back';
   };
+  const replayOf = (id: string | undefined) => replays.find(r => r.id === id && r.steps.length > 0);
+  const openReplay = (from: 'game' | 'home') => {
+    if (!game) return;
+    let seconds: number | null = null;
+    try { seconds = preferences.hideTimer ? null : savedSeconds(localStorage.getItem(CLOCK_KEY), game.id); } catch { /* The time is optional. */ }
+    setReplayView({ id: game.id, from, seconds });
+    window.history.pushState({ [REPLAY_ENTRY]: true, [GAME_ENTRY]: inGameEntry() }, '');
+    focusAfterRender.current = '.replay-play';
+  };
+  const exitReplay = () => { if (inReplayEntry()) window.history.back(); else closeReplay(); };
+  const closeReplay = () => {
+    const from = replayView?.from;
+    setReplayView(null);
+    if (from === 'home') showHome('.home-replay'); else focusAfterRender.current = '.replay-button';
+  };
+  const exitReplayRef = useRef(exitReplay);
+  useEffect(() => { exitReplayRef.current = exitReplay; });
+  const replayOpen = replayView !== null;
+  useEffect(() => {
+    if (!replayOpen) return;
+    const onKey = (event: globalThis.KeyboardEvent) => { if (event.key === 'Escape') exitReplayRef.current(); };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [replayOpen]);
   const exitHistory = () => { setHistoryData(null); showHome('.home-solved-count'); };
   const exitHistoryRef = useRef(exitHistory);
   useEffect(() => { exitHistoryRef.current = exitHistory; });
@@ -542,12 +578,14 @@ export default function SudokuGame() {
 
   const lessonDone = lesson ? lesson.phase === 'done' ? lessonBoards.length - 1 : lesson.phase === 'practice' ? lesson.board - 1 + (lesson.result?.correct ? 1 : 0) : 0 : 0;
   const clockId = held ? held.game?.id : game?.id;
+  const replaying = replayView && game ? replayOf(replayView.id) : undefined;
+  if (replayView && replaying && game) return <div className="app"><ReplayPage replay={replaying} givens={game.givens} solution={game.solution} level={game.difficulty} seconds={replayView.seconds} onExit={exitReplay}/></div>;
   if (historyData) return <div className="app"><HistoryPage hideTimer={preferences.hideTimer} solves={historyData.solves} total={homeData.solved} today={historyData.today} onExit={exitHistory}/></div>;
   if (learnOpen) return <div className="app"><LearnPage learned={learned} onOpen={id => openLesson(id, 'list')} onExit={exitLearn}/></div>;
   const onHome = view === 'home' && !lesson;
   return <div className="app" onKeyDown={onHome ? undefined : handleKey}>
     {onHome ? busy && !game ? <header className="app-bar"><h1 className="brand"><AppMark small/><span>Sudoku</span></h1></header> : <Home state={homeState(game)} game={game} seconds={preferences.hideTimer ? null : homeData.seconds} learned={LESSON_BANDS.flatMap(band => band.lessons).filter(id => homeData.learned[id]).length}
-      next={nextLesson(homeData.learned)} solved={homeData.solved} greeting={homeData.greeting} onContinue={continueGame} onPlay={playLevel} onLesson={id => openLesson(id, 'home')} onLearn={openLearn} onSettings={() => openSheet('settings')} onHistory={openHistory} onInstall={installed ? undefined : () => openSheet('install')}
+      next={nextLesson(homeData.learned)} solved={homeData.solved} greeting={homeData.greeting} onContinue={continueGame} onPlay={playLevel} onLesson={id => openLesson(id, 'home')} onLearn={openLearn} onSettings={() => openSheet('settings')} onHistory={openHistory} onReplay={homeState(game) === 'done' && replayOf(game?.id) ? () => openReplay('home') : undefined} onInstall={installed ? undefined : () => openSheet('install')}
       notice={<>{error && <div className="notice" role="alert"><span>{error}</span><button onClick={() => setError('')} aria-label="Dismiss message"><Icon name="close" size={16}/></button></div>}{storageError && <p className="storage-warning" role="status">Saving is unavailable in this browser. Keep this tab open to continue your puzzle.</p>}</>}/> : <>
     {lesson ? <LessonBar name={lessonName(lesson.id)} done={lessonDone} current={lesson.phase === 'practice' ? lesson.board - 1 : null} count={lessonBoards.length - 1} back={{ hint: 'Your game', list: 'Learn', home: 'Home' }[lesson.from]} onExit={exitLesson}/> : <header className="app-bar">
       <h1 className="brand"><AppMark small/><span>Sudoku</span></h1>
@@ -619,7 +657,7 @@ export default function SudokuGame() {
       </div>
 
       <div className="progress-line" role="progressbar" aria-label="Cells filled" aria-valuemin={0} aria-valuemax={total} aria-valuenow={filled}><span style={{ transform: `scaleX(${filled/total})` }}/></div>
-      {complete ? <div className="completion" role="status"><span className="success-mark"><Icon name="check" size={25}/></span><div><h2>Nicely done.</h2><p>Every number in its place.</p></div><button className="primary-button" onClick={() => openSheet('new')}>Play again</button></div> : <>
+      {complete ? <div className="completion" role="status"><span className="success-mark"><Icon name="check" size={25}/></span><div><h2>Nicely done.</h2><p>Every number in its place.</p></div><div className="completion-actions">{replayOf(game?.id) && <button className="text-button replay-button" onClick={() => openReplay('game')}><Icon name="play" size={15}/>Replay</button>}<button className="primary-button" onClick={() => openSheet('new')}>Play again</button></div></div> : <>
         <div className="controls-area">
           {walkLine && walkthrough && <WalkthroughPanel index={walkIndex} count={walkthrough.length} text={walkLine.text} onStep={stepWalkthrough} learn={!lesson && walkStep && walkIndex === walkthrough.length - 1 && hasLesson(lessonOf(walkStep)) ? { name: lessonName(lessonOf(walkStep)), onOpen: () => openLesson(lessonOf(walkStep)) } : undefined}/>}
           {lesson?.phase === 'done' && <LessonDone name={lessonName(lesson.id)} back={{ hint: 'Back to your game', list: 'Back to Learn', home: 'Back home' }[lesson.from]} onExit={exitLesson}/>}

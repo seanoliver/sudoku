@@ -135,6 +135,8 @@ Captured from Sean's September 20 feedback and the [September 21 playtest](playt
 
 ### Speed replay after completion
 
+**Status:** Shipped in [PR #52](https://github.com/seanoliver/sudoku/pull/52) ([design](plans/2026-09-27-speed-replay-design.md)): every move is recorded, and a replay page in the Home look opens from the completion card and Home's solved card. Replay from History rows is a follow-up.
+
 **Player benefit:** Watch a quick animation of the solve, showing entries in the order they were made.
 
 - Add an optional Replay action to the completion screen; play a compressed animation from the initial givens through the player's actual actions.

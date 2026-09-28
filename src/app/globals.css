@@ -340,6 +340,40 @@ h1,h2,h3,p { margin: 0; }
 .history-time { font-size: 16px; font-weight: 650; font-variant-numeric: tabular-nums; }
 .history-more { align-self: center; width: auto; }
 .history-earlier { margin: 4px 0 0; text-align: center; font-size: 13px; color: var(--muted); }
+.home-hero.quiet:has(.home-replay) { padding-bottom: 34px; }
+.home-hero:has(.home-replay) + .home-levels { margin-top: 16px; }
+.completion-actions { display: flex; align-items: center; gap: 4px; margin-left: auto; }
+.completion-actions button { white-space: nowrap; }
+.replay-button { width: auto; display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 12px; }
+.replay { display: flex; flex-direction: column; gap: 14px; padding-bottom: 24px; }
+.replay-headline { display: flex; flex-direction: column; gap: 4px; }
+.replay-headline .home-title { margin: 0; }
+.replay-hero { position: relative; display: flex; flex-direction: column; align-items: center; padding: 14px 14px 32px; border-radius: 24px; background: radial-gradient(circle at 50% 40%, color-mix(in srgb, var(--blue) 16%, var(--surface)), var(--surface) 70%); border: 1px solid var(--line); box-shadow: var(--shadow); }
+.replay-hero .board-wrap { width: 100%; }
+.replay-board .cell { cursor: default; }
+.replay-board .cell.changed { box-shadow: inset 0 0 0 2px var(--blue); background: var(--selection); }
+.replay-board .cell.wrong { color: var(--red); background: var(--red-soft); }
+.replay-board .cell.wrong.changed { box-shadow: inset 0 0 0 2px var(--red); }
+.replay-play { bottom: -19px; }
+.replay-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 8px; }
+.replay-stat { display: flex; flex-direction: column; padding: 12px 14px; border-radius: 18px; font-size: 12px; font-weight: 600; }
+.replay-stat b { font-size: 24px; letter-spacing: -1px; color: var(--ink); font-variant-numeric: tabular-nums; }
+.replay-stat.replay-numbers { background: var(--blue-soft); color: var(--blue-strong); }
+.replay-stat.replay-notes { background: var(--hint-soft); color: var(--hint-strong); }
+.replay-stat.replay-fixes { background: var(--red-soft); color: var(--red); }
+.replay-timeline { display: flex; flex-direction: column; gap: 10px; padding: 14px; border-radius: 18px; background: var(--surface); border: 1px solid var(--line); }
+.replay-ticks { display: block; width: 100%; height: 18px; }
+.replay-ticks rect { fill: var(--line); }
+.replay-ticks rect.number.past { fill: var(--blue); }
+.replay-ticks rect.other.past { fill: var(--box-line); }
+.replay-ticks rect.note.past { fill: var(--hint); }
+.replay-ticks rect.fix { fill: color-mix(in srgb, var(--red) 35%, var(--line)); } .replay-ticks rect.fix.past { fill: var(--red); }
+.replay-timeline input { width: 100%; margin: 0; accent-color: var(--blue); }
+.replay-row { display: flex; align-items: center; justify-content: space-between; }
+.replay-count { font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.replay-speeds { display: flex; padding: 2px; border-radius: 99px; background: var(--canvas); }
+.replay-speeds button { min-width: 36px; height: 30px; border-radius: 99px; font-size: 12px; font-weight: 700; color: var(--secondary); }
+.replay-speeds button[aria-pressed='true'] { background: var(--surface); color: var(--ink); box-shadow: var(--shadow); }
 @media (hover: hover) { .history-day:is(button):hover { background: var(--peer); } }
 @media (hover: hover) { .home-level:hover { border-color: color-mix(in srgb, var(--level) 45%, transparent); } .home-lesson:hover, .home-install:hover, .home-chip.home-all:hover, .home-chip.home-solved-count:hover, .home-hero:not(.quiet):hover { border-color: var(--box-line); } }
 @media (prefers-reduced-motion: reduce) { .home-hero .home-board { animation: none; } }

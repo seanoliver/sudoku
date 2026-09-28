@@ -31,12 +31,14 @@ export type HomeProps = {
   state: HomeState; game: GameState | null; seconds: number | null; learned: number; next: LessonId | null; solved: number; greeting: string;
   onContinue: () => void; onPlay: (level: Difficulty) => void; onLesson: (id: LessonId) => void; onLearn: () => void; onSettings: () => void;
   onHistory: () => void;
+  /** Given only when the finished game has a recording. */
+  onReplay?: () => void;
   /** Omitted once the app is installed. */
   onInstall?: () => void;
   notice?: React.ReactNode;
 };
 
-export function Home({ state, game, seconds, learned, next, solved, greeting, onContinue, onPlay, onLesson, onLearn, onSettings, onHistory, onInstall, notice }: HomeProps) {
+export function Home({ state, game, seconds, learned, next, solved, greeting, onContinue, onPlay, onLesson, onLearn, onSettings, onHistory, onReplay, onInstall, notice }: HomeProps) {
   const clock = seconds === null ? '' : time(seconds);
   return <>
     <header className="app-bar">
@@ -58,6 +60,7 @@ export function Home({ state, game, seconds, learned, next, solved, greeting, on
         <div className="home-hero quiet">
           <MiniBoard values={game.values} givens={game.givens} size={150}/>
           <span className="home-meta"><span className="home-eyebrow solved"><Icon name="check" size={14}/>Solved</span>{clock && ` · ${clock}`}</span>
+          {onReplay && <button className="home-go home-replay" onClick={onReplay}><Icon name="play" size={16}/>Replay</button>}
         </div>
       </> : <>
         <h2 className="home-title" id="home-start">Ready for<br/>your first puzzle?</h2>
