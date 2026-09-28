@@ -414,11 +414,14 @@ export default function SudokuGame() {
   };
   /** The Home button steps back through the game's history entry, so it and the back button stay in step. */
   const leaveGame = () => { if (inGameEntry()) window.history.back(); else goHome(); };
+  // Set while undoing a forward step, so the back event that undo causes is not read as the player pressing Back.
+  const undoingForward = useRef(false);
   const onHistory = () => {
+    if (undoingForward.current) { undoingForward.current = false; return; }
     if (inGameEntry()) {
       if (view !== 'home') return;
       // Forward can only reopen the game from Home itself; elsewhere it is undone so the browser stays on Home's entry.
-      if (game && !lesson && !learnOpen && !historyData) continueGame(); else window.history.back();
+      if (game && !lesson && !learnOpen && !historyData) continueGame(); else { undoingForward.current = true; window.history.back(); }
       return;
     }
     // Generation has no Home to return to until it finishes, so back is undone.
