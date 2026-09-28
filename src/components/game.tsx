@@ -24,6 +24,10 @@ import { findStep } from '@/lib/steps';
 import { LessonBar, LessonDone, LessonFooter, LessonPrompt } from './lesson';
 
 type Sheet = 'restart' | 'new' | 'settings' | 'help' | 'install' | null;
+// The game gets its own history entry above Home, so the browser's back button returns Home.
+const GAME_ENTRY = 'sudokuGame';
+const inGameEntry = () => window.history.state?.[GAME_ENTRY] === true;
+const enterGameEntry = () => { if (!inGameEntry()) window.history.pushState({ [GAME_ENTRY]: true }, ''); };
 type InstallEvent = Event & { prompt: () => Promise<void>; userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }> };
 const DIGITS = [1,2,3,4,5,6,7,8,9];
 const EMPTY_NOTES: number[] = [];
@@ -122,7 +126,7 @@ export default function SudokuGame() {
   const availableDigits = useMemo(() => !game ? [] : batchSelection ? [...new Set(selection.indices.flatMap(index => getEntryDigits({ values: game.values, index })))] : entryDigits, [game, batchSelection, selection.indices, entryDigits]);
 
   const requestPuzzle = useCallback((level: Difficulty) => {
-    setView('game'); resetSelection(); setFocusedDigit(null);
+    setView('game'); enterGameEntry(); resetSelection(); setFocusedDigit(null);
     setBusy(true); setError(''); setBlockedEntry(null); setCelebration(null);
     try {
       // Lazy construction keeps the worker available for retry if startup fails.
@@ -152,6 +156,8 @@ export default function SudokuGame() {
   }, [resetSelection]);
 
   useEffect(() => {
+    // A reload always opens on Home, so a game entry left from before the reload no longer applies.
+    if (inGameEntry()) window.history.replaceState({}, '');
     const timer = window.setTimeout(() => {
       try {
         const raw = localStorage.getItem(SAVE_KEY);
@@ -362,7 +368,7 @@ export default function SudokuGame() {
   }
   const showHome = (focus: string) => { setView('home'); refreshHome(held ? held.game : game); focusAfterRender.current = focus; };
   const goHome = () => { setHintState(null); resetSelection(); setBlockedEntry(null); showHome(homeState(game) === 'playing' ? '.home-continue-button' : '.home-level'); };
-  const continueGame = () => { setView('game'); focusAfterRender.current = paused ? '.board-cover button' : `.board [data-index="${selected}"]`; };
+  const continueGame = () => { setView('game'); enterGameEntry(); focusAfterRender.current = paused ? '.board-cover button' : `.board [data-index="${selected}"]`; };
   const playLevel = (level: Difficulty) => {
     if (homeState(game) === 'playing') { setDifficulty(level); openSheet('new'); return; }
     setDifficulty(level); requestPuzzle(level);
@@ -381,6 +387,30 @@ export default function SudokuGame() {
     hold(); setHintState(null); setLearned(readLearnedNow()); setLearnOpen(true);
     focusAfterRender.current = '.lesson-back';
   };
+  /** The Home button steps back through the game's history entry, so it and the back button stay in step. */
+  const leaveGame = () => { if (inGameEntry()) window.history.back(); else goHome(); };
+  const onHistory = () => {
+    if (inGameEntry()) {
+      if (view === 'home' && game && !lesson && !learnOpen) continueGame();
+      return;
+    }
+    // Generation has no Home to return to until it finishes, so back is undone.
+    if (busy && view === 'game') { enterGameEntry(); return; }
+    if (lesson) {
+      const fromHint = lesson.from === 'hint';
+      closeSheet(); exitLesson();
+      if (fromHint) enterGameEntry();
+      return;
+    }
+    if (view === 'game') { closeSheet(); goHome(); }
+  };
+  const onHistoryRef = useRef(onHistory);
+  useEffect(() => { onHistoryRef.current = onHistory; });
+  useEffect(() => {
+    const onPop = () => onHistoryRef.current();
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
+  }, []);
   const exitLearn = () => { setLearnOpen(false); restoreGame(); showHome('.home-all'); };
   const exitLearnRef = useRef(exitLearn);
   useEffect(() => { exitLearnRef.current = exitLearn; });
@@ -477,7 +507,7 @@ export default function SudokuGame() {
       <h1 className="brand"><AppMark small/><span>Sudoku</span></h1>
       <div className="app-actions">
         {!installed && <button className="install-button" onClick={() => openSheet('install')}><Icon name="download" size={17}/><span>Install app</span></button>}
-        <button className="icon-button home-button" aria-label="Home" title="Home" disabled={busy} onClick={goHome}><Icon name="home"/></button>
+        <button className="icon-button home-button" aria-label="Home" title="Home" disabled={busy} onClick={leaveGame}><Icon name="home"/></button>
         <button className="icon-button settings-button" aria-label="Settings" onClick={() => openSheet('settings')}><Icon name="settings"/></button>
       </div>
     </header>}
