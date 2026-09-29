@@ -26,14 +26,14 @@ A step solver covering ten techniques, from naked singles to coloring, grades ev
 | --- | --- | --- | --- |
 | 1 (shipped) | Digit locking | Keep one digit highlighted while scanning and annotating | Existing Smart highlighting |
 | 2 (shipped) | Batch exclusions | Record one deduction across multiple cells | Existing batch selection; coordinate with digit lock |
-| 3 (partly shipped; still to do: checkpoint) | Recovery | Persistent redo, action descriptions, then a checkpoint | Stable batch actions from milestone 2 |
-| 4 | Candidate explanations | Inspect basic constraints and distinguish manual exclusions | Recovery support for future explanation state |
-| 5 | Apply a chosen deduction | Validate and apply a player-selected pointing pair | Explanation records from milestone 4 |
+| 3 (shipped; checkpoint dropped) | Recovery | Persistent redo, action descriptions, then a checkpoint | Stable batch actions from milestone 2 |
+| 4 (dropped) | Candidate explanations | Inspect basic constraints and distinguish manual exclusions | Recovery support for future explanation state |
+| 5 (dropped) | Apply a chosen deduction | Validate and apply a player-selected pointing pair | Explanation records from milestone 4 |
 | 6 (shipped) | Progressive hints | Reveal one supported move in optional steps | Explainable detection from milestones 4 and 5 |
 | 7 (shipped; practice folded into 8) | Technique-based difficulty and practice | Grade puzzles by supported logical techniques | Reliable step traces from milestone 6 |
 | 8 (shipped) | Learn module | A technique inventory with a visual lesson and practice boards for each deduction | Step reports from milestone 6; practice boards from milestone 7 |
 
-Milestones 1, 2 and 6–8 have shipped. The requests below add an input and layout pass before recovery; speed replay should follow the action-recording work alongside recovery. This is a proposed order, not a commitment to start implementation. Explainable detection can be developed before the hint UI, but every explanation must refer to a valid board state.
+Milestones 1–3 and 6–8 have shipped; 4 and 5 were dropped. The requests below add an input and layout pass before recovery; speed replay should follow the action-recording work alongside recovery. This is a proposed order, not a commitment to start implementation. Explainable detection can be developed before the hint UI, but every explanation must refer to a valid board state.
 
 ## Requested additions: input, layout, feedback and replay
 
@@ -261,7 +261,7 @@ Status: queued for research. The feature outcomes below are uncommitted. Complet
 - **Idea:** Replace the one-row number pad with a 3 × 3 number grid, as Good Sudoku does. Sean asked on September 23 to keep this as a separate, larger redesign.
 - **Research:** Compare a 3 × 3 grid with the current row on a 390px-wide phone: key size, reach, how the grid sits beside or below the board, and how entry modes (Numbers, Notes, Exclude), Erase, digit focus, number filtering, and the batch keypad fit. Check how the grid mirrors a cell's note layout.
 - **Output:** Three rendered layout directions for Sean, then a scope proposal. Coordinate with the entry mode switch (R3) and the number-row presentation (R4).
-- **Status:** In progress on `feat/keypad-grid` ([design](plans/2026-09-28-keypad-grid-design.md)): Sean chose a 3 × 3 grid with the entry modes stacked beside it.
+- **Status:** Shipped in [PR #55](https://github.com/seanoliver/sudoku/pull/55) ([design](plans/2026-09-28-keypad-grid-design.md)): a 3 × 3 grid with the entry modes stacked beside it.
 
 ### R10. Puzzle history
 
@@ -304,7 +304,7 @@ Status: queued for research. The feature outcomes below are uncommitted. Complet
 
 ## 3. Recovery
 
-**Status:** Persistent Undo/Redo shipped in [PR #18](https://github.com/seanoliver/sudoku/pull/18), with keyboard shortcuts and a shared 200-action limit. [PR #56](https://github.com/seanoliver/sudoku/pull/56) moved Undo and Redo from Settings to the tool row beside Erase, and announces each one to screen readers ([design](plans/2026-09-28-undo-descriptions-design.md)). Sean dropped visible action descriptions after trying them; the checkpoint remains deferred.
+**Status:** Persistent Undo/Redo shipped in [PR #18](https://github.com/seanoliver/sudoku/pull/18), with keyboard shortcuts and a shared 200-action limit. [PR #56](https://github.com/seanoliver/sudoku/pull/56) moved Undo and Redo from Settings to the tool row beside Erase, and announces each one to screen readers ([design](plans/2026-09-28-undo-descriptions-design.md)). Sean dropped visible action descriptions after trying them, and on September 28 dropped the checkpoint: Undo and Redo are enough.
 
 **Player benefit:** Correct an accidental action without losing work or reconstructing a previous position.
 
@@ -321,6 +321,8 @@ This precedes applied deductions because their affected notes and explanations m
 
 ## 4. Candidate explanations
 
+**Status:** Dropped on September 28. Filter number keys already dims digits a row, column, or box rules out, Smart highlighting shows where a digit can go and where you ruled it out, and hints explain deductions from the solver's step records. Three rendered directions (tap a dimmed key, a candidate lens, constraint shading) did not add enough to justify new UI.
+
 **Player benefit:** Ask why a digit is unavailable and understand what is restricting it.
 
 - Start with placed-number constraints: highlight the conflicting row, column, or box and its relevant values.
@@ -331,6 +333,8 @@ This precedes applied deductions because their affected notes and explanations m
 **Completion criteria:** The app distinguishes a basic constraint, a manual exclusion, and a verified deduction. Explanation highlights match their text. Board edits invalidate stale previews. If a supporting value changes, suspend any deduction-derived exclusions that no longer validate, including dependent deductions. Keep their records available for inspection and preserve separately entered manual annotations. Suspended deductions cannot constrain hints or Smart highlighting. Save and undo handling preserve these distinctions.
 
 ## 5. Chosen deductions
+
+**Status:** Dropped on September 28. Batch exclusions already record a pattern's consequences as one undo step, and Learn's practice boards check the reasoning. The part kept is rejecting an exclusion of a cell's answer under Block incorrect answers.
 
 **Player benefit:** Find a pattern yourself, then let the app record its consequences.
 
@@ -435,4 +439,4 @@ This roadmap keeps automatic bookkeeping limited to explicit actions and existin
 
 ## Delivery discipline
 
-Each item's Status line records what has shipped. Open follow-ups include temporary note preview, default number focus, optional sole-candidate autofill, and recovery's checkpoint; speed replay retains its dependencies. Open research spikes (R5–R10) must produce reviewed scope proposals before their feature outcomes enter the implementation sequence. CI merge gates are already active. Each feature starts with three rendered design directions for Sean to review, followed by a detailed implementation plan and a focused PR. Sean may change the order or skip renderings explicitly. This roadmap does not authorize implementing every phase at once. Update milestone status and links as changes merge.
+Each item's Status line records what has shipped. Open follow-ups include temporary note preview, default number focus, and optional sole-candidate autofill. Open research spikes (R5–R7, R9, R12) must produce reviewed scope proposals before their feature outcomes enter the implementation sequence. CI merge gates are already active. Each feature starts with three rendered design directions for Sean to review, followed by a detailed implementation plan and a focused PR. Sean may change the order or skip renderings explicitly. This roadmap does not authorize implementing every phase at once. Update milestone status and links as changes merge.
