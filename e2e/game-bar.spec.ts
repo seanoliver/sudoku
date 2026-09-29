@@ -27,6 +27,8 @@ test('the game bar holds Home, the difficulty and timer, hint, and Settings in o
   const middle = (b: { y: number; height: number }) => b.y + b.height / 2;
   for (const b of boxes) expect(Math.abs(middle(b!) - middle(boxes[0]!))).toBeLessThan(4);
   await expect(page.getByRole('button', { name: /Install app/ })).toHaveCount(0);
+  await expect(page.getByRole('heading', { level: 1 })).toHaveCount(1);
+  await expect(page.getByRole('heading', { level: 1, name: 'Sudoku', exact: true })).toHaveCount(1);
 });
 
 test('the hint button in the bar opens the hint strip', async ({ page }) => {

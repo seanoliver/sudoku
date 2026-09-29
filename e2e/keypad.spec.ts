@@ -197,7 +197,7 @@ test('the desktop caption stays on Home at side-by-side sizes', async ({ page })
   await expect(page.locator('.desktop-caption')).toBeVisible();
 });
 
-for (const [width, height] of [[375, 629], [375, 553], [390, 664], [360, 640]] as const) {
+for (const [width, height] of [[375, 629], [375, 553], [390, 664], [360, 640], [1280, 951], [768, 1024]] as const) {
   test(`a lesson fits without scrolling at ${width} × ${height}`, async ({ page }) => {
     await page.setViewportSize({ width, height });
     await page.goto('/');
