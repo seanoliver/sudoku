@@ -1,5 +1,4 @@
-// Measures compressed first-load JS (scripts the HTML references) and deferred JS (scripts fetched afterwards) for /.
-// Run after pnpm build, since it measures whatever .next build exists: pnpm size:first-load. next start serves gzip, so numbers run a little above production Brotli.
+// Run after pnpm build: it measures whatever .next build exists.
 import { chromium } from '@playwright/test';
 import { spawn } from 'node:child_process';
 
