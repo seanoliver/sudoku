@@ -4,7 +4,10 @@ import nextTs from "eslint-config-next/typescript";
 export default defineConfig([
   ...nextVitals,
   ...nextTs,
-  // motion/react loads all of Motion up front and undoes LazyMotion's split; strict mode does not catch it.
-  { rules: { 'no-restricted-imports': ['error', { paths: [{ name: 'motion/react', importNames: ['m', 'motion'], message: "Import m from 'motion/react-m'." }] }] } },
+  // These load all of Motion up front and undo LazyMotion's split; strict never catches m, and catches motion only in development.
+  { rules: { 'no-restricted-imports': ['error', { paths: [
+    { name: 'motion/react', importNames: ['m', 'motion'], message: "Use import * as m from 'motion/react-m'." },
+    { name: 'motion/react-client', message: "Use import * as m from 'motion/react-m'." },
+  ] }] } },
   globalIgnores([".next/**", ".worktrees/**", "public/sw.js", "next-env.d.ts"]),
 ]);
