@@ -29,15 +29,15 @@ Motion shows where something came from or went to. It never decorates.
 - **Springs:** three presets used everywhere. Snappy (about 150ms) for presses, toggles, and selection; smooth (about 350ms, slight settle) for sheets, cards, and screen changes; gentle (slower, no bounce) for the finish and progress.
 - **Screens:** Continue grows Home's mini-board into the game board through a shared `layoutId`; back reverses it. Learn, History, and Replay push in from the right.
 - **Sheets:** spring up, drag down to dismiss; the screen behind scales down slightly.
-- **Board:** selection glides between cells; a placed number scales in from 90%; notes fade. Rejections and unit celebrations move onto the same springs.
+- **Board:** the selection outline gets rounded corners and a more playful feel, and glides between cells; a placed number scales in from 90%; notes fade. Rejections and unit celebrations move onto the same springs.
 - **Presses:** one press-in response on every button, key, and card. Haptics where the browser supports them.
 - **Finish:** the board settles, a check draws itself, and the time counts up.
-- **Reduced motion:** `MotionConfig reducedMotion="user"`; movement becomes short fades.
+- **Reduced motion:** `MotionConfig reducedMotion="user"` switches off movement and scaling; where something would otherwise appear abruptly, a short fade is added explicitly.
 
 ## Shared pieces
 
 - `src/lib/motion.ts`: the spring presets.
-- `MotionProvider`: `LazyMotion` plus `MotionConfig`. The small core loads first; the layout and drag features (about 28kb, needed for the shared board transition and drag-to-dismiss) load after first render, so the first load stays within budget.
+- `MotionProvider`: `LazyMotion` plus `MotionConfig`. The small core loads first; the layout and drag features (about 28kb, needed for the shared board transition and drag-to-dismiss) load after first render, so they stay out of the first load.
 - Tokens in `globals.css`: type, spacing, radii, and surfaces as variables for both themes.
 - `<ScreenHeader>`: large collapsing title with an optional back button.
 - `<Sheet>`: keeps the native `<dialog>` for focus trapping, Escape, and screen readers; Motion animates the panel and backdrop and adds drag-to-dismiss. All five sheets move onto it.
@@ -65,5 +65,5 @@ Feature brainstorming follows step 1.
 - Existing unit and browser tests, including the 32-size fit test.
 - Screenshots compared with the approved direction, light and dark.
 - A reduced-motion pass.
-- First-load JavaScript grows by no more than about 10kb gzipped.
+- First-load JavaScript grows by no more than about 12kb gzipped, and Motion's deferred features stay under about 30kb (measured September 29: core 11.4kb, `domMax` 29.6kb).
 - Sean checks smoothness on a phone for steps 3 and 7.

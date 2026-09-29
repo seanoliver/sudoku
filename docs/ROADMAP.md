@@ -406,13 +406,13 @@ Captured from Sean on September 24. Long-term scope, modeled on the way Good Sud
 - **Current identity:** the name "Sudoku", the blue four-square mark, the line "A calm Sudoku that teaches you every technique, one move at a time" (page metadata, link-preview image and its alt text, README), the desktop caption "A simple game. A little space to think.", and Home's greeting and headlines.
 - **Research:** Decide what carries the new positioning: the name, the mark and app icon, a tagline, color and type, and the tone of in-app copy. List every surface that shows the brand: the app icon and manifest, the install sheet, Home, the share and link-preview images, README, and the landing copy on seanoliver.dev.
 - **Output:** Three rendered brand directions, each shown on the app icon, Home, and the link-preview image, then a scope proposal.
-- **Also in scope:** a single top row on the play screen for every phone, combining the app bar and the difficulty and timer row. Short portrait screens already use it (R8); on taller phones it would give the board about 90px more.
+- **Moved to R13:** a single top row on the play screen for every phone, combining the app bar and the difficulty and timer row.
 
 ### R13. App polish
 
 - **Idea:** One cohesive, modern look across every screen, with simple spring motion at its core. Sean asked for it on September 29.
 - **Plan:** [design](plans/2026-09-29-app-polish-design.md) and [implementation plan](plans/2026-09-29-app-polish.md): a foundation PR (Motion, springs, tokens), then one PR each for the game screen, sheets, the finish moment, Learn and lessons, and Home, History, and Replay.
-- **Status:** Sean chose direction A, grouped cards, on September 29, with the game content centered under a single compact bar. That bar covers R12's "single top row on the play screen", which moves here.
+- **Status:** Sean chose direction A, grouped cards, on September 29, with the game content centered under a single compact bar. That bar covers R12's "single top row on the play screen", which moves here. Sean also asked for a rounded, more playful selection outline on the board, which goes with the game screen step.
 
 ## Very low priority: desktop experience
 
