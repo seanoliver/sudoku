@@ -26,6 +26,7 @@ import { Home, LEVEL_NOTES } from './home';
 import { greeting, homeState, nextLesson, readSolved, solvedCount, savedSeconds, SOLVED_KEY, storeSolved } from '@/lib/home';
 import { LESSON_BANK } from '@/lib/lesson-bank';
 import { findStep } from '@/lib/steps';
+import { THEME_COLOR } from '@/lib/theme-color';
 import { LessonBar, LessonDone, LessonFooter, LessonPrompt } from './lesson';
 
 type Sheet = 'restart' | 'new' | 'settings' | 'help' | 'install' | null;
@@ -242,7 +243,7 @@ export default function SudokuGame() {
     const media = window.matchMedia('(prefers-color-scheme: dark)');
     const syncChrome = () => {
       const dark = preferences.theme === 'dark' || (preferences.theme === 'system' && media.matches);
-      document.querySelectorAll('meta[name="theme-color"]').forEach(meta => meta.setAttribute('content', dark ? '#181c24' : '#f5f6f8'));
+      document.querySelectorAll('meta[name="theme-color"]').forEach(meta => meta.setAttribute('content', dark ? THEME_COLOR.dark : THEME_COLOR.light));
     };
     syncChrome(); media.addEventListener('change', syncChrome);
     return () => media.removeEventListener('change', syncChrome);
