@@ -1,5 +1,5 @@
 import { Icon } from './icons';
-import type { Action, Recovery } from '@/lib/undo-description';
+import type { Recovery } from '@/lib/undo-description';
 
 const ICONS = { number: 'numbers', notes: 'pencil', exclusion: 'exclude' } as const;
 
@@ -15,5 +15,3 @@ export function UndoSummary({ recovery: { direction, action } }: { recovery: Rec
     <span className="undo-kind"><Icon name={ICONS[action.kind]} size={15}/>{action.cells.length}</span>
   </span>;
 }
-
-export const flashClass = (action: Action) => `undo-flash undo-${action.kind}`;

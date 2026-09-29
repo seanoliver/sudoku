@@ -7,7 +7,7 @@ import { candidateCells, excludedCells, getPlayableCandidates } from '@/lib/cand
 import { useNoteSelection } from './use-note-selection';
 import { activeMode, beginBatch, selectMode, toggleMode, INITIAL_ENTRY_MODE, type EntryMode, type EntryModeState } from '@/lib/entry-mode';
 import { CellNotes } from './cell-notes';
-import { UndoSummary, flashClass } from './undo-summary';
+import { UndoSummary } from './undo-summary';
 import { announce, describeAction, type Recovery } from '@/lib/undo-description';
 import { AppMark, Icon } from './icons';
 import { Clock, CLOCK_KEY } from './clock';
@@ -675,8 +675,9 @@ export default function SudokuGame() {
               const generated = game?.noteOrigins[i] === 'generated';
               const selectedCell = (batchSelection ? selection.indices.includes(i) : selected === i) && !complete;
               const same = value > 0 && selectedValue === value;
-              const classes = ['cell', given ? 'given' : 'entered', selectedCell ? 'selected' : '', !selectedCell && related.has(i) && preferences.highlightPeers && !complete ? 'related' : '', same && !selectedCell && !complete ? 'matching' : '', possible.has(i) ? 'possible' : '', excludedPossible.has(i) ? 'excluded-possible' : '', badCells.has(i) ? 'conflict' : '', rejection?.index === i ? 'rejecting' : '', ...(walkLine ? walkClasses(walkLine, i) : [...(hintDisplay?.cells.get(i) ?? [])].map(role => `hint-${role}`)), flashing?.has(i) ? flashClass(shownRecovery!.action) : ''].filter(Boolean).join(' ');
+              const classes = ['cell', given ? 'given' : 'entered', selectedCell ? 'selected' : '', !selectedCell && related.has(i) && preferences.highlightPeers && !complete ? 'related' : '', same && !selectedCell && !complete ? 'matching' : '', possible.has(i) ? 'possible' : '', excludedPossible.has(i) ? 'excluded-possible' : '', badCells.has(i) ? 'conflict' : '', rejection?.index === i ? 'rejecting' : '', ...(walkLine ? walkClasses(walkLine, i) : [...(hintDisplay?.cells.get(i) ?? [])].map(role => `hint-${role}`))].filter(Boolean).join(' ');
               return <div role="gridcell" aria-selected={selectedCell} aria-readonly={given} aria-rowindex={row+1} aria-colindex={col+1} key={i} className="cell-slot"><button className={classes} data-index={i} data-given={given} tabIndex={selected === i ? 0 : -1} aria-label={`Row ${row+1}, column ${col+1}, ${value ? `${value}${given ? ', given' : ''}` : notes.length ? `${generated ? 'generated notes' : 'notes'} ${notes.join(', ')}` : 'empty'}${!value && ruledOut.length ? `, ruled out ${ruledOut.join(', ')}` : ''}${possible.has(i) ? `, possible placement for ${selectedValue}` : ''}${excludedPossible.has(i) ? `, excluded placement for ${selectedValue}` : ''}${badCells.has(i) ? ', incorrect answer' : ''}`} aria-disabled={complete} onClick={event => selection.clickCell(event, i)}>
+                {flashing?.has(i) && <span key={`undo-${shownRecovery!.id}`} className={`undo-flash undo-${shownRecovery!.action.kind}`} aria-hidden="true"/>}
                 {celebrating && celebratedCells.has(i) && <span key={`celebrate-${celebrating.id}`} className="unit-celebration" style={{ animationDelay: `${distance(i, celebrating.origin) * CELEBRATION_STEP_MS}ms` }} aria-hidden="true"/>}
                 {value ? <span className="cell-number">{value}</span> : null}
                 {walkLine?.ghost?.cell === i && <span className="walk-ghost" aria-hidden="true">{walkLine.ghost.digit}</span>}

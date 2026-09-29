@@ -182,15 +182,15 @@ h1,h2,h3,p { margin: 0; }
 .edit-actions { display: grid; grid-template-columns: 1fr 1.2fr 1fr; gap: 6px; }
 .edit-actions > * { min-width: 0; }
 .undo-number { --undo-color: var(--blue); }.undo-notes { --undo-color: var(--note-blue); }.undo-exclusion { --undo-color: var(--note-red); }
-.cell.undo-flash { outline: 2px dashed var(--undo-color); outline-offset: -5px; background: color-mix(in srgb, var(--undo-color) 16%, var(--surface)); animation: undo-flash 1.6s ease-out both; }
-@keyframes undo-flash { 0% { outline-offset: -2px; } 20% { outline-offset: -5px; } 75% { outline-color: var(--undo-color); } 100% { outline-color: transparent; background: var(--surface); } }
+.undo-flash { position: absolute; inset: 0; pointer-events: none; outline: 2px dashed var(--undo-color); outline-offset: -5px; background: color-mix(in srgb, var(--undo-color) 16%, transparent); animation: undo-flash 1.6s ease-out both; }
+@keyframes undo-flash { 0% { outline-offset: -2px; } 20% { outline-offset: -5px; } 75% { outline-color: var(--undo-color); } 100% { outline-color: transparent; background: transparent; } }
 .undo-summary { display: flex; align-self: stretch; flex: 1; align-items: center; gap: 10px; padding-left: 12px; border-radius: 10px 0 0 0; color: var(--undo-color); background: color-mix(in srgb, var(--undo-color) 12%, var(--surface)); animation: undo-summary-in 200ms ease-out; }
 @keyframes undo-summary-in { from { opacity: 0; transform: translateY(-3px); } }
 .undo-kind { display: inline-flex; align-items: center; gap: 3px; font-size: 15px; font-weight: 650; font-variant-numeric: tabular-nums; }
 .undo-mini { display: grid; grid-template: repeat(9, 1fr) / repeat(9, 1fr); gap: 1px; width: 26px; height: 26px; padding: 1px; border-radius: 4px; background: var(--box-line); }
 .undo-mini > span { border-radius: 1px; background: var(--surface); }
 .undo-mini > span.on { background: var(--undo-color); }
-@media (prefers-reduced-motion: reduce) { .cell.undo-flash, .undo-summary { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .undo-flash, .undo-summary { animation: none; } }
 .number-pad.mode-note .number-key { background: color-mix(in srgb, var(--blue-soft) 70%, var(--surface)); }.number-pad.mode-note .number-key>span { color: var(--note-blue); }
 .number-pad.mode-exclude .number-key { background: color-mix(in srgb, var(--red-soft) 70%, var(--surface)); }
 .number-pad.mode-exclude .number-key>span { position: relative; color: var(--note-red); }

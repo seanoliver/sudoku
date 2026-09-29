@@ -49,6 +49,15 @@ test('erasing a number is a number; no change describes nothing', () => {
   assert.equal(describeAction(start, start), null);
 });
 
+test('Fill notes that only changes who owns matching notes is still notes', () => {
+  const filled = engine.fillNotes(initial());
+  const manual: engine.GameState = { ...filled, noteOrigins: filled.noteOrigins.map(origin => origin === 'generated' ? 'manual' : origin) };
+  const refilled = engine.fillNotes(manual);
+  assert.notEqual(refilled, manual);
+  assert.deepEqual(refilled.notes, manual.notes);
+  assert.deepEqual(describeAction(manual, refilled), { kind: 'notes', cells: emptyCells(manual) });
+});
+
 test('announcements name the direction, kind, and count', () => {
   assert.equal(announce({ direction: 'undo', action: { kind: 'notes', cells: [1, 2, 3, 4] } }), 'Undid notes in 4 cells');
   assert.equal(announce({ direction: 'redo', action: { kind: 'number', cells: [7] } }), 'Redid a number in 1 cell');
