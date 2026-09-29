@@ -1,6 +1,6 @@
 # App polish
 
-A polish pass across the whole app, agreed with Sean on September 29. The goal is an app that feels cohesive, modern, and effortless, with tasteful, simple motion at its core. The reference is Apple's own apps (depth, sheets, spring transitions) with the restraint of Things 3. Good Sudoku was ruled out as a reference so the app does not read as a copy. The visual language below is directional: Sean confirms it from three rendered directions before any screen is rebuilt.
+A polish pass across the whole app, agreed with Sean on September 29. The goal is an app that feels cohesive, modern, and effortless, with tasteful, simple motion at its core. The reference is Apple's own apps (depth, sheets, spring transitions) with the restraint of Things 3. Good Sudoku was ruled out as a reference so the app does not read as a copy. On September 29 Sean chose direction A, grouped cards, from three rendered in the app (grouped cards, glass dock, quiet paper), and asked for the game content to be centered vertically under the bar. Reference: ../designs/polish-look-approved.png, ../designs/polish-look-approved-dark.png, ../designs/polish-look-approved-home.png, ../designs/polish-look-approved-home-dark.png, ../designs/polish-look-approved-short.png; the three options: ../designs/polish-look-options.png.
 
 ## Why
 
@@ -15,9 +15,11 @@ A September 29 tour of all 14 screens (light and dark, 390 × 844) found two vis
 
 - **Type:** the system font, one scale: 32 bold screen titles, 20 semibold card titles, 17 body, 15 secondary, 13 captions. Nothing smaller.
 - **Headers:** list screens (Home, Learn, History) get a large title that collapses into a compact bar on scroll. The game gets one compact bar: Home on the left; difficulty and timer in the middle; pause, hint, and Settings on the right. "Install app" stays only on Home.
-- **Surfaces:** a plain background with grouped white cards. Translucent glass only on floating elements: sheets, the compact header while scrolling, and floating buttons such as Continue and Play.
+- **Surfaces:** grouped cards on a gray background, as in iOS. Background `#f2f2f7` light, `#0b0d11` dark; cards white light, `#1b1e25` dark. On the game screen the board with its focus strip is one card (8px padding) and the modes, tools, and keys are a second card (10px padding); keys, tools, and the mode switch fill with the background color inside the card. Translucent glass only on floating elements: sheets, the compact header while scrolling, and floating buttons such as Continue and Play.
+- **Game layout:** the compact bar is 56px tall. The content under it (board card, progress line, controls card) is centered vertically in the remaining height. The short-screen height budget must include the card padding: the approved render clips the last key row at 466 × 590, and the build must not.
+- **Home:** levels become one grouped list of rows with hairline dividers; the Continue card, lesson card, and install card are cards on the gray background. The greeting becomes a small uppercase label (13px, secondary) above a 32px title.
 - **Color:** keep the palette. Level tiles on Home and History become neutral cards with color only in the level's bar icon.
-- **Shape:** 12 on cards, 20 on sheets, round pills; spacing in steps of 4 and 8. The board keeps its width and grid.
+- **Shape:** 20 on the game's two cards and on sheets, 16 on Home's grouped list and cards, 10 on the board inside its card, 8 on keys, round pills; spacing in steps of 4 and 8. The board keeps its grid.
 
 ## Motion
 
@@ -48,7 +50,7 @@ Motion shows where something came from or went to. It never decorates.
 
 One PR per step, each finalized before merge:
 
-1. Three rendered directions for the game screen and Home, light and dark, at 390 × 844 and 466 × 590. Sean picks one.
+1. Three rendered directions for the game screen and Home, light and dark, at 390 × 844 and 466 × 590. Done: Sean chose A, grouped cards, with centered game content.
 2. Foundation: Motion, the provider, spring presets, tokens, and a first-load JS script. No visible change.
 3. Game screen: one bar, no empty bands, board and key motion.
 4. Sheets: Settings, New puzzle, How to play (short illustrated rows).

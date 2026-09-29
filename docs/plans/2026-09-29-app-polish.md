@@ -21,7 +21,7 @@
 
 Follow `.claude/skills/rendering-design-directions/SKILL.md`. Nothing in this step merges.
 
-### Task 1.1: Scratch worktree
+### Task 1.1: Scratch worktree (done September 29: Sean chose A, grouped cards)
 
 **Step 1:** From the repo root:
 
