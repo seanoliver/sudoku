@@ -1,15 +1,26 @@
+// Measures compressed first-load JS (scripts the HTML references) and deferred JS (scripts fetched afterwards) for /.
+// Run after pnpm build, since it measures whatever .next build exists: pnpm size:first-load. next start serves gzip, so numbers run a little above production Brotli.
 import { chromium } from '@playwright/test';
 import { spawn } from 'node:child_process';
 
 const PORT = 3410;
 const inUse = await fetch(`http://localhost:${PORT}`).then(() => true, () => false);
 if (inUse) throw new Error(`Port ${PORT} is already in use; stop that server first.`);
-const server = spawn('pnpm', ['start', '--port', String(PORT)], { stdio: 'ignore' });
+const server = spawn('pnpm', ['start', '--port', String(PORT)], { stdio: ['ignore', 'ignore', 'inherit'] });
+let exited = null;
+server.on('exit', (code, signal) => { exited = { code, signal }; });
+let browser;
 try {
-  for (let i = 0; i < 60; i++) { try { await fetch(`http://localhost:${PORT}`); break; } catch { await new Promise(r => setTimeout(r, 500)); } }
-  const browser = await chromium.launch();
+  let started = false;
+  for (let i = 0; i < 60; i++) {
+    if (exited) throw new Error(`Server exited before port ${PORT} answered (exit code ${exited.code ?? exited.signal}). Run pnpm build first.`);
+    try { await fetch(`http://localhost:${PORT}`); started = true; break; } catch { await new Promise(r => setTimeout(r, 500)); }
+  }
+  if (!started) throw new Error(`Server did not start on port ${PORT} within 30s`);
+  browser = await chromium.launch();
   const page = await browser.newPage();
   const response = await page.goto(`http://localhost:${PORT}/`, { waitUntil: 'networkidle' });
+  if (!response?.ok()) throw new Error(`Loading / returned HTTP ${response?.status() ?? 'no response'}`);
   // Classify against the HTML the server sent: webpack removes script tags from the live page once they load.
   const html = await response.text();
   const { first, deferred } = await page.evaluate(html => {
@@ -22,7 +33,7 @@ try {
   }, html);
   console.log(`First-load JS: ${(first / 1024).toFixed(1)} kB compressed`);
   console.log(`Deferred JS: ${(deferred / 1024).toFixed(1)} kB compressed`);
-  await browser.close();
 } finally {
+  await browser?.close();
   server.kill();
 }
