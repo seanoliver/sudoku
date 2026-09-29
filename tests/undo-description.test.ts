@@ -33,6 +33,18 @@ test('an exclusion is an exclusion, including one that removes a note, and remov
   assert.deepEqual(describeAction(excluded, cleared), { kind: 'exclusion', cells: [a, b] });
 });
 
+test('removing an exclusion after Fill notes is an exclusion', () => {
+  const start = initial();
+  const [a] = emptyCells(start);
+  const excluded = engine.fillNotes(engine.enter(start, { index: a, value: start.solution[a] === 4 ? 5 : 4, exclude: true }));
+  assert.equal(excluded.noteOrigins[a], 'generated');
+  const digit = excluded.exclusions[a][0];
+  const cleared = engine.enter(excluded, { index: a, value: digit, exclude: true });
+  assert.deepEqual(describeAction(excluded, cleared), { kind: 'exclusion', cells: [a] });
+  const batchCleared = engine.toggleExclusions(excluded, { indices: [a], value: digit });
+  assert.deepEqual(describeAction(excluded, batchCleared), { kind: 'exclusion', cells: [a] });
+});
+
 test('a note that replaces an exclusion is a note', () => {
   const start = initial();
   const [a] = emptyCells(start);

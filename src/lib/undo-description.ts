@@ -13,17 +13,18 @@ const sameDigits = (a: readonly number[], b: readonly number[]) => a.length === 
  */
 export function describeAction(before: Board, after: Board): Action | null {
   const numbers: number[] = [], marks: number[] = [];
-  let gainedExclusion = false, notesChanged = false;
+  let gainedExclusion = false, notesChanged = false, exclusionsChanged = false;
   for (let i = 0; i < 81; i++) {
     if (before.values[i] !== after.values[i]) numbers.push(i);
-    const notes = !sameDigits(before.notes[i], after.notes[i]) || before.noteOrigins[i] !== after.noteOrigins[i], exclusions = !sameDigits(before.exclusions[i], after.exclusions[i]);
-    if (notes || exclusions) marks.push(i);
+    const notes = !sameDigits(before.notes[i], after.notes[i]), exclusions = !sameDigits(before.exclusions[i], after.exclusions[i]);
+    if (notes || exclusions || before.noteOrigins[i] !== after.noteOrigins[i]) marks.push(i);
     notesChanged ||= notes;
+    exclusionsChanged ||= exclusions;
     gainedExclusion ||= after.exclusions[i].some(digit => !before.exclusions[i].includes(digit));
   }
   if (numbers.length) return { kind: 'number', cells: numbers };
   if (!marks.length) return null;
-  return { kind: gainedExclusion || !notesChanged ? 'exclusion' : 'notes', cells: marks };
+  return { kind: gainedExclusion || (exclusionsChanged && !notesChanged) ? 'exclusion' : 'notes', cells: marks };
 }
 
 const NOUNS: Record<ActionKind, [one: string, many: string]> = { number: ['a number', 'numbers'], notes: ['notes', 'notes'], exclusion: ['an exclusion', 'exclusions'] };

@@ -73,6 +73,17 @@ test('the next edit clears the description right away', async ({ page }) => {
   await expect(page.locator('.board .cell .undo-flash')).toHaveCount(0);
 });
 
+test('a hint replaces the description, and closing the hint does not bring it back', async ({ page }) => {
+  await seed(page);
+  await openGame(page);
+  await undoButton(page).click();
+  await expect(page.locator('.undo-summary')).toBeVisible();
+  await page.getByRole('button', { name: 'Show a hint' }).click();
+  await expect(page.locator('.undo-summary')).toHaveCount(0);
+  await page.getByRole('button', { name: 'Close hint' }).click();
+  await expect(page.locator('.undo-summary')).toHaveCount(0);
+});
+
 test('Settings no longer has Undo or Redo', async ({ page }) => {
   await seed(page);
   await openGame(page);
