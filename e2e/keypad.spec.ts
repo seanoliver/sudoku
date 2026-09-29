@@ -163,7 +163,6 @@ for (const [width, height] of [[375, 553], [466, 590]] as const) {
   });
 }
 
-// Playwright cannot emulate display-mode: standalone, so the variables stand in for what it changes: the status bar and a 60px header.
 test('the installed app on a short phone fits a game and a lesson', async ({ page }) => {
   await page.setViewportSize({ width: 375, height: 667 });
   await page.addInitScript(() => document.addEventListener('DOMContentLoaded', () => {
