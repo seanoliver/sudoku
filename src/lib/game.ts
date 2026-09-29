@@ -12,9 +12,10 @@ export type Rejection = { kind: 'constraint' | 'answer'; sources: number[]; unit
 const unitOf = (index: number, sources: number[]): Rejection['unit'] => sources.some(s => Math.floor(s / 9) === Math.floor(index / 9)) ? 'row' : sources.some(s => s % 9 === index % 9) ? 'column' : 'box';
 /** True when a peer already holds the digit, so filtered notes and exclusions refuse it. */
 const heldByPeer = (game: GameState, index: number, value: number) => peers(index).some(peer => game.values[peer] === value);
-/** Why a value entry would be refused, or null. Notes, exclusions, erasing and givens are never rejected. */
+/** Why an entry would be refused, or null. Notes, erasing and givens are never rejected; an exclusion only when it crosses out the answer. */
 export function rejectEntry(game: GameState, { index, value, pencil = false, exclude = false, blockIncorrectAnswers = false, filterNumberKeys = false }: { index: number; value: number; pencil?: boolean; exclude?: boolean; blockIncorrectAnswers?: boolean; filterNumberKeys?: boolean }): Rejection | null {
-  if (!Number.isInteger(index) || index < 0 || index >= 81 || game.givens[index] || pencil || exclude || !Number.isInteger(value) || value < 1 || value > 9) return null;
+  if (!Number.isInteger(index) || index < 0 || index >= 81 || game.givens[index] || pencil || !Number.isInteger(value) || value < 1 || value > 9) return null;
+  if (exclude) return blockIncorrectAnswers && !game.values[index] && value === game.solution[index] && !game.exclusions[index].includes(value) ? { kind: 'answer', sources: [], unit: null } : null;
   if (filterNumberKeys) {
     const sources = peers(index).filter(peer => game.values[peer] === value);
     if (sources.length) return { kind: 'constraint', sources, unit: unitOf(index, sources) };
@@ -75,10 +76,16 @@ export function toggleNotes(game: GameState, { indices, value, filterNumberKeys 
   }
   return record(game, { values: game.values, notes, exclusions, noteOrigins });
 }
-export function toggleExclusions(game: GameState, { indices, value, filterNumberKeys = false }: { indices: readonly number[]; value: number; filterNumberKeys?: boolean }): GameState {
+/** Selected cells whose answer a batch would cross out. Empty when the batch removes the exclusion instead. */
+export function incorrectExclusions(game: GameState, { indices, value }: { indices: readonly number[]; value: number }): number[] {
+  if (batchHasMark(game, { indices, value, marks: 'exclusions' })) return [];
+  return batchCells(game, indices).filter(index => game.solution[index] === value && !game.exclusions[index].includes(value));
+}
+export function toggleExclusions(game: GameState, { indices, value, filterNumberKeys = false, blockIncorrectAnswers = false }: { indices: readonly number[]; value: number; filterNumberKeys?: boolean; blockIncorrectAnswers?: boolean }): GameState {
   if (!Number.isInteger(value) || value < 1 || value > 9 || isComplete(game)) return game;
   const removed = removeFromBatch(game, { indices, value, marks: 'exclusions' });
   if (removed) return removed;
+  if (blockIncorrectAnswers && incorrectExclusions(game, { indices, value }).length) return game;
   const targets = [...new Set(indices)].filter(index => Number.isInteger(index) && index >= 0 && index < 81
     && !game.givens[index] && !game.values[index] && !(filterNumberKeys && heldByPeer(game, index, value)) && !game.exclusions[index].includes(value));
   if (!targets.length) return game;
