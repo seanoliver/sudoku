@@ -48,31 +48,28 @@ h1,h2,h3,p { margin: 0; }
 .app-actions { display: flex; align-items: center; gap: 18px; }
 .icon-button { width: 40px; height: 40px; display: grid; place-items: center; border-radius: 50%; color: var(--secondary); }
 .settings-button { background: var(--surface); box-shadow: 0 1px 3px #23395508; border: 1px solid var(--line); }
-/* One compact row above the board: Home, then difficulty and clock, then Hint and Settings. */
 .game-bar { width: 100%; max-width: var(--play-cap); height: var(--game-bar-height); margin: 0 auto; display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 8px; }
 .game-bar-center { display: flex; align-items: center; justify-content: center; gap: 14px; min-width: 0; }
 .game-bar-actions { display: flex; align-items: center; gap: 4px; }
 .game-bar .icon-button { width: 40px; height: 40px; background: none; border: 0; box-shadow: none; }.game-bar .icon-button:disabled { opacity: .4; }
 .game-bar .difficulty-button { font-size: 15px; font-weight: 600; color: var(--ink); }.game-bar .difficulty-button>svg { color: var(--secondary); }
 .game-bar .clock { font-size: 15px; }
-/* Short screens narrow the bar to the board card: tighter spacing, then the level bars alone stand for the difficulty. */
+/* Below 298px the difficulty word would overlap the actions, so the level bars alone show the difficulty. */
 .game-bar { container: game-bar / inline-size; }
 @container game-bar (max-width: 340px) {
   .game-bar-center { gap: 8px; }.game-bar .time-controls { gap: 4px; }.game-bar .difficulty-button { gap: 5px; }
   .game-bar-actions { gap: 2px; }.game-bar .icon-button { width: 36px; height: 36px; }.game-bar .icon-button:focus-visible { outline-offset: -3px; }
 }
 @container game-bar (max-width: 297px) { .game-bar .difficulty-button > .capitalize { display: none; } }
-/* The play content sits centered in the height under the bar. */
 .app:has(> .game-bar:not(.lesson-hidden)) { display: flex; flex-direction: column; }
 .app:has(> .game-bar:not(.lesson-hidden)) > .game.play { width: 100%; margin-top: auto; margin-bottom: auto; }
-/* --game-width: Home's width. --play-cap: the play screen's widest card, 16px wider so the board inside its padding keeps that width. */
-/* --around-board: heights under the bar that are not the board (cards' padding, focus strip, progress line, controls, bottom padding), less the board card's 16px padding. */
-/* --game-top: the margin above Home and lessons; the game centers instead. --game-bar-height: the game bar. */
-/* --above-play: what sits above the play content, the game bar or a lesson's header plus --game-top. --lesson-footer: a lesson's footer button and its margin. */
+/* --play-cap is 16px wider than --game-width (Home's width) so the board inside the card's padding keeps that width. */
+/* --around-board: the height under the bar that is not the board (padding, focus strip, progress line, controls), less the board card's 16px padding. */
+/* --above-play: the game bar, or a lesson's header plus --game-top (the margin above Home and lessons). --lesson-footer: a lesson's footer button and margin. */
 :root { --game-width: 444px; --play-cap: calc(var(--game-width) + 16px); --around-board: 416px; --game-top: 28px; --game-bar-height: 56px; --above-play: var(--game-bar-height); --lesson-footer: 0px; }
 :root:has(.lesson-bar) { --above-play: calc(var(--bar-height) + var(--game-top)); --lesson-footer: 56px; }
 .game { max-width: var(--game-width); margin: var(--game-top) auto 0; }
-/* Shrinks the board on short screens so every key stays on screen. The 264px floor bounds the card, so the board's floor stays 248px. */
+/* The 264px floor bounds the card, so the board's floor is 248px; 280px makes a 360 × 640 lesson scroll. */
 .game.play { max-width: max(264px, min(var(--play-cap), calc(100svh - var(--around-board) - var(--above-play) - var(--lesson-footer) - var(--safe-top) - max(0px, var(--safe-bottom) - var(--pad-bottom))))); }
 .difficulty-button { display: flex; align-items: center; gap: 8px; color: var(--secondary); font-size: 13px; font-weight: 550; min-height: 30px; }
 .capitalize { text-transform: capitalize; }
@@ -162,7 +159,6 @@ h1,h2,h3,p { margin: 0; }
 
 .puzzle-panel { padding: 8px; border-radius: var(--radius-card-lg); background: var(--surface); box-shadow: 0 1px 2px #0000000d; }
 .puzzle-panel .board-wrap { box-shadow: none; }
-/* A lesson's prompt sits on the board's flat top edge. */
 .puzzle-panel:has(.lesson-prompt) .board-wrap { border-top-left-radius: 0; border-top-right-radius: 0; }
 .puzzle-panel:has(.lesson-prompt) .board-row:first-child .cell-slot .cell { border-top-left-radius: 0; border-top-right-radius: 0; }
 .digit-focus-bar { height: 44px; display: flex; align-items: center; justify-content: space-between; border-radius: var(--radius-board); background: transparent; }
@@ -414,7 +410,6 @@ h1,h2,h3,p { margin: 0; }
 @media (min-aspect-ratio: 5/4) and (min-height: 500px) and (max-height: 820px) {
   /* 77px: the board card's padding and focus strip, the progress line, and the bottom padding, less the card's 16px padding. */
   :root { --board: max(200px, min(576px, calc(100vw - 388px - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px)), calc(100svh - 77px - var(--above-play) - var(--safe-top) - max(0px, var(--safe-bottom) - var(--pad-bottom))))); --side-width: calc(var(--board) + 28px + 320px); }
-  /* The bar spans both columns; the board card and the controls card sit side by side under it. */
   .game-bar { max-width: var(--side-width); }
   .game.play { max-width: var(--side-width); display: grid; grid-template-columns: var(--board) 320px; column-gap: 28px; align-items: start; }
   .game.play > .puzzle-panel { grid-column: 1; grid-row: 1; }
