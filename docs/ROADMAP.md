@@ -29,11 +29,11 @@ A step solver covering ten techniques, from naked singles to coloring, grades ev
 | 3 (shipped; checkpoint dropped) | Recovery | Persistent redo, action descriptions, then a checkpoint | Stable batch actions from milestone 2 |
 | 4 (dropped) | Candidate explanations | Inspect basic constraints and distinguish manual exclusions | Recovery support for future explanation state |
 | 5 (dropped) | Apply a chosen deduction | Validate and apply a player-selected pointing pair | Explanation records from milestone 4 |
-| 6 (shipped) | Progressive hints | Reveal one supported move in optional steps | Explainable detection from milestones 4 and 5 |
+| 6 (shipped) | Progressive hints | Reveal one supported move in optional steps | The solver's step records |
 | 7 (shipped; practice folded into 8) | Technique-based difficulty and practice | Grade puzzles by supported logical techniques | Reliable step traces from milestone 6 |
 | 8 (shipped) | Learn module | A technique inventory with a visual lesson and practice boards for each deduction | Step reports from milestone 6; practice boards from milestone 7 |
 
-Milestones 1–3 and 6–8 have shipped; 4 and 5 were dropped. The requests below add an input and layout pass before recovery; speed replay should follow the action-recording work alongside recovery. This is a proposed order, not a commitment to start implementation. Explainable detection can be developed before the hint UI, but every explanation must refer to a valid board state.
+Milestones 1–3 and 6–8 have shipped; 4 and 5 were dropped. This is a proposed order, not a commitment to start implementation. Explainable detection can be developed before the hint UI, but every explanation must refer to a valid board state.
 
 ## Requested additions: input, layout, feedback and replay
 
@@ -78,7 +78,7 @@ Captured from Sean's September 20 feedback and the [September 21 playtest](playt
 - Remove the second Sudoku heading, its “Take your time.” tagline and its adjacent New puzzle button; remove the unused heading-row space.
 - Move New puzzle into Settings, preserving difficulty choice and the existing puzzle-replacement flow.
 - Add Restart puzzle in Settings. Restart uses the same givens and solution, resets entries, notes, exclusions and elapsed time, and clears transient selection/focus.
-- Design clear restart confirmation and define how restarting interacts with undo, checkpoints and replay attempts. Keep New puzzle and Restart puzzle distinct.
+- Design clear restart confirmation and define how restarting interacts with undo and replay attempts. Keep New puzzle and Restart puzzle distinct.
 
 **Completion criteria:** The game shows one Sudoku title, both actions are available in Settings, restarting preserves puzzle identity, and starting a new puzzle still supports difficulty selection. Verify keyboard access and both themes.
 
@@ -356,7 +356,7 @@ This precedes applied deductions because their affected notes and explanations m
 
 - Offer one Help entry point with a stable sequence: name a technique, identify an area, highlight the supporting cells/digits, then explain the move.
 - Each reveal requires another tap. Let the player dismiss help at any stage and try the move themselves.
-- Keep hint viewing read-only. Applying the explained move uses milestone 5's explicit action.
+- Keep hint viewing read-only. Applying the explained move is an explicit Apply.
 - Choose a useful supported move from the current state without using the stored solution as its explanation. Handle contradictory boards and unsupported positions explicitly.
 - Retire a hint when the board changes so the next request cannot show stale reasoning.
 

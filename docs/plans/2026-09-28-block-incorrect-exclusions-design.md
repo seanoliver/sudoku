@@ -8,7 +8,9 @@ Roadmap item: 5, Chosen deductions, which Sean dropped on September 28 while kee
 - A batch exclusion is refused whole when the digit is the answer in any selected cell. Only those cells show the rejection; the selection stays so another digit can be tried.
 - Crossing out a wrong digit, removing an existing exclusion, notes, and exclusions from hints are unchanged. Exclusions already in saved games are kept.
 - With Block incorrect answers off, nothing changes.
-- Screen readers hear "5 rejected, it is the answer for this cell", or "for 2 selected cells".
+- Screen readers hear "5 rejected, it is the answer for this cell", or in a batch "for 1 of 3 selected cells".
+- Learn practice boards follow the setting too, as they already do for wrong numbers: crossing out the answer is never a correct elimination.
+- With Filter number keys on, a batch is still refused when an answer cell would have been skipped because a peer holds a wrong copy of the digit. That board already has a wrong number, so the refusal is accepted.
 - The setting's description becomes "Refuse wrong numbers, and crossing out right ones".
 
 ## Tests
