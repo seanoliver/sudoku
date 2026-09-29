@@ -163,17 +163,20 @@ for (const [width, height] of [[375, 553], [466, 590]] as const) {
   });
 }
 
-// Playwright cannot emulate display-mode: standalone, so the variables stand in for the status bar and a taller game bar.
-test('the installed app on a short phone fits with a taller game bar', async ({ page }) => {
+// Playwright cannot emulate display-mode: standalone, so the variables stand in for what it changes: the status bar and a 60px header.
+test('the installed app on a short phone fits a game and a lesson', async ({ page }) => {
   await page.setViewportSize({ width: 375, height: 667 });
   await page.addInitScript(() => document.addEventListener('DOMContentLoaded', () => {
     document.documentElement.style.setProperty('--safe-top', '20px');
-    document.documentElement.style.setProperty('--game-bar-height', '60px');
+    document.documentElement.style.setProperty('--bar-height', '60px');
   }));
   await seed(page);
   await openGame(page);
-  expect((await box(page, '.game-bar')).height).toBe(60);
-  expect(await page.evaluate(() => document.documentElement.scrollHeight <= innerHeight)).toBe(true);
+  expect(await page.evaluate(() => document.documentElement.scrollHeight <= innerHeight), 'game').toBe(true);
+  await page.goto('/');
+  await page.locator('.home-lesson').click();
+  await expect(page.locator('.lesson-footer')).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollHeight <= innerHeight), 'lesson').toBe(true);
 });
 
 for (const [width, height] of [[1024, 768], [890, 626]] as const) {
@@ -195,7 +198,7 @@ test('the desktop caption stays on Home at side-by-side sizes', async ({ page })
   await expect(page.locator('.desktop-caption')).toBeVisible();
 });
 
-for (const [width, height] of [[375, 629], [375, 553], [390, 664]] as const) {
+for (const [width, height] of [[375, 629], [375, 553], [390, 664], [360, 640]] as const) {
   test(`a lesson fits without scrolling at ${width} × ${height}`, async ({ page }) => {
     await page.setViewportSize({ width, height });
     await page.goto('/');
