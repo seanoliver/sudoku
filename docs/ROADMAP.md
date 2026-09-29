@@ -334,7 +334,7 @@ This precedes applied deductions because their affected notes and explanations m
 
 ## 5. Chosen deductions
 
-**Status:** Dropped on September 28. Batch exclusions already record a pattern's consequences as one undo step, and Learn's practice boards check the reasoning. The part kept is rejecting an exclusion of a cell's answer under Block incorrect answers.
+**Status:** Dropped on September 28. Batch exclusions already record a pattern's consequences as one undo step, and Learn's practice boards check the reasoning. The part kept, rejecting an exclusion of a cell's answer under Block incorrect answers, shipped in [PR #57](https://github.com/seanoliver/sudoku/pull/57) ([design](plans/2026-09-28-block-incorrect-exclusions-design.md)).
 
 **Player benefit:** Find a pattern yourself, then let the app record its consequences.
 
