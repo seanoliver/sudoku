@@ -617,13 +617,11 @@ export default function SudokuGame() {
     {onHome ? busy && !game ? <header className="app-bar"><h1 className="brand"><AppMark small/><span>Sudoku</span></h1></header> : <Home state={homeState(game)} game={game} seconds={preferences.hideTimer ? null : homeData.seconds} learned={LESSON_BANDS.flatMap(band => band.lessons).filter(id => homeData.learned[id]).length}
       next={nextLesson(homeData.learned)} solved={homeData.solved} greeting={homeData.greeting} onContinue={continueGame} onPlay={playLevel} onLesson={id => openLesson(id, 'home')} onLearn={openLearn} onSettings={() => openSheet('settings')} onHistory={openHistory} onReplay={homeState(game) === 'done' && replayOf(game?.id) ? () => openReplay('home') : undefined} onInstall={installed ? undefined : () => openSheet('install')}
       notice={<>{error && <div className="notice" role="alert"><span>{error}</span><button onClick={() => setError('')} aria-label="Dismiss message"><Icon name="close" size={16}/></button></div>}{storageError && <p className="storage-warning" role="status">Saving is unavailable in this browser. Keep this tab open to continue your puzzle.</p>}</>}/> : <>
-    {lesson ? <LessonBar name={lessonName(lesson.id)} done={lessonDone} current={lesson.phase === 'practice' ? lesson.board - 1 : null} count={lessonBoards.length - 1} back={{ hint: 'Your game', list: 'Learn', home: 'Home' }[lesson.from]} onExit={exitLesson}/>
-      : <GameBar meta={gameMeta} onHome={leaveGame} homeDisabled={busy} onHint={() => { focusAfterRender.current = HINT_STRIP_FOCUS; showHint(); }} hintDisabled={!game || complete || paused || busy} onSettings={() => openSheet('settings')}/>}
+    {lesson && <LessonBar name={lessonName(lesson.id)} done={lessonDone} current={lesson.phase === 'practice' ? lesson.board - 1 : null} count={lessonBoards.length - 1} back={{ hint: 'Your game', list: 'Learn', home: 'Home' }[lesson.from]} onExit={exitLesson}/>}
+    {/* Lessons hide the bar but keep it mounted, so the clock is never remounted. */}
+    <GameBar meta={gameMeta} hidden={Boolean(lesson)} onHome={leaveGame} homeDisabled={busy} onHint={() => { focusAfterRender.current = HINT_STRIP_FOCUS; showHint(); }} hintDisabled={!game || complete || paused || busy} onSettings={() => openSheet('settings')}/>
 
     <main className="game play">
-      {/* Lessons hide the game's difficulty and clock but keep them mounted. */}
-      {lesson && <div className="game-meta lesson-hidden">{gameMeta}</div>}
-
       <div className="puzzle-panel">
       {lesson && <LessonPrompt name={lessonName(lesson.id)} state={lesson.phase === 'watch' ? 'watch' : lesson.result?.correct || lesson.phase === 'done' ? 'correct' : lesson.result ? 'wrong' : 'practice'}/>}
       <div className={`digit-focus-bar ${hintDisplay ? 'hint-strip' : ''} ${lesson ? 'lesson-hidden' : ''}`} role="group" aria-label={hintDisplay ? 'Hint' : 'Digit focus'} inert={paused || busy || complete || !game}>
