@@ -76,4 +76,8 @@ test('with Block incorrect answers off, a batch including an answer cell is acce
   await expect(cell(page, a)).not.toHaveClass(/rejecting/);
   await expect(cell(page, a)).toHaveAccessibleName(new RegExp(`ruled out ${answer}`));
   await expect.poll(async () => (await saved(page)).exclusions[a]).toEqual([answer]);
+  const after = await saved(page);
+  // Filter number keys skips b when a peer already holds the digit.
+  expect(after.exclusions[b]).toEqual(peers(b).some(p => game.values[p] === answer) ? [] : [answer]);
+  expect(after.history).toBe(1);
 });
