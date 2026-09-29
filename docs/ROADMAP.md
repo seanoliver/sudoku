@@ -412,7 +412,7 @@ Captured from Sean on September 24. Long-term scope, modeled on the way Good Sud
 
 - **Idea:** One cohesive, modern look across every screen, with simple spring motion at its core. Sean asked for it on September 29.
 - **Plan:** [design](plans/2026-09-29-app-polish-design.md) and [implementation plan](plans/2026-09-29-app-polish.md): a foundation PR (Motion, springs, tokens), then one PR each for the game screen, sheets, the finish moment, Learn and lessons, and Home, History, and Replay.
-- **Status:** Sean chose direction A, grouped cards, on September 29, with the game content centered under a single compact bar. That bar covers R12's "single top row on the play screen", which moves here. Sean also asked for a rounded, more playful selection outline on the board, which goes with the game screen step. Step 3a, the game screen look (one bar, two cards, new colors, content centered, short screens fit), is done in this PR. Step 3b, motion, is next, including the rounded selection outline with three rendered options first.
+- **Status:** Sean chose direction A, grouped cards, on September 29, with the game content centered under a single compact bar. That bar covers R12's "single top row on the play screen", which moves here. Sean also asked for a rounded, more playful selection outline on the board, which goes with the game screen step. Step 3a, the game screen look (one bar, two cards, new colors, content centered, short screens fit), is done in [PR #62](https://github.com/seanoliver/sudoku/pull/62). Step 3b, motion, is next, including the rounded selection outline with three rendered options first.
 
 ## Very low priority: desktop experience
 
