@@ -157,6 +157,7 @@ h1,h2,h3,p { margin: 0; }
 .notes .note-digit.note-focused { background: var(--blue-soft); color: var(--blue-strong); border-radius: 3px; font-weight: 750; box-shadow: inset 0 0 0 1px var(--blue); }
 
 .puzzle-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 24px; }
+.puzzle-actions > :last-child:nth-child(odd) { grid-column: 1 / -1; }
 .puzzle-action { display: flex; align-items: center; justify-content: center; gap: 9px; padding: 12px 8px; min-height: 64px; border: 1px solid var(--line); border-radius: 10px; background: var(--canvas); font-size: 13px; font-weight: 550; color: var(--ink); }
 .puzzle-action.new-puzzle-action { background: var(--blue-soft); color: var(--blue-strong); }
 .puzzle-action:disabled { opacity: .45; }
@@ -176,8 +177,21 @@ h1,h2,h3,p { margin: 0; }
 .mode-value[aria-pressed='true'] { color: var(--blue); }
 .mode-note[aria-pressed='true'] { color: var(--note-blue); }
 .mode-exclude[aria-pressed='true'] { color: var(--note-red); }
-.erase-control { display: grid; place-items: center; min-height: 44px; border-radius: 10px; color: var(--secondary); background: var(--surface); box-shadow: var(--shadow); }
-.erase-control:disabled { opacity: .35; }
+:is(.erase-control, .history-control) { display: grid; place-items: center; min-height: 44px; border-radius: 10px; color: var(--secondary); background: var(--surface); box-shadow: var(--shadow); }
+:is(.erase-control, .history-control):disabled { opacity: .35; }
+.edit-actions { display: grid; grid-template-columns: 1fr 1.2fr 1fr; gap: 6px; }
+.edit-actions > * { min-width: 0; }
+/* After undo or redo: the action's cells are outlined, and the focus bar shows the direction, where, and what kind. */
+.undo-number { --undo-color: var(--blue); }.undo-notes { --undo-color: var(--note-blue); }.undo-exclusion { --undo-color: var(--note-red); }
+.cell.undo-flash { outline: 2px dashed var(--undo-color); outline-offset: -5px; background: color-mix(in srgb, var(--undo-color) 16%, var(--surface)); animation: undo-flash 1.6s ease-out both; }
+@keyframes undo-flash { 0% { outline-offset: -2px; } 20% { outline-offset: -5px; } 75% { outline-color: var(--undo-color); } 100% { outline-color: transparent; background: var(--surface); } }
+.undo-summary { display: flex; align-self: stretch; flex: 1; align-items: center; gap: 10px; padding-left: 12px; border-radius: 10px 0 0 0; color: var(--undo-color); background: color-mix(in srgb, var(--undo-color) 12%, var(--surface)); animation: undo-summary-in 200ms ease-out; }
+@keyframes undo-summary-in { from { opacity: 0; transform: translateY(-3px); } }
+.undo-kind { display: inline-flex; align-items: center; gap: 3px; font-size: 15px; font-weight: 650; font-variant-numeric: tabular-nums; }
+.undo-mini { display: grid; grid-template: repeat(9, 1fr) / repeat(9, 1fr); gap: 1px; width: 26px; height: 26px; padding: 1px; border-radius: 4px; background: var(--box-line); }
+.undo-mini > span { border-radius: 1px; background: var(--surface); }
+.undo-mini > span.on { background: var(--undo-color); }
+@media (prefers-reduced-motion: reduce) { .cell.undo-flash, .undo-summary { animation: none; } }
 .number-pad.mode-note .number-key { background: color-mix(in srgb, var(--blue-soft) 70%, var(--surface)); }.number-pad.mode-note .number-key>span { color: var(--note-blue); }
 .number-pad.mode-exclude .number-key { background: color-mix(in srgb, var(--red-soft) 70%, var(--surface)); }
 .number-pad.mode-exclude .number-key>span { position: relative; color: var(--note-red); }
@@ -217,7 +231,7 @@ h1,h2,h3,p { margin: 0; }
 .board-wrap.walkthrough .cell.walk-answer .notes { visibility: hidden; }
 .play-side { display: contents; }
 .controls-area { position: relative; display: grid; grid-template-columns: minmax(122px, 36%) minmax(0, 1fr); gap: 10px; margin-top: 12px; }
-@media (max-height: 760px) { .number-pad { gap: 6px; } .number-pad .number-key { height: 48px; } .controls-area { margin-top: 8px; } .note-controls { gap: 6px; } .mode-option { min-height: 36px; } .erase-control { min-height: 36px; } }
+@media (max-height: 760px) { .number-pad { gap: 6px; } .number-pad .number-key { height: 48px; } .controls-area { margin-top: 8px; } .note-controls { gap: 6px; } .mode-option { min-height: 36px; } :is(.erase-control, .history-control) { min-height: 36px; } }
 
 .walk-panel { position: absolute; top: 0; left: 0; right: 0; min-height: 100%; z-index: 5; display: flex; flex-direction: column; gap: 8px; padding: 12px 16px; border-radius: 16px; background: var(--hint-soft); border: 1px solid color-mix(in srgb, var(--hint) 35%, transparent); }
 .walk-panel-head { display: flex; align-items: center; justify-content: space-between; font-size: 13px; color: var(--hint-strong); text-transform: uppercase; letter-spacing: .04em; }
@@ -412,6 +426,7 @@ h1,h2,h3,p { margin: 0; }
   .game.play .game-meta { min-height: 40px; padding: 0 92px 6px 0; }
   .game.play .digit-focus-bar { height: 36px; font-size: 12px; }
   .game.play .digit-focus-bar :is(.hint-button, .clear-focus-button) { width: 36px; height: 36px; min-height: 0; }
+  .undo-mini { display: none; }
 }
 /* Landscape phones: too short for either layout, so the page scrolls. */
 @media (max-height: 499px) and (min-aspect-ratio: 5/4) { .game.play { max-width: var(--game-width); } }

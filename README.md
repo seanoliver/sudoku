@@ -37,7 +37,7 @@ The build generates `public/sw.js` after Next.js finishes, precaching the comple
 - The bulb opens a hint. Each tap reveals more: the technique, where to look, then a step-by-step walkthrough of why the move works, ending with Apply. The walkthrough links to that technique's lesson.
 - Learn has a lesson for each technique the solver uses: watch it on an example board, then find it on practice boards. Finished lessons are marked learned on this device.
 - Completing a row, column or box plays a short green sweep.
-- Undo and Redo in Settings restore values, notes and exclusions (up to 200 actions total). Both persist across reopening. A new edit clears Redo. Settings also has New puzzle and Restart puzzle.
+- Undo and Redo sit beside Erase and restore values, notes and exclusions (up to 200 actions total). Each outlines the cells it changed and briefly shows the kind of action and how many cells in the bar above the board. Both persist across reopening. A new edit clears Redo. Settings has New puzzle, Restart puzzle and Fill notes.
 - Pause hides the board and stops the clock. The clock also pauses in dialogs and background tabs. Hide timer in Settings hides the time display while elapsed time continues to be tracked and saved.
 - Progress saves automatically on this device, including undo history.
 - Levels are graded by the hardest technique a puzzle needs. Every generated puzzle has exactly one solution. Expert puzzles come from a precomputed bank and do not repeat until you have seen them all.
@@ -87,7 +87,7 @@ pnpm test:e2e
 ```
 
 - `src/lib/sudoku.ts`: seeded generator, peers, conflict detection, MRV uniqueness solver.
-- `src/lib/game.ts`: pure game transitions, undo, saved-game validation.
+- `src/lib/game.ts`: pure game transitions, undo, saved-game validation; `undo-description.ts` describes what an undo or redo changed.
 - `src/lib/steps.ts`: human solving techniques as steps; `difficulty.ts` grades puzzles by the hardest one needed.
 - `src/lib/hints.ts`, `hint-view.ts`, `explain.ts`: next hint, its strip text, and the step-by-step walkthrough.
 - `src/lib/lessons.ts`: lessons and practice-board grading.

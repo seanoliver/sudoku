@@ -7,6 +7,8 @@ import { candidateCells, excludedCells, getPlayableCandidates } from '@/lib/cand
 import { useNoteSelection } from './use-note-selection';
 import { activeMode, beginBatch, selectMode, toggleMode, INITIAL_ENTRY_MODE, type EntryMode, type EntryModeState } from '@/lib/entry-mode';
 import { CellNotes } from './cell-notes';
+import { UndoSummary, flashClass } from './undo-summary';
+import { announce, describeAction, type Recovery } from '@/lib/undo-description';
 import { AppMark, Icon } from './icons';
 import { Clock, CLOCK_KEY } from './clock';
 import { restorePreferences, DEFAULT_PREFS, PREFS_KEY, type Theme, type Preferences } from '@/lib/preferences';
@@ -59,6 +61,8 @@ const LevelBars = ({ level }: { level: Difficulty }) => <span className="level-m
 const REJECTION_MS = 800;
 const CELEBRATION_STEP_MS = 45;
 const CELEBRATION_MS = 520;
+const UNDO_FLASH_MS = 1600;
+const UNDO_SUMMARY_MS = 3000;
 /** Manhattan distance between two cells on the 9x9 grid. */
 const distance = (a: number, b: number) => Math.abs(Math.floor(a / 9) - Math.floor(b / 9)) + Math.abs(a % 9 - b % 9);
 
@@ -75,6 +79,11 @@ export default function SudokuGame() {
   const [blockedEntry, setBlockedEntry] = useState<(Rejection & { index: number; value: number; id: number }) | null>(null);
   const [storageError, setStorageError] = useState(false);
   const [sheet, setSheet] = useState<Sheet>(null);
+  // The last undo or redo, shown while the board is still the one it produced and digit focus hasn't changed.
+  const [recovery, setRecovery] = useState<(Recovery & { id: number; game: GameState; focus: number | null; flashing: boolean }) | null>(null);
+  const recoveryId = useRef(0);
+  const recoveryTimers = useRef<number[]>([]);
+  useEffect(() => () => recoveryTimers.current.forEach(clearTimeout), []);
   const [difficulty, setDifficulty] = useState<Difficulty>('easy');
   const [preferences, setPreferences] = useState(DEFAULT_PREFS);
   const [offlineReady, setOfflineReady] = useState(false);
@@ -355,8 +364,25 @@ export default function SudokuGame() {
       }
     }
   };
-  const doUndo = () => { if (!paused && !busy && !lessonLocked) { resetSelection(); setBlockedEntry(null); setCelebration(null); setGame(current => current ? undo(current) : current); } };
-  const doRedo = () => { if (!paused && !busy && !lessonLocked) { resetSelection(); setBlockedEntry(null); setCelebration(null); setGame(current => current ? redo(current) : current); } };
+  const step = (direction: Recovery['direction']) => {
+    if (!game || paused || busy || lessonLocked) return;
+    const next = direction === 'undo' ? undo(game) : redo(game);
+    if (next === game) return;
+    resetSelection(); setBlockedEntry(null); setCelebration(null);
+    setGame(next);
+    // Described in the order it was played, so undoing an exclusion is still an exclusion.
+    const action = direction === 'undo' ? describeAction(next, game) : describeAction(game, next);
+    recoveryTimers.current.forEach(clearTimeout);
+    if (!action) { setRecovery(null); return; }
+    const id = ++recoveryId.current;
+    setRecovery({ id, direction, action, game: next, focus: focusedDigit, flashing: true });
+    recoveryTimers.current = [
+      window.setTimeout(() => setRecovery(current => current?.id === id ? { ...current, flashing: false } : current), UNDO_FLASH_MS),
+      window.setTimeout(() => setRecovery(current => current?.id === id ? null : current), UNDO_SUMMARY_MS),
+    ];
+  };
+  const doUndo = () => step('undo');
+  const doRedo = () => step('redo');
   const handleKey = (event: KeyboardEvent) => {
     if (sheet || paused || busy || !game || (event.target as HTMLElement).closest('dialog')) return;
     if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'z') { event.preventDefault(); if (event.shiftKey) doRedo(); else doUndo(); focusSelectedCell(); return; }
@@ -584,6 +610,8 @@ export default function SudokuGame() {
     const focusOnly = !remaining || filtered || (!batchSelection && !numberFocus && (selected < 0 || Boolean(game?.values[selected])));
     return { remaining, filtered, focusOnly };
   };
+  const shownRecovery = recovery?.game === game && recovery.focus === focusedDigit ? recovery : null;
+  const flashing = shownRecovery?.flashing ? new Set(shownRecovery.action.cells) : null;
   const canErase = Boolean(!batchSelection && editable && (game.values[selected] || game.notes[selected].length || game.exclusions[selected].length));
 
   const lessonDone = lesson ? lesson.phase === 'done' ? lessonBoards.length - 1 : lesson.phase === 'practice' ? lesson.board - 1 + (lesson.result?.correct ? 1 : 0) : 0 : 0;
@@ -620,6 +648,9 @@ export default function SudokuGame() {
           {/* Next becomes Apply in place, so Apply ignores taps just after Next; a double-tap on Next would otherwise make the move. */}
           {hintDisplay.action !== 'none' && (!walkthrough || walkIndex >= walkthrough.length - 1) && <button className="hint-action" onClick={event => { if (hintDisplay.action === 'next') { hintAdvancedAt.current = event.timeStamp; if (activeHint?.level === 2 && activeHint.hint.kind === 'step') focusAfterRender.current = WALK_NEXT_FOCUS; showHint(); } else if (event.timeStamp - hintAdvancedAt.current > 350) applyActiveHint(); }}>{hintDisplay.action === 'apply' ? 'Apply' : 'Next'}</button>}
           <button className="clear-focus-button" aria-label="Close hint" title="Close hint" onClick={() => { setHintState(null); focusSelectedCell(); }}><Icon name="close" size={16}/></button>
+        </> : shownRecovery ? <>
+          <UndoSummary recovery={shownRecovery} key={shownRecovery.id}/>
+          <button className="hint-button" aria-label="Show a hint" title="Hint (H)" disabled={!game || complete} onClick={() => { focusAfterRender.current = HINT_STRIP_FOCUS; showHint(); }}><Icon name="bulb" size={19}/></button>
         </> : <>
         {focusedDigit !== null ? <>
           <span className="digit-focus-label" role="status"><span className="focus-indicator" aria-hidden="true"/><span>Focus <strong>{focusedDigit}</strong></span></span>
@@ -644,7 +675,7 @@ export default function SudokuGame() {
               const generated = game?.noteOrigins[i] === 'generated';
               const selectedCell = (batchSelection ? selection.indices.includes(i) : selected === i) && !complete;
               const same = value > 0 && selectedValue === value;
-              const classes = ['cell', given ? 'given' : 'entered', selectedCell ? 'selected' : '', !selectedCell && related.has(i) && preferences.highlightPeers && !complete ? 'related' : '', same && !selectedCell && !complete ? 'matching' : '', possible.has(i) ? 'possible' : '', excludedPossible.has(i) ? 'excluded-possible' : '', badCells.has(i) ? 'conflict' : '', rejection?.index === i ? 'rejecting' : '', ...(walkLine ? walkClasses(walkLine, i) : [...(hintDisplay?.cells.get(i) ?? [])].map(role => `hint-${role}`))].filter(Boolean).join(' ');
+              const classes = ['cell', given ? 'given' : 'entered', selectedCell ? 'selected' : '', !selectedCell && related.has(i) && preferences.highlightPeers && !complete ? 'related' : '', same && !selectedCell && !complete ? 'matching' : '', possible.has(i) ? 'possible' : '', excludedPossible.has(i) ? 'excluded-possible' : '', badCells.has(i) ? 'conflict' : '', rejection?.index === i ? 'rejecting' : '', ...(walkLine ? walkClasses(walkLine, i) : [...(hintDisplay?.cells.get(i) ?? [])].map(role => `hint-${role}`)), flashing?.has(i) ? flashClass(shownRecovery!.action) : ''].filter(Boolean).join(' ');
               return <div role="gridcell" aria-selected={selectedCell} aria-readonly={given} aria-rowindex={row+1} aria-colindex={col+1} key={i} className="cell-slot"><button className={classes} data-index={i} data-given={given} tabIndex={selected === i ? 0 : -1} aria-label={`Row ${row+1}, column ${col+1}, ${value ? `${value}${given ? ', given' : ''}` : notes.length ? `${generated ? 'generated notes' : 'notes'} ${notes.join(', ')}` : 'empty'}${!value && ruledOut.length ? `, ruled out ${ruledOut.join(', ')}` : ''}${possible.has(i) ? `, possible placement for ${selectedValue}` : ''}${excludedPossible.has(i) ? `, excluded placement for ${selectedValue}` : ''}${badCells.has(i) ? ', incorrect answer' : ''}`} aria-disabled={complete} onClick={event => selection.clickCell(event, i)}>
                 {celebrating && celebratedCells.has(i) && <span key={`celebrate-${celebrating.id}`} className="unit-celebration" style={{ animationDelay: `${distance(i, celebrating.origin) * CELEBRATION_STEP_MS}ms` }} aria-hidden="true"/>}
                 {value ? <span className="cell-number">{value}</span> : null}
@@ -679,7 +710,11 @@ export default function SudokuGame() {
                 <Icon name={({ value: 'numbers', note: 'pencil', exclude: 'exclude' } as const)[option]} size={16}/><span>{{ value: 'Numbers', note: 'Notes', exclude: 'Exclude' }[option]}</span>
               </button>)}
             </div>
-            <button className="erase-control" disabled={!canErase} onClick={() => { input(0); focusSelectedCell(); }} aria-label="Erase" title="Erase (Backspace)"><Icon name="erase" size={20}/></button>
+            <div className="edit-actions">
+              <button className="history-control" disabled={!game?.history.length || paused || busy || lessonLocked} onClick={() => { doUndo(); focusSelectedCell(); }} aria-label="Undo" title="Undo (⌘Z / Ctrl+Z)"><Icon name="undo" size={19}/></button>
+              <button className="erase-control" disabled={!canErase} onClick={() => { input(0); focusSelectedCell(); }} aria-label="Erase" title="Erase (Backspace)"><Icon name="erase" size={20}/></button>
+              <button className="history-control" disabled={!game?.redoHistory.length || paused || busy || lessonLocked} onClick={() => { doRedo(); focusSelectedCell(); }} aria-label="Redo" title="Redo (⌘⇧Z / Ctrl+Shift+Z)"><Icon name="undo" size={19} style={{ transform: 'scaleX(-1)' }}/></button>
+            </div>
           </div>
         <div className={`number-pad mode-${mode}`} aria-label="Number pad" inert={Boolean(walkLine) || lesson?.phase === 'done' || Boolean(lesson?.result?.correct)}>
           {DIGITS.map(n => {
@@ -687,6 +722,7 @@ export default function SudokuGame() {
             return <button key={n} className={`number-key ${!remaining ? 'digit-finished' : ''} ${filtered ? 'digit-filtered' : ''}`} aria-label={(numberFocus || focusOnly ? `Focus on ${n}` : batchSelection ? (game && batchHasMark(game, { indices: selection.indices, value: n, marks: excluding ? 'exclusions' : 'notes' }) ? `Remove ${excluding ? 'exclusion' : 'note'} ${n} from ${selection.indices.length} selected cells` : `${excluding ? 'Exclude' : 'Add note'} ${n} ${excluding ? 'from' : 'to'} ${selection.indices.length} selected cells`) : `${excluding ? 'Rule out' : 'Enter'} ${n}${pencil ? ' as a note' : ''}`) + (filtered ? ', unavailable: already in this row, column, or box' : '') + (remaining ? '' : ', all placed')} disabled={!game || busy || paused || complete} onClick={() => input(n)}><span style={{ gridRow: Math.ceil(n / 3), gridColumn: (n - 1) % 3 + 1 }}>{n}</span></button>;
           })}
         </div>
+        <p className="sr-only" role="status">{recovery ? `${announce(recovery)}${recovery.id % 2 ? '\u00a0' : ''}` : ''}</p>
         <p className="sr-only" role="status">{batchSelection ? `${selection.indices.length} ${selection.indices.length === 1 ? 'cell' : 'cells'} selected` : ''}</p>
         <p className="sr-only" role="status">{rejection ? `${rejection.value} rejected, ${rejection.kind === 'constraint' ? `already in this ${rejection.unit}` : 'incorrect for this cell'}${rejection.id % 2 ? '\u00a0' : ''}` : ''}</p>
         </div>
@@ -708,8 +744,6 @@ export default function SudokuGame() {
           <div className="puzzle-actions">
             <button className="puzzle-action new-puzzle-action" disabled={busy} onClick={() => { setDifficulty(game?.difficulty ?? 'easy'); openSheet('new'); }}><Icon name="plus" size={23}/><span>New puzzle</span></button>
             <button className="puzzle-action" disabled={!game || busy} onClick={() => openSheet('restart')}><Icon name="restart" size={23}/><span>Restart puzzle</span></button>
-            <button className="puzzle-action secondary-puzzle-action" disabled={!game?.history.length || paused || busy} onClick={() => { doUndo(); closeSheet(); }} title="Undo (⌘Z / Ctrl+Z)"><Icon name="undo" size={20}/><span>Undo</span></button>
-            <button className="puzzle-action secondary-puzzle-action" disabled={!game?.redoHistory.length || paused || busy} onClick={() => { doRedo(); closeSheet(); }} title="Redo (⌘⇧Z / Ctrl+Shift+Z)"><Icon name="undo" size={20} style={{ transform: 'scaleX(-1)' }}/><span>Redo</span></button>
             <button className="puzzle-action secondary-puzzle-action" disabled={!game || paused || busy || complete} onClick={() => { setGame(current => current ? fillNotes(current) : current); closeSheet(); }}><Icon name="fill" size={20}/><span>Fill notes</span></button>
           </div>
           <p className="puzzle-actions-hint">Choose a new puzzle or start this one over.</p><div className="setting-section"><h3>Appearance</h3><div className="segmented">{(['system','light','dark'] as Theme[]).map(theme => <button key={theme} aria-pressed={preferences.theme === theme} className={preferences.theme === theme ? 'active' : ''} onClick={() => updatePreferences({ theme })}><span className="capitalize">{theme}</span></button>)}</div></div><div className="setting-row"><Icon name="shield" size={21}/><div className="setting-copy"><strong>Block incorrect answers</strong><p>Only accept answers that match the solution</p></div><button className="switch" role="switch" aria-checked={preferences.blockIncorrectAnswers} aria-label="Block incorrect answers" onClick={() => updatePreferences({ blockIncorrectAnswers: !preferences.blockIncorrectAnswers })}><span/></button></div><div className="setting-row"><Icon name="fill" size={21}/><div className="setting-copy"><strong>Highlight related cells</strong><p>Follow the row, column, and box</p></div><button className="switch" role="switch" aria-checked={preferences.highlightPeers} aria-label="Highlight related cells" onClick={() => updatePreferences({ highlightPeers: !preferences.highlightPeers })}><span/></button></div><div className="setting-row"><Icon name="sparkles" size={21}/><div className="setting-copy"><strong>Smart highlighting</strong><p>Select a filled cell to see where its number could go</p></div><button className="switch" role="switch" aria-checked={preferences.smartHighlighting} aria-label="Smart highlighting" onClick={() => updatePreferences({ smartHighlighting: !preferences.smartHighlighting })}><span/></button></div><div className="setting-row"><Icon name="filter" size={21}/><div className="setting-copy"><strong>Filter number keys</strong><p id="filter-setting-description">Dim numbers already in this row, column, or box.</p></div><button className="switch" role="switch" aria-checked={preferences.filterNumberKeys} aria-label="Filter number keys" aria-describedby="filter-setting-description" onClick={() => { setBlockedEntry(null); updatePreferences({ filterNumberKeys: !preferences.filterNumberKeys }); }}><span/></button></div><div className="setting-row"><Icon name="clock" size={21}/><div className="setting-copy"><strong>Hide timer</strong><p id="hide-timer-description">Keep tracking time without showing it.</p></div><button className="switch" role="switch" aria-checked={preferences.hideTimer} aria-label="Hide timer" aria-describedby="hide-timer-description" onClick={() => updatePreferences({ hideTimer: !preferences.hideTimer })}><span/></button></div><button className="text-button full-width help-action" onClick={() => { setSheet('help'); requestAnimationFrame(() => { dialog.current?.querySelector('.sheet-content')?.scrollTo?.(0, 0); dialog.current?.querySelector<HTMLButtonElement>('.sheet-close')?.focus(); }); }}><Icon name="help" size={16}/><span>How to play</span></button><p className="privacy-note">Your puzzles and preferences stay on this device.</p></>}
