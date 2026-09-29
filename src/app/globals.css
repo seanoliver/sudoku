@@ -48,12 +48,12 @@ h1,h2,h3,p { margin: 0; }
 .app-actions { display: flex; align-items: center; gap: 18px; }
 .icon-button { width: 40px; height: 40px; display: grid; place-items: center; border-radius: 50%; color: var(--secondary); }
 .settings-button { background: var(--surface); box-shadow: 0 1px 3px #23395508; border: 1px solid var(--line); }
-.game-bar { width: 100%; max-width: var(--play-cap); height: var(--game-bar-height); margin: 0 auto; display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 8px; }
+.game-bar { width: 100%; max-width: var(--play-size); height: var(--game-bar-height); margin: 0 auto; display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 8px; }
 .game-bar-center { display: flex; align-items: center; justify-content: center; gap: 14px; min-width: 0; }
 .game-bar-actions { display: flex; align-items: center; gap: 4px; }
 .game-bar .icon-button { width: 40px; height: 40px; background: none; border: 0; box-shadow: none; }.game-bar .icon-button:disabled { opacity: .4; }
 .game-bar .difficulty-button { font-size: 15px; font-weight: 600; color: var(--ink); }.game-bar .difficulty-button>svg { color: var(--secondary); }
-.game-bar .clock { font-size: 15px; }
+.game-bar .clock { font-size: 15px; color: var(--ink); }
 .game-bar { container: game-bar / inline-size; }
 @container game-bar (max-width: 340px) {
   .game-bar-center { gap: 8px; }.game-bar .time-controls { gap: 4px; }.game-bar .difficulty-button { gap: 5px; }
@@ -63,10 +63,12 @@ h1,h2,h3,p { margin: 0; }
 .app:has(> .game-bar:not(.lesson-hidden)) { display: flex; flex-direction: column; }
 .app:has(> .game-bar:not(.lesson-hidden)) > .game.play { width: 100%; margin-top: auto; margin-bottom: auto; }
 /* --around-board: the height under the bar that is not the board (padding, focus strip, progress line, controls), less the board card's 16px padding. */
-:root { --game-width: 444px; --play-cap: calc(var(--game-width) + 16px); --around-board: 354px; --game-top: 28px; --game-bar-height: 56px; --above-play: var(--game-bar-height); --lesson-footer: 0px; }
-:root:has(.lesson-bar) { --above-play: calc(var(--bar-height) + var(--game-top)); --lesson-footer: 56px; }
+:root { --game-width: 444px; --play-cap: calc(var(--game-width) + 16px); --around-board: 354px; --game-top: 28px; --game-bar-height: 56px; --above-play: var(--game-bar-height); --lesson-footer: 0px; --play-floor: 264px; }
+:root:has(.lesson-bar) { --above-play: calc(var(--bar-height) + var(--game-top)); --lesson-footer: 56px; --play-floor: 184px; }
 .game { max-width: var(--game-width); margin: var(--game-top) auto 0; }
-.game.play { max-width: max(264px, min(var(--play-cap), calc(100svh - var(--around-board) - var(--above-play) - var(--lesson-footer) - var(--safe-top) - max(0px, var(--safe-bottom) - var(--pad-bottom))))); }
+/* The bar and the card share one width. */
+:root { --play-size: max(var(--play-floor), min(var(--play-cap), calc(100svh - var(--around-board) - var(--above-play) - var(--lesson-footer) - var(--safe-top) - max(0px, var(--safe-bottom) - var(--pad-bottom))))); }
+.game.play { max-width: var(--play-size); }
 .difficulty-button { display: flex; align-items: center; gap: 8px; color: var(--secondary); font-size: 13px; font-weight: 550; min-height: 30px; }
 .capitalize { text-transform: capitalize; }
 .level-mark { display: flex; align-items: flex-end; gap: 2px; height: 13px; }.level-mark i { width: 3px; border-radius: 1px; background: var(--line); }.level-mark i:nth-child(1) { height: 4px; }.level-mark i:nth-child(2) { height: 7px; }.level-mark i:nth-child(3) { height: 10px; }.level-mark i:nth-child(4) { height: 13px; }.level-mark i.active { background: var(--blue); }
@@ -422,7 +424,7 @@ h1,h2,h3,p { margin: 0; }
   :root { --game-bar-height: 44px; --play-width: max(260px, min(var(--play-cap), calc(100svh - 228px - var(--game-bar-height) - var(--pad-bottom) - var(--safe-top) - max(0px, var(--safe-bottom) - var(--pad-bottom))))); }
   /* A lesson keeps its header and adds a footer button. */
   /* 280px: a lesson's non-board height below its header, less 16px. */
-  :root:has(.lesson-bar) { --play-width: max(200px, min(var(--play-cap), calc(100svh - 280px - var(--bar-height) - var(--pad-bottom) - var(--safe-top) - max(0px, var(--safe-bottom) - var(--pad-bottom))))); }
+  :root:has(.lesson-bar) { --play-width: max(var(--play-floor), min(var(--play-cap), calc(100svh - 280px - var(--bar-height) - var(--pad-bottom) - var(--safe-top) - max(0px, var(--safe-bottom) - var(--pad-bottom))))); }
   .game-bar { max-width: var(--play-width); }
   .app:has(.game.play) .desktop-caption { display: none; }
   .game.play { margin-top: 0; max-width: var(--play-width); }
@@ -432,4 +434,4 @@ h1,h2,h3,p { margin: 0; }
   .game.play .digit-focus-bar .clear-focus-button { width: 36px; height: 36px; min-height: 0; }
 }
 /* Landscape phones: too short for either layout, so the page scrolls. */
-@media (max-height: 499px) and (min-aspect-ratio: 5/4) { .game.play { max-width: var(--game-width); } }
+@media (max-height: 499px) and (min-aspect-ratio: 5/4) { .game.play, .game-bar { max-width: var(--play-cap); } }
