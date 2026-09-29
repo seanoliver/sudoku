@@ -68,7 +68,7 @@ test('keys and tools stay at least 36px tall on short screens', async ({ page })
   await page.setViewportSize({ width: 375, height: 628 });
   await seed(page);
   await openGame(page);
-  for (const selector of ['.number-pad .number-key', '.mode-option', '.erase-control']) {
+  for (const selector of ['.number-pad .number-key', '.mode-option', '.erase-control', '.history-control']) {
     expect((await page.locator(selector).first().boundingBox())!.height).toBeGreaterThanOrEqual(36);
   }
 });

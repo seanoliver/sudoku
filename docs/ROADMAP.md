@@ -16,9 +16,9 @@ Already merged into `main`:
 - Optional Smart highlighting, manual notes and exclusions, and one-time Fill notes.
 - Digit focus through an explicit button or filled-cell hold, with an integrated board toolbar ([PR #10](https://github.com/seanoliver/sudoku/pull/10)).
 - Hold/drag selection for batch notes and exclusions, with one undo step per batch and a grouped keypad panel containing Clear selection ([PR #11](https://github.com/seanoliver/sudoku/pull/11)).
-- Compact annotation controls with contextual Erase and Undo/Fill notes in Settings ([PR #15](https://github.com/seanoliver/sudoku/pull/15)). The Notes switch and Exclude chip were later replaced by a Numbers | Notes | Exclude control (R3).
+- Compact annotation controls with contextual Erase and Undo/Fill notes in Settings ([PR #15](https://github.com/seanoliver/sudoku/pull/15)). The Notes switch and Exclude chip were later replaced by a Numbers | Notes | Exclude control (R3). Undo and Redo later moved beside Erase (milestone 3).
 
-A step solver covering ten techniques, from naked singles to coloring, grades every level ([PR #30](https://github.com/seanoliver/sudoku/pull/30), [PR #32](https://github.com/seanoliver/sudoku/pull/32), [PR #33](https://github.com/seanoliver/sudoku/pull/33)), powers progressive hints with step-by-step walkthroughs ([PR #35](https://github.com/seanoliver/sudoku/pull/35)–[PR #37](https://github.com/seanoliver/sudoku/pull/37)), and feeds the Learn lessons ([PR #39](https://github.com/seanoliver/sudoku/pull/39), [PR #40](https://github.com/seanoliver/sudoku/pull/40)). It never changes notes or highlighting on its own. The app opens on a Home screen ([PR #42](https://github.com/seanoliver/sudoku/pull/42)). Persistent Redo has shipped in [PR #18](https://github.com/seanoliver/sudoku/pull/18); action descriptions and checkpoints remain future work.
+A step solver covering ten techniques, from naked singles to coloring, grades every level ([PR #30](https://github.com/seanoliver/sudoku/pull/30), [PR #32](https://github.com/seanoliver/sudoku/pull/32), [PR #33](https://github.com/seanoliver/sudoku/pull/33)), powers progressive hints with step-by-step walkthroughs ([PR #35](https://github.com/seanoliver/sudoku/pull/35)–[PR #37](https://github.com/seanoliver/sudoku/pull/37)), and feeds the Learn lessons ([PR #39](https://github.com/seanoliver/sudoku/pull/39), [PR #40](https://github.com/seanoliver/sudoku/pull/40)). It never changes notes or highlighting on its own. The app opens on a Home screen ([PR #42](https://github.com/seanoliver/sudoku/pull/42)). Persistent Redo has shipped in [PR #18](https://github.com/seanoliver/sudoku/pull/18); checkpoints remain future work.
 
 ## Sequence
 
@@ -26,7 +26,7 @@ A step solver covering ten techniques, from naked singles to coloring, grades ev
 | --- | --- | --- | --- |
 | 1 (shipped) | Digit locking | Keep one digit highlighted while scanning and annotating | Existing Smart highlighting |
 | 2 (shipped) | Batch exclusions | Record one deduction across multiple cells | Existing batch selection; coordinate with digit lock |
-| 3 (partly shipped; still to do: action descriptions, checkpoint) | Recovery | Persistent redo, action descriptions, then a checkpoint | Stable batch actions from milestone 2 |
+| 3 (partly shipped; still to do: checkpoint) | Recovery | Persistent redo, action descriptions, then a checkpoint | Stable batch actions from milestone 2 |
 | 4 | Candidate explanations | Inspect basic constraints and distinguish manual exclusions | Recovery support for future explanation state |
 | 5 | Apply a chosen deduction | Validate and apply a player-selected pointing pair | Explanation records from milestone 4 |
 | 6 (shipped) | Progressive hints | Reveal one supported move in optional steps | Explainable detection from milestones 4 and 5 |
@@ -304,7 +304,7 @@ Status: queued for research. The feature outcomes below are uncommitted. Complet
 
 ## 3. Recovery
 
-**Status:** Persistent Undo/Redo shipped in [PR #18](https://github.com/seanoliver/sudoku/pull/18) in Settings, with keyboard shortcuts and a shared 200-action limit. Action descriptions and checkpoints remain deferred.
+**Status:** Persistent Undo/Redo shipped in [PR #18](https://github.com/seanoliver/sudoku/pull/18), with keyboard shortcuts and a shared 200-action limit. [PR #56](https://github.com/seanoliver/sudoku/pull/56) moved Undo and Redo from Settings to the tool row beside Erase, and announces each one to screen readers ([design](plans/2026-09-28-undo-descriptions-design.md)). Sean dropped visible action descriptions after trying them; the checkpoint remains deferred.
 
 **Player benefit:** Correct an accidental action without losing work or reconstructing a previous position.
 
@@ -435,4 +435,4 @@ This roadmap keeps automatic bookkeeping limited to explicit actions and existin
 
 ## Delivery discipline
 
-Each item's Status line records what has shipped. Open follow-ups include temporary note preview, default number focus, optional sole-candidate autofill, and recovery's action descriptions and checkpoint; speed replay retains its dependencies. Open research spikes (R5–R10) must produce reviewed scope proposals before their feature outcomes enter the implementation sequence. CI merge gates are already active. Each feature starts with three rendered design directions for Sean to review, followed by a detailed implementation plan and a focused PR. Sean may change the order or skip renderings explicitly. This roadmap does not authorize implementing every phase at once. Update milestone status and links as changes merge.
+Each item's Status line records what has shipped. Open follow-ups include temporary note preview, default number focus, optional sole-candidate autofill, and recovery's checkpoint; speed replay retains its dependencies. Open research spikes (R5–R10) must produce reviewed scope proposals before their feature outcomes enter the implementation sequence. CI merge gates are already active. Each feature starts with three rendered design directions for Sean to review, followed by a detailed implementation plan and a focused PR. Sean may change the order or skip renderings explicitly. This roadmap does not authorize implementing every phase at once. Update milestone status and links as changes merge.
