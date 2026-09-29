@@ -29,12 +29,13 @@ The build generates `public/sw.js` after Next.js finishes, precaching the comple
 ## Play
 
 - The app opens on Home: continue the puzzle in progress, start an Easy, Medium, Hard or Expert puzzle, open the next lesson, or browse all techniques. Home also shows how many puzzles you have solved and, until the app is installed, an install card. The Home button or the browser's back button returns there from a game.
+- The game screen has one bar: Home on the left; the difficulty, timer, and pause in the middle; the hint bulb and Settings on the right. Below it sit two cards, the board and the controls.
 - Select an empty cell, then a number to enter it. With a filled cell selected, the number pad and digit keys focus that digit without replacing the value. Starting numbers cannot be changed. With Block incorrect answers on, a wrong number is refused and shown struck through in red, and so is crossing out a cell's answer in Exclude mode, alone or in a batch.
 - The Numbers, Notes, and Exclude buttons beside the number grid switch what the number keys do. Notes add or remove pencil marks; Exclude crosses out digits and removes those cells from Smart highlighting for that digit.
 - Drag across empty cells, or hold one, to select several. A number then toggles that note or exclusion in every selected cell. Tap a filled cell or press Escape to finish.
 - Erase clears your number or annotations from the selected cell. It stays visible and dims when there is nothing to erase.
 - Fill notes in Settings replaces notes in every empty cell with all candidates allowed by placed numbers, keeping crossed-out exclusions. Generated notes are blue. One undo restores the previous annotations. Entering a number removes matching notes and exclusions from related cells.
-- The bulb opens a hint. Each tap reveals more: the technique, where to look, then a step-by-step walkthrough of why the move works, ending with Apply. The walkthrough links to that technique's lesson.
+- The bulb in the bar opens a hint. Each tap reveals more: the technique, where to look, then a step-by-step walkthrough of why the move works, ending with Apply. The walkthrough links to that technique's lesson.
 - Learn has a lesson for each technique the solver uses: watch it on an example board, then find it on practice boards. Finished lessons are marked learned on this device.
 - Completing a row, column or box plays a short green sweep.
 - Undo and Redo sit beside Erase and restore values, notes and exclusions (up to 200 actions total). Both persist across reopening. A new edit clears Redo. Settings has New puzzle, Restart puzzle and Fill notes.
@@ -47,7 +48,7 @@ Keyboard: arrow keys move, 1–9 enter, N switches to Notes and X to Exclude (pr
 
 ## Install
 
-Use HTTPS on a hosted deployment (localhost is suitable for development). Visit once online. The install card on Home, or Install app in the game's top bar, opens the Install sheet, which says when offline play is ready. On iOS, use Safari → Share → Add to Home Screen. Supported Android and desktop browsers offer their own installation UI; the app also handles the install prompt when available. A LAN HTTP address on a physical phone does not provide the secure context required for service workers.
+Use HTTPS on a hosted deployment (localhost is suitable for development). Visit once online. The install card on Home opens the Install sheet, which says when offline play is ready. On iOS, use Safari → Share → Add to Home Screen. Supported Android and desktop browsers offer their own installation UI; the app also handles the install prompt when available. A LAN HTTP address on a physical phone does not provide the secure context required for service workers.
 
 No account, backend, analytics, advertising, or external font requests. Clearing browser data removes saved progress. Browser storage may be evicted by the operating system. Multiple tabs do not synchronize games; use one active tab per device.
 
