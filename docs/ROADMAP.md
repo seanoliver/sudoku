@@ -304,7 +304,7 @@ Status: queued for research. The feature outcomes below are uncommitted. Complet
 
 ## 3. Recovery
 
-**Status:** Persistent Undo/Redo shipped in [PR #18](https://github.com/seanoliver/sudoku/pull/18), with keyboard shortcuts and a shared 200-action limit. Action descriptions shipped in [PR #56](https://github.com/seanoliver/sudoku/pull/56): Undo and Redo moved from Settings to the tool row beside Erase, and each one outlines the cells it changed and shows the action's kind and cell count in the focus bar ([design](plans/2026-09-28-undo-descriptions-design.md)). The checkpoint remains deferred.
+**Status:** Persistent Undo/Redo shipped in [PR #18](https://github.com/seanoliver/sudoku/pull/18), with keyboard shortcuts and a shared 200-action limit. [PR #56](https://github.com/seanoliver/sudoku/pull/56) moved Undo and Redo from Settings to the tool row beside Erase, and announces each one to screen readers ([design](plans/2026-09-28-undo-descriptions-design.md)). Sean dropped visible action descriptions after trying them; the checkpoint remains deferred.
 
 **Player benefit:** Correct an accidental action without losing work or reconstructing a previous position.
 
