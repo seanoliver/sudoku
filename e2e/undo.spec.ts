@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 import { openGame } from './fixtures.ts';
-import { createGame, toggleNotes, SAVE_KEY } from '../src/lib/game.ts';
+import { createGame, enter, toggleNotes, SAVE_KEY } from '../src/lib/game.ts';
 import { createPuzzle } from '../src/lib/difficulty.ts';
 
 const fresh = createGame(createPuzzle('medium', 7));
@@ -35,6 +35,21 @@ test('Undo and Redo buttons take back and restore an action, and announce it', a
   await expect(cell(page, cells[0])).toHaveAccessibleName(/notes 5/);
   await expect(page.getByRole('status').filter({ hasText: 'Redid notes in 4 cells' })).toHaveCount(1);
   await expect(redoButton(page)).toBeDisabled();
+});
+
+test('a solved puzzle cannot be undone', async ({ page }) => {
+  const open = fresh.values.flatMap((v, index) => v ? [] : [index]);
+  const last = open.at(-1)!;
+  let almost = fresh;
+  for (const i of open.slice(0, -1)) almost = enter(almost, { index: i, value: fresh.solution[i] });
+  await seed(page, almost);
+  await openGame(page);
+  await cell(page, last).click();
+  await page.keyboard.press(String(fresh.solution[last]));
+  await expect(page.locator('.completion')).toBeVisible();
+  await page.keyboard.press('ControlOrMeta+z');
+  await page.waitForTimeout(200);
+  await expect(page.locator('.completion')).toBeVisible();
 });
 
 test('Settings no longer has Undo or Redo', async ({ page }) => {

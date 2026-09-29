@@ -6,6 +6,7 @@ Roadmap item: 3, Recovery, first release (action descriptions). On September 28 
 
 - Undo, Erase, and Redo share the row under the modes, in that order. Erase keeps the middle and is slightly wider. Each is at least 36px tall, as Erase is now.
 - Undo and Redo dim when there is nothing to undo or redo, and while paused, generating, or locked in a lesson.
+- A solved puzzle can't be undone, by button or by ⌘Z.
 - Undo and Redo leave the Settings sheet, which keeps New puzzle, Restart puzzle, and Fill notes. The ⌘Z and ⌘⇧Z shortcuts are unchanged.
 
 ## Screen readers
@@ -21,4 +22,4 @@ Roadmap item: 3, Recovery, first release (action descriptions). On September 28 
 ## Tests
 
 - **Unit:** describing and announcing each kind, including note and exclusion edits that change both, and Fill notes.
-- **Browser:** the tool row order and disabled states; the buttons undo and redo and announce it; Settings no longer has Undo or Redo; the fit test passes at every size.
+- **Browser:** the tool row order and disabled states; the buttons undo and redo and announce it; ⌘Z leaves a solved puzzle solved; Settings no longer has Undo or Redo; the fit test passes at every size.

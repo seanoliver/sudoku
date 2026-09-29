@@ -358,7 +358,7 @@ export default function SudokuGame() {
     }
   };
   const step = (direction: Recovery['direction']) => {
-    if (!game || paused || busy || lessonLocked) return;
+    if (!game || paused || busy || lessonLocked || complete) return;
     const next = direction === 'undo' ? undo(game) : redo(game);
     if (next === game) return;
     resetSelection(); setBlockedEntry(null); setCelebration(null);
