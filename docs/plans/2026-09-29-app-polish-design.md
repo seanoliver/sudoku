@@ -34,13 +34,14 @@ Motion shows where something came from or went to. It never decorates.
 
 ## Shared pieces
 
-- `src/lib/motion.ts`: the spring presets and matching CSS durations.
-- `MotionProvider`: `LazyMotion` plus `MotionConfig`; first paint does not animate.
+- `src/lib/motion.ts`: the spring presets.
+- `MotionProvider`: `LazyMotion` plus `MotionConfig`. The small core loads first; the layout and drag features (about 28kb, needed for the shared board transition and drag-to-dismiss) load after first render, so the first load stays within budget.
 - Tokens in `globals.css`: type, spacing, radii, and surfaces as variables for both themes.
 - `<ScreenHeader>`: large collapsing title with an optional back button.
 - `<Sheet>`: keeps the native `<dialog>` for focus trapping, Escape, and screen readers; Motion animates the panel and backdrop and adds drag-to-dismiss. All five sheets move onto it.
 - `<Pressable>`: the shared press response through `whileTap`.
 - Screen transitions: the state-driven screen switch in `game.tsx` is wrapped in `AnimatePresence`.
+- Each shared component ships in the PR of the first screen that uses it, so no PR adds unused code.
 - Scope guard: only the sheets and the screen switch leave `game.tsx`. A broader breakup is a separate task.
 
 ## Rollout
@@ -48,7 +49,7 @@ Motion shows where something came from or went to. It never decorates.
 One PR per step, each finalized before merge:
 
 1. Three rendered directions for the game screen and Home, light and dark, at 390 × 844 and 466 × 590. Sean picks one.
-2. Foundation: Motion, tokens, shared pieces. No visible change.
+2. Foundation: Motion, the provider, spring presets, tokens, and a first-load JS script. No visible change.
 3. Game screen: one bar, no empty bands, board and key motion.
 4. Sheets: Settings, New puzzle, How to play (short illustrated rows).
 5. Finish moment, with its own three rendered directions; blank strips removed on pause and completion.
