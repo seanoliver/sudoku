@@ -26,7 +26,7 @@ A step solver covering ten techniques, from naked singles to coloring, grades ev
 | --- | --- | --- | --- |
 | 1 (shipped) | Digit locking | Keep one digit highlighted while scanning and annotating | Existing Smart highlighting |
 | 2 (shipped) | Batch exclusions | Record one deduction across multiple cells | Existing batch selection; coordinate with digit lock |
-| 3 (shipped; checkpoint dropped) | Recovery | Persistent redo, action descriptions, then a checkpoint | Stable batch actions from milestone 2 |
+| 3 (shipped; checkpoint dropped) | Recovery | Persistent redo and Undo and Redo beside Erase | Stable batch actions from milestone 2 |
 | 4 (dropped) | Candidate explanations | Inspect basic constraints and distinguish manual exclusions | Recovery support for future explanation state |
 | 5 (dropped) | Apply a chosen deduction | Validate and apply a player-selected pointing pair | Explanation records from milestone 4 |
 | 6 (shipped) | Progressive hints | Reveal one supported move in optional steps | The solver's step records |
@@ -311,13 +311,11 @@ Status: queued for research. The feature outcomes below are uncommitted. Complet
 Deliver in two small releases:
 
 1. Add Redo and brief action descriptions such as “Undid notes in 4 cells.” Persist undo and redo across reopening. A new edit after Undo clears the redo branch; selection-only changes leave history untouched.
-2. Add one explicit checkpoint per puzzle. Restoring it recovers values and annotations together and is itself undoable. Label the checkpoint so its contents are clear.
+2. (Dropped on September 28.) Add one explicit checkpoint per puzzle. Restoring it recovers values and annotations together and is itself undoable. Label the checkpoint so its contents are clear.
 
-**Completion criteria:** Batch edits remain atomic, save migration preserves existing puzzles, and restore/undo/redo keep annotation ownership intact. Define bounded history and checkpoint storage before implementation.
+**Completion criteria:** Batch edits remain atomic, save migration preserves existing puzzles, and restore/undo/redo keep annotation ownership intact. Define bounded history storage before implementation.
 
-Coordinate action descriptions and persistence with the requested speed replay, while keeping the complete replay log separate from bounded undo history. Define checkpoint and restart events so playback remains chronological.
-
-This precedes applied deductions because their affected notes and explanations must be reversible together.
+Coordinate action descriptions and persistence with the requested speed replay, while keeping the complete replay log separate from bounded undo history. Define restart events so playback remains chronological.
 
 ## 4. Candidate explanations
 

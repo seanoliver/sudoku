@@ -36,7 +36,7 @@ test('with Block incorrect answers off, the answer can be crossed out', async ({
   await expect(cell(page, a)).toHaveAccessibleName(new RegExp(`ruled out ${answer}`));
 });
 
-test('a batch that would cross out an answer is refused whole, and marks that cell', async ({ page }) => {
+test('a batch that would cross out an answer is refused whole, and marks every selected cell', async ({ page }) => {
   await seed(page);
   await openGame(page);
   await page.getByRole('button', { name: 'Exclude', exact: true }).click();
@@ -48,8 +48,8 @@ test('a batch that would cross out an answer is refused whole, and marks that ce
   await expect(page.getByRole('status').filter({ hasText: '2 cells selected' })).toHaveCount(1);
   await page.keyboard.press(String(answer));
   await expect(cell(page, a)).toHaveClass(/rejecting/);
-  await expect(cell(page, b)).not.toHaveClass(/rejecting/);
-  await expect(page.getByRole('status').filter({ hasText: `${answer} rejected, it is the answer for 1 of 2 selected cells` })).toHaveCount(1);
+  await expect(cell(page, b)).toHaveClass(/rejecting/);
+  await expect(page.getByRole('status').filter({ hasText: `${answer} rejected, it is the answer for a selected cell` })).toHaveCount(1);
   await expect(page.getByRole('status').filter({ hasText: '2 cells selected' })).toHaveCount(1);
   const exclusions = await saved(page);
   expect([exclusions[a], exclusions[b]]).toEqual([[], []]);

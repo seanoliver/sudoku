@@ -73,7 +73,7 @@ export default function SudokuGame() {
   const [paused, setPaused] = useState(false);
   const [busy, setBusy] = useState(true);
   const [error, setError] = useState('');
-  const [blockedEntry, setBlockedEntry] = useState<(Rejection & { cells: number[]; of: number; value: number; exclusion: boolean; id: number }) | null>(null);
+  const [blockedEntry, setBlockedEntry] = useState<(Rejection & { cells: readonly number[]; value: number; exclusion: boolean; id: number }) | null>(null);
   const [storageError, setStorageError] = useState(false);
   const [sheet, setSheet] = useState<Sheet>(null);
   const [undoAnnouncement, setUndoAnnouncement] = useState({ id: 0, text: '' });
@@ -333,7 +333,7 @@ export default function SudokuGame() {
     const refusedCells = batchSelection && excluding && preferences.blockIncorrectAnswers ? incorrectExclusions(game, { indices: selection.indices, value }) : [];
     const refused = batchSelection ? refusedCells.length ? { kind: 'answer' as const, sources: [], unit: null } : null
       : rejectEntry(game, { index: selected, value, pencil, exclude: excluding, blockIncorrectAnswers: preferences.blockIncorrectAnswers, filterNumberKeys: filtering });
-    if (refused) { setBlockedEntry({ ...refused, cells: batchSelection ? refusedCells : [selected], of: batchSelection ? selection.indices.length : 1, value, exclusion: excluding, id: ++rejectionId.current }); return; }
+    if (refused) { setBlockedEntry({ ...refused, cells: batchSelection ? selection.indices : [selected], value, exclusion: excluding, id: ++rejectionId.current }); return; }
     setBlockedEntry(null);
     if (batchSelection) {
       if (!value) { clearSelection(); return; }
@@ -707,7 +707,7 @@ export default function SudokuGame() {
         </div>
         <p className="sr-only" role="status">{undoAnnouncement.text && `${undoAnnouncement.text}${undoAnnouncement.id % 2 ? '\u00a0' : ''}`}</p>
         <p className="sr-only" role="status">{batchSelection ? `${selection.indices.length} ${selection.indices.length === 1 ? 'cell' : 'cells'} selected` : ''}</p>
-        <p className="sr-only" role="status">{rejection ? `${rejection.value} rejected, ${rejection.kind === 'constraint' ? `already in this ${rejection.unit}` : rejection.exclusion ? `it is the answer for ${rejection.of === 1 ? 'this cell' : `${rejection.cells.length} of ${rejection.of} selected cells`}` : 'incorrect for this cell'}${rejection.id % 2 ? '\u00a0' : ''}` : ''}</p>
+        <p className="sr-only" role="status">{rejection ? `${rejection.value} rejected, ${rejection.kind === 'constraint' ? `already in this ${rejection.unit}` : rejection.exclusion ? `it is the answer for ${rejection.cells.length === 1 ? 'this cell' : 'a selected cell'}` : 'incorrect for this cell'}${rejection.id % 2 ? '\u00a0' : ''}` : ''}</p>
         </div>
         {lessonFooter && <LessonFooter label={lessonFooter.label} disabled={lessonFooter.disabled} onClick={onLessonFooter}/>}
       </>}
