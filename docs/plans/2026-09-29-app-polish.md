@@ -13,7 +13,7 @@
 **Rules that apply to every task:**
 - Read `AGENTS.md`. Show, don't explain: no new visible text where an icon, color, or position works.
 - This Next.js differs from training data: check `node_modules/next/dist/docs/` before using any Next API.
-- Every PR: `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm build`, `pnpm test:e2e` (the 32-size fit test in `e2e/keypad.spec.ts` must pass), screenshots light and dark compared with the approved direction, a reduced-motion check, and `node scripts/first-load-js.mjs` within budget: first load at most 166.3 kB + 18 kB for Motion in total (the pre-Motion baseline measured September 29; Motion's core with `m` and `AnimatePresence` measured +17.3 kB), plus at most 4 kB of app code per later PR, and deferred Motion features at most 30 kB. The budget is cumulative, measured against the fixed baseline. Then `finalize-pr-solo` before merge.
+- Every PR: `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm build`, `pnpm test:e2e` (the 32-size fit test in `e2e/keypad.spec.ts` must pass), screenshots light and dark compared with the approved direction, a reduced-motion check, and `node scripts/first-load-js.mjs` within budget. First-load ceiling for step N (N ≥ 2) is 166.3 + 24 + 4 × (N − 2) kB: the pre-Motion baseline (September 29), 24 kB for all of Motion's first-load code (core with `m` and `AnimatePresence` measured +17.4 kB; drag hooks for sheets measured +2.1 kB more), and 4 kB of app code per step after 2. Deferred Motion features at most 30 kB. Do not use `animate` or `useAnimate` in first-load code (measured +12.4 kB); count numbers up with `requestAnimationFrame`. Then `finalize-pr-solo` before merge.
 
 ---
 
@@ -114,14 +114,17 @@ try {
   for (let i = 0; i < 60; i++) { try { await fetch(`http://localhost:${PORT}`); break; } catch { await new Promise(r => setTimeout(r, 500)); } }
   const browser = await chromium.launch();
   const page = await browser.newPage();
-  await page.goto(`http://localhost:${PORT}/`, { waitUntil: 'networkidle' });
-  const { first, deferred } = await page.evaluate(() => {
-    const inHtml = new Set([...document.querySelectorAll('script[src], link[rel="preload"][as="script"], link[rel="modulepreload"]')]
+  const response = await page.goto(`http://localhost:${PORT}/`, { waitUntil: 'networkidle' });
+  // Classify against the HTML the server sent: webpack removes script tags from the live page once they load.
+  const html = await response.text();
+  const { first, deferred } = await page.evaluate(html => {
+    const sent = new DOMParser().parseFromString(html, 'text/html');
+    const inHtml = new Set([...sent.querySelectorAll('script[src], link[rel="preload"][as="script"], link[rel="modulepreload"]')]
       .map(element => new URL(element.getAttribute('src') ?? element.getAttribute('href'), location.href).href));
     const scripts = performance.getEntriesByType('resource').filter(entry => new URL(entry.name).pathname.endsWith('.js'));
     const sum = list => list.reduce((total, entry) => total + entry.encodedBodySize, 0);
     return { first: sum(scripts.filter(entry => inHtml.has(entry.name))), deferred: sum(scripts.filter(entry => !inHtml.has(entry.name))) };
-  });
+  }, html);
   console.log(`First-load JS: ${(first / 1024).toFixed(1)} kB compressed`);
   console.log(`Deferred JS: ${(deferred / 1024).toFixed(1)} kB compressed`);
   await browser.close();
@@ -173,7 +176,7 @@ test('gentle does not overshoot', () => {
 ```ts
 /** Named springs shared by every animation, so motion feels the same everywhere. */
 export const SPRINGS = {
-  snappy: { type: 'spring', stiffness: 700, damping: 40 },
+  snappy: { type: 'spring', stiffness: 700, damping: 50 },
   smooth: { type: 'spring', stiffness: 380, damping: 34 },
   gentle: { type: 'spring', stiffness: 160, damping: 26 },
 } as const;
@@ -215,7 +218,7 @@ Check the `LazyMotion` `features` prop type in the installed package before writ
 **Step 3:** In `src/app/page.tsx`, render `<MotionProvider><SudokuGame/></MotionProvider>`. `strict` makes any accidental `motion.div` throw, so every later component uses `m.div`, imported as `import * as m from 'motion/react-m'`. Never import `m` or `motion` from `motion/react`: that entry loads all of Motion up front (measured +43.5 kB) and undoes the lazy split, and `strict` does not catch it.
 **Step 3b:** Add the rule to `eslint.config.mjs` so the wrong import fails lint: `{ rules: { 'no-restricted-imports': ['error', { paths: [{ name: 'motion/react', importNames: ['m', 'motion'], message: "Import m from 'motion/react-m'." }] }] } }`. Run `pnpm lint`; expected clean.
 **Step 4:** `pnpm typecheck && pnpm lint && pnpm test && pnpm build && pnpm test:e2e`. Expected: all pass, no visible change.
-**Step 5:** `node scripts/first-load-js.mjs`. Expected: first load at most 184.3 kB (baseline 166.3 kB + 18 kB; the core alone measured +11.3 kB) and deferred at most 30 kB (`domMax` measured about 29 kB). If not, stop and report.
+**Step 5:** `node scripts/first-load-js.mjs`. Expected: first load at most 190.3 kB (the step 2 ceiling; the core alone measured +11.3 kB) and deferred at most 30 kB (`domMax` measured about 29 kB). If not, stop and report.
 **Step 6:** Commit: `git commit -am "feat(motion): provider with lazily loaded features"` (add the new files first).
 
 ### Task 2.5: Design tokens
@@ -224,7 +227,7 @@ Check the `LazyMotion` `features` prop type in the installed package before writ
 - Modify: `src/app/globals.css` (`:root`, both dark-theme blocks)
 
 **Step 1:** Add the approved direction's tokens as variables, unused so far: `--text-title` (32px), `--text-card` (20px), `--text-body` (17px), `--text-secondary` (15px), `--text-caption` (13px); `--space-1` … `--space-8` in 4px steps; `--radius-card-lg` (20px), `--radius-card` (16px), `--radius-board` (10px), `--radius-key` (8px), `--radius-sheet` (20px); `--polish-canvas` (`#f2f2f7`, dark `#0b0d11`) and `--polish-surface` (`#fff`, dark `#1b1e25`), with dark values in both dark blocks. New names only: do not change `--canvas` or `--surface` here, because that would be a visible change. Step 3 switches the app to them.
-**Step 2:** `pnpm build && pnpm test:e2e`. Expected: all pass; screenshots unchanged.
+**Step 2:** `pnpm build && pnpm test:e2e`. Expected: all pass. The e2e suite has no screenshot assertions, so also capture Home and the game at 390 × 844, light and dark, before and after, and compare them by eye: they must be identical.
 **Step 3:** Commit: `git commit -am "feat(tokens): type, spacing, radius, and surface variables"`.
 
 ### Task 2.6: PR
@@ -238,9 +241,9 @@ Check the `LazyMotion` `features` prop type in the installed package before writ
 
 Each step needs its own detailed plan, written in `docs/plans/` before its PR starts; this is only the outline. Reference renders: `docs/designs/polish-look-approved*.png`.
 
-- **Step 3, game screen:** the one compact bar; the game content centered vertically under it; the short-screen height budget counts the card padding, so 466 × 590 shows every key; switch `--canvas` and `--surface` to the polish values and update `themeColor` in `src/app/layout.tsx` and `theme_color` and `background_color` in `src/app/manifest.ts` to match. `Pressable` (new, `m.button` with `whileTap={{ scale: 0.96 }}` and `SPRINGS.snappy`) on keys and tools; remove `transform` from the global `button` transition and the `:active` scale for buttons that use `Pressable`, or the CSS transition will lag the spring. The selection outline gets rounded corners and a more playful feel (Sean, September 29), and glides between cells with a shared `layoutId`; placed numbers scale in from 0.9. Reduced motion: `reducedMotion="user"` only switches off transforms, so any fades are built explicitly. Tests: the fit test, bar button order and names, reduced motion shows no transform.
+- **Step 3, game screen:** switching `--canvas` and `--surface` recolors every screen, not only the game, so screenshot Home, Learn, History, Replay, and the sheets too; the runtime `syncChrome` in `src/components/game.tsx` also writes the theme color, so it and `layout.tsx` should read one shared constant. Haptics (`navigator.vibrate`, short) on key presses where supported. Record a `.webm` of selection and number motion for the PR. The one compact bar; the game content centered vertically under it; the short-screen height budget counts the card padding, so 466 × 590 shows every key; switch `--canvas` and `--surface` to the polish values and update `themeColor` in `src/app/layout.tsx` and `theme_color` and `background_color` in `src/app/manifest.ts` to match. `Pressable` (new, `m.button` with `whileTap={{ scale: 0.96 }}` and `SPRINGS.snappy`) on keys and tools; remove `transform` from the global `button` transition and the `:active` scale for buttons that use `Pressable`, or the CSS transition will lag the spring. The selection outline gets rounded corners and a more playful feel (Sean, September 29), and glides between cells with a shared `layoutId`; placed numbers scale in from 0.9. Reduced motion: `reducedMotion="user"` only switches off transforms, so any fades are built explicitly. Tests: the fit test, bar button order and names, reduced motion shows no transform.
 - **Until the deferred features arrive, no `m` element animates, including `whileTap`.** Controls must work without motion; motion is added on top.
-- **Step 4, sheets:** new `Sheet` around the existing `<dialog>` (focus, Escape, and screen readers stay native); the panel springs in, drags down to dismiss, and the background scales to 0.96. Remove the Settings hint line. Rewrite How to play as short rows with small illustrations. Escape closes a modal `<dialog>` at once, so intercept `cancel`, play the exit, then call `close()`; Chromium does not always let `cancel` be prevented (for example a second Escape), so an immediate close must still work. Test Escape pressed twice. Tests: open, close by Escape, by drag, and by backdrop; focus returns.
+- **Step 4, sheets:** new `Sheet` around the existing `<dialog>` (focus, Escape, and screen readers stay native); the panel springs in, drags down to dismiss, and the background scales to 0.96; record a `.webm` of open, drag, and close. Remove the Settings hint line. Rewrite How to play as short rows with small illustrations. Escape closes a modal `<dialog>` at once, so intercept `cancel`, play the exit, then call `close()`; Chromium does not always let `cancel` be prevented (for example a second Escape), so an immediate close must still work. Test Escape pressed twice. Tests: open, close by Escape, by drag, and by backdrop; focus returns.
 - **Step 5, finish moment:** three rendered directions first, then the build. Remove the blank focus strip on pause and completion.
 - **Step 6, Learn and lessons:** new `ScreenHeader`; one technique name; walkthrough card sized to its text.
-- **Step 7, Home, History, Replay:** `ScreenHeader` large titles; neutral level cards; Replay timeline visible for short replays; Continue grows the mini-board into the game board through a shared `layoutId`; pushes from the right for Learn, History, Replay. History, Learn, and Replay are separate early returns in `game.tsx`, so the screen switch becomes one keyed tree first. During a transition both screens are in the DOM: make the leaving screen `inert`, scope the focus effect's `querySelector` to the entering screen, and choose `AnimatePresence` `mode` explicitly. Add one Playwright project with `reducedMotion: 'no-preference'`, since every project today uses `reduce`, and keep the existing replay Escape and focus tests passing.
+- **Step 7, Home, History, Replay:** `ScreenHeader` large titles for Home and History, a compact `ScreenHeader` for Replay; record a `.webm` of the board transition and pushes; neutral level cards; Replay timeline visible for short replays; Continue grows the mini-board into the game board through a shared `layoutId`; pushes from the right for Learn, History, Replay. History, Learn, and Replay are separate early returns in `game.tsx`, so the screen switch becomes one keyed tree first. During a transition both screens are in the DOM: make the leaving screen `inert`, scope the focus effect's `querySelector` to the entering screen, and choose `AnimatePresence` `mode` explicitly. Add one Playwright project with `reducedMotion: 'no-preference'`, since every project today uses `reduce`, and keep the existing replay Escape and focus tests passing.

@@ -1,6 +1,6 @@
 # App polish
 
-A polish pass across the whole app, agreed with Sean on September 29. The goal is an app that feels cohesive, modern, and effortless, with tasteful, simple motion at its core. The reference is Apple's own apps (depth, sheets, spring transitions) with the restraint of Things 3. Good Sudoku was ruled out as a reference so the app does not read as a copy. On September 29 Sean chose direction A, grouped cards, from three rendered in the app (grouped cards, glass dock, quiet paper), and asked for the game content to be centered vertically under the bar. Reference: ../designs/polish-look-approved.png, ../designs/polish-look-approved-dark.png, ../designs/polish-look-approved-home.png, ../designs/polish-look-approved-home-dark.png, ../designs/polish-look-approved-short.png; the three options: ../designs/polish-look-options.png.
+A polish pass across the whole app (roadmap R13), agreed with Sean on September 29. The goal is an app that feels cohesive, modern, and effortless, with tasteful, simple motion at its core. The reference is Apple's own apps (depth, sheets, spring transitions) with the restraint of Things 3. Good Sudoku was ruled out as a reference so the app does not read as a copy. On September 29 Sean chose direction A, grouped cards, from three rendered in the app (grouped cards, glass dock, quiet paper), and asked for the game content to be centered vertically under the bar. Reference: ../designs/polish-look-approved.png, ../designs/polish-look-approved-dark.png, ../designs/polish-look-approved-home.png, ../designs/polish-look-approved-home-dark.png, ../designs/polish-look-approved-short.png; the three options: ../designs/polish-look-options.png.
 
 ## Why
 
@@ -43,7 +43,7 @@ Motion shows where something came from or went to. It never decorates.
 - `<Sheet>`: keeps the native `<dialog>` for focus trapping, Escape, and screen readers; Motion animates the panel and backdrop and adds drag-to-dismiss. All five sheets move onto it.
 - `<Pressable>`: the shared press response through `whileTap`.
 - Screen transitions: History, Learn, and Replay are separate early returns in `game.tsx`; they become one keyed tree inside `AnimatePresence`, with the leaving screen inert and focus scoped to the entering one.
-- Each shared component ships in the PR of the first screen that uses it, so no PR adds unused code.
+- Each shared component ships in the PR of the first screen that uses it. The foundation PR is the one exception: its provider, springs, and tokens have no user until step 3, so later PRs build on a reviewed base.
 - Scope guard: only the sheets and the screen switch leave `game.tsx`. A broader breakup is a separate task.
 
 ## Rollout
@@ -65,5 +65,5 @@ Feature brainstorming follows step 1.
 - Existing unit and browser tests, including the 32-size fit test.
 - Screenshots compared with the approved direction, light and dark.
 - A reduced-motion pass.
-- JavaScript budget, cumulative against the pre-Motion baseline of 166.3kb gzipped first load (September 29): Motion adds at most 18kb to the first load (measured +17.3kb with `m` and `AnimatePresence`), each later PR adds at most 4kb of app code, and Motion's deferred bundle stays under 30kb (measured about 29kb).
+- JavaScript budget, cumulative against the pre-Motion baseline of 166.3kb gzipped first load (September 29): Motion's first-load code at most 24kb (core with `m` and `AnimatePresence` measured +17.4kb, drag hooks +2.1kb), at most 4kb of app code per step after the foundation, and Motion's deferred bundle under 30kb (measured about 29kb). No `animate` or `useAnimate` in first-load code (+12.4kb); the finish time counts up with `requestAnimationFrame`.
 - Sean checks smoothness on a phone for steps 3 and 7.
