@@ -6,14 +6,14 @@
 
 **Architecture:** Step 1 (done) rendered three directions; Sean chose A, grouped cards. Step 2 adds Motion (`motion` package) behind one provider that loads the small core first and the layout and drag features after first render, plus spring presets, design tokens, and a first-load JS measurement script. Steps 3–7 restyle one area per PR; each shared component (`ScreenHeader`, `Sheet`, `Pressable`) ships with the first screen that uses it.
 
-**Tech Stack:** Next.js 16 (App Router, client components), React 19, Motion 13 (`motion/react`), CSS variables in `src/app/globals.css`, Node test runner, Playwright (Chromium and WebKit), `sharp` for composites.
+**Tech Stack:** Next.js 16 (App Router, client components), React 19, Motion 13 (`motion/react` for providers and `AnimatePresence`; `motion/react-m` for the `m` components), CSS variables in `src/app/globals.css`, Node test runner, Playwright (Chromium and WebKit), `sharp` for composites.
 
 **Design:** `docs/plans/2026-09-29-app-polish-design.md`.
 
 **Rules that apply to every task:**
 - Read `AGENTS.md`. Show, don't explain: no new visible text where an icon, color, or position works.
 - This Next.js differs from training data: check `node_modules/next/dist/docs/` before using any Next API.
-- Every PR: `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm build`, `pnpm test:e2e` (the 32-size fit test in `e2e/keypad.spec.ts` must pass), screenshots light and dark compared with the approved direction, a reduced-motion check, and `node scripts/first-load-js.mjs` within budget (first load at most 12 kB above the pre-Motion baseline, deferred Motion features at most 30 kB). Then `finalize-pr-solo` before merge.
+- Every PR: `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm build`, `pnpm test:e2e` (the 32-size fit test in `e2e/keypad.spec.ts` must pass), screenshots light and dark compared with the approved direction, a reduced-motion check, and `node scripts/first-load-js.mjs` within budget: first load at most 166.3 kB + 18 kB for Motion in total (the pre-Motion baseline measured September 29; Motion's core with `m` and `AnimatePresence` measured +17.3 kB), plus at most 4 kB of app code per later PR, and deferred Motion features at most 30 kB. The budget is cumulative, measured against the fixed baseline. Then `finalize-pr-solo` before merge.
 
 ---
 
@@ -107,6 +107,8 @@ import { chromium } from '@playwright/test';
 import { spawn } from 'node:child_process';
 
 const PORT = 3410;
+const inUse = await fetch(`http://localhost:${PORT}`).then(() => true, () => false);
+if (inUse) throw new Error(`Port ${PORT} is already in use; stop that server first.`);
 const server = spawn('pnpm', ['start', '--port', String(PORT)], { stdio: 'ignore' });
 try {
   for (let i = 0; i < 60; i++) { try { await fetch(`http://localhost:${PORT}`); break; } catch { await new Promise(r => setTimeout(r, 500)); } }
@@ -133,8 +135,8 @@ try {
 
 ### Task 2.2: Install Motion
 
-**Step 1:** `pnpm add motion@^13.4.6`. Expected: `package.json` and `pnpm-lock.yaml` change.
-**Step 2:** Confirm the API from the installed package, not memory: `ls node_modules/motion/dist` and read the type exports for `LazyMotion`, `MotionConfig`, `domAnimation`, `domMax`, `m` in `node_modules/motion/dist/react.d.ts` (or the path the package's `exports` names).
+**Step 1:** `pnpm add --save-exact motion@13.4.6` (the repo pins runtime dependencies, and the deferred chunk sits close to its budget). Expected: `package.json` and `pnpm-lock.yaml` change.
+**Step 2:** Confirm the API from the installed package, not memory: `ls node_modules/motion/dist` and read the type exports for `LazyMotion`, `MotionConfig`, `domAnimation`, `domMax`, `m` through your editor's go-to-definition on an import from `motion/react`. `motion/dist/react.d.ts` only re-exports `framer-motion`, whose types pnpm keeps under `node_modules/.pnpm/framer-motion@13.4.6_*/node_modules/framer-motion/dist/index.d.ts`.
 **Step 3:** Commit: `git add package.json pnpm-lock.yaml && git commit -m "chore: add motion"`.
 
 ### Task 2.3: Spring presets
@@ -210,9 +212,10 @@ export function MotionProvider({ children }: { children: ReactNode }) {
 
 Check the `LazyMotion` `features` prop type in the installed package before writing this; if it does not accept an async loader, stop and report.
 
-**Step 3:** In `src/app/page.tsx`, render `<MotionProvider><SudokuGame/></MotionProvider>`. `strict` makes any accidental `motion.div` throw, so every later component uses `m.div`.
+**Step 3:** In `src/app/page.tsx`, render `<MotionProvider><SudokuGame/></MotionProvider>`. `strict` makes any accidental `motion.div` throw, so every later component uses `m.div`, imported as `import * as m from 'motion/react-m'`. Never import `m` or `motion` from `motion/react`: that entry loads all of Motion up front (measured +43.5 kB) and undoes the lazy split, and `strict` does not catch it.
+**Step 3b:** Add the rule to `eslint.config.mjs` so the wrong import fails lint: `{ rules: { 'no-restricted-imports': ['error', { paths: [{ name: 'motion/react', importNames: ['m', 'motion'], message: "Import m from 'motion/react-m'." }] }] } }`. Run `pnpm lint`; expected clean.
 **Step 4:** `pnpm typecheck && pnpm lint && pnpm test && pnpm build && pnpm test:e2e`. Expected: all pass, no visible change.
-**Step 5:** `node scripts/first-load-js.mjs`. Expected: first load at most 12 kB above the baseline (Motion's core measured about 11.4 kB on September 29) and deferred at most 30 kB (the `domMax` chunk measured about 29.6 kB). If not, stop and report.
+**Step 5:** `node scripts/first-load-js.mjs`. Expected: first load at most 184.3 kB (baseline 166.3 kB + 18 kB; the core alone measured +11.3 kB) and deferred at most 30 kB (`domMax` measured about 29 kB). If not, stop and report.
 **Step 6:** Commit: `git commit -am "feat(motion): provider with lazily loaded features"` (add the new files first).
 
 ### Task 2.5: Design tokens
@@ -236,7 +239,8 @@ Check the `LazyMotion` `features` prop type in the installed package before writ
 Each step needs its own detailed plan, written in `docs/plans/` before its PR starts; this is only the outline. Reference renders: `docs/designs/polish-look-approved*.png`.
 
 - **Step 3, game screen:** the one compact bar; the game content centered vertically under it; the short-screen height budget counts the card padding, so 466 × 590 shows every key; switch `--canvas` and `--surface` to the polish values and update `themeColor` in `src/app/layout.tsx` and `theme_color` and `background_color` in `src/app/manifest.ts` to match. `Pressable` (new, `m.button` with `whileTap={{ scale: 0.96 }}` and `SPRINGS.snappy`) on keys and tools; remove `transform` from the global `button` transition and the `:active` scale for buttons that use `Pressable`, or the CSS transition will lag the spring. The selection outline gets rounded corners and a more playful feel (Sean, September 29), and glides between cells with a shared `layoutId`; placed numbers scale in from 0.9. Reduced motion: `reducedMotion="user"` only switches off transforms, so any fades are built explicitly. Tests: the fit test, bar button order and names, reduced motion shows no transform.
-- **Step 4, sheets:** new `Sheet` around the existing `<dialog>` (focus, Escape, and screen readers stay native); the panel springs in, drags down to dismiss, and the background scales to 0.96. Remove the Settings hint line. Rewrite How to play as short rows with small illustrations. Escape closes a modal `<dialog>` at once, so intercept `cancel`, play the exit, then call `close()`. Tests: open, close by Escape, by drag, and by backdrop; focus returns.
+- **Until the deferred features arrive, no `m` element animates, including `whileTap`.** Controls must work without motion; motion is added on top.
+- **Step 4, sheets:** new `Sheet` around the existing `<dialog>` (focus, Escape, and screen readers stay native); the panel springs in, drags down to dismiss, and the background scales to 0.96. Remove the Settings hint line. Rewrite How to play as short rows with small illustrations. Escape closes a modal `<dialog>` at once, so intercept `cancel`, play the exit, then call `close()`; Chromium does not always let `cancel` be prevented (for example a second Escape), so an immediate close must still work. Test Escape pressed twice. Tests: open, close by Escape, by drag, and by backdrop; focus returns.
 - **Step 5, finish moment:** three rendered directions first, then the build. Remove the blank focus strip on pause and completion.
 - **Step 6, Learn and lessons:** new `ScreenHeader`; one technique name; walkthrough card sized to its text.
-- **Step 7, Home, History, Replay:** `ScreenHeader` large titles; neutral level cards; Replay timeline visible for short replays; Continue grows the mini-board into the game board through a shared `layoutId`; pushes from the right for Learn, History, Replay.
+- **Step 7, Home, History, Replay:** `ScreenHeader` large titles; neutral level cards; Replay timeline visible for short replays; Continue grows the mini-board into the game board through a shared `layoutId`; pushes from the right for Learn, History, Replay. History, Learn, and Replay are separate early returns in `game.tsx`, so the screen switch becomes one keyed tree first. During a transition both screens are in the DOM: make the leaving screen `inert`, scope the focus effect's `querySelector` to the entering screen, and choose `AnimatePresence` `mode` explicitly. Add one Playwright project with `reducedMotion: 'no-preference'`, since every project today uses `reduce`, and keep the existing replay Escape and focus tests passing.

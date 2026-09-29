@@ -25,7 +25,7 @@ A September 29 tour of all 14 screens (light and dark, 390 × 844) found two vis
 
 Motion shows where something came from or went to. It never decorates.
 
-- **Library:** Motion (formerly Framer Motion), package `motion`, imported from `motion/react`, loaded with `LazyMotion` to keep the first load small.
+- **Library:** Motion (formerly Framer Motion), package `motion` (pinned at 13.4.6), with `m` components imported from `motion/react-m` and providers from `motion/react`, loaded with `LazyMotion` to keep the first load small.
 - **Springs:** three presets used everywhere. Snappy (about 150ms) for presses, toggles, and selection; smooth (about 350ms, slight settle) for sheets, cards, and screen changes; gentle (slower, no bounce) for the finish and progress.
 - **Screens:** Continue grows Home's mini-board into the game board through a shared `layoutId`; back reverses it. Learn, History, and Replay push in from the right.
 - **Sheets:** spring up, drag down to dismiss; the screen behind scales down slightly.
@@ -37,12 +37,12 @@ Motion shows where something came from or went to. It never decorates.
 ## Shared pieces
 
 - `src/lib/motion.ts`: the spring presets.
-- `MotionProvider`: `LazyMotion` plus `MotionConfig`. The small core loads first; the layout and drag features (about 28kb, needed for the shared board transition and drag-to-dismiss) load after first render, so they stay out of the first load.
+- `MotionProvider`: `LazyMotion` plus `MotionConfig`. The small core loads first; the full feature bundle (`domMax`, about 29kb: animations, gestures, layout, and drag) loads after first render, so it stays out of the first load. Until it arrives nothing animates, so every control must work without motion.
 - Tokens in `globals.css`: type, spacing, radii, and surfaces as variables for both themes.
 - `<ScreenHeader>`: large collapsing title with an optional back button.
 - `<Sheet>`: keeps the native `<dialog>` for focus trapping, Escape, and screen readers; Motion animates the panel and backdrop and adds drag-to-dismiss. All five sheets move onto it.
 - `<Pressable>`: the shared press response through `whileTap`.
-- Screen transitions: the state-driven screen switch in `game.tsx` is wrapped in `AnimatePresence`.
+- Screen transitions: History, Learn, and Replay are separate early returns in `game.tsx`; they become one keyed tree inside `AnimatePresence`, with the leaving screen inert and focus scoped to the entering one.
 - Each shared component ships in the PR of the first screen that uses it, so no PR adds unused code.
 - Scope guard: only the sheets and the screen switch leave `game.tsx`. A broader breakup is a separate task.
 
@@ -65,5 +65,5 @@ Feature brainstorming follows step 1.
 - Existing unit and browser tests, including the 32-size fit test.
 - Screenshots compared with the approved direction, light and dark.
 - A reduced-motion pass.
-- First-load JavaScript grows by no more than about 12kb gzipped, and Motion's deferred features stay under about 30kb (measured September 29: core 11.4kb, `domMax` 29.6kb).
+- JavaScript budget, cumulative against the pre-Motion baseline of 166.3kb gzipped first load (September 29): Motion adds at most 18kb to the first load (measured +17.3kb with `m` and `AnimatePresence`), each later PR adds at most 4kb of app code, and Motion's deferred bundle stays under 30kb (measured about 29kb).
 - Sean checks smoothness on a phone for steps 3 and 7.
