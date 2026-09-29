@@ -60,9 +60,11 @@ test('Settings no longer has Undo or Redo', async ({ page }) => {
 });
 
 test('Undo and Redo are disabled while paused', async ({ page }) => {
-  await seed(page);
+  await seed(page, toggleNotes(noted, { indices: cells, value: 6 }));
   await openGame(page);
+  await undoButton(page).click();
   await expect(undoButton(page)).toBeEnabled();
+  await expect(redoButton(page)).toBeEnabled();
   await page.getByRole('button', { name: 'Pause game' }).click();
   await expect(undoButton(page)).toBeDisabled();
   await expect(redoButton(page)).toBeDisabled();

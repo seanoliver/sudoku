@@ -9,7 +9,7 @@ const game = createGame(createPuzzle('medium', 7));
 const a = game.values.findIndex((v, i) => !v && i % 9 < 8 && !game.values[i + 1]);
 const b = a + 1;
 const answer = game.solution[a];
-const wrong = [1, 2, 3, 4, 5, 6, 7, 8, 9].find(d => d !== answer && !peers(a).some(p => game.values[p] === d))!;
+const [wrong, other] = [1, 2, 3, 4, 5, 6, 7, 8, 9].filter(d => d !== answer && !peers(a).some(p => game.values[p] === d));
 const seed = (page: Page, prefs = DEFAULT_PREFS) => page.addInitScript(([key, value, prefsKey, prefsValue]) => { localStorage.setItem(key, value); localStorage.setItem(prefsKey, prefsValue); }, [SAVE_KEY, JSON.stringify(game), PREFS_KEY, JSON.stringify(prefs)]);
 const cell = (page: Page, i: number) => page.locator(`.board [data-index="${i}"]`);
 const saved = (page: Page) => page.evaluate(key => { const game = JSON.parse(localStorage.getItem(key)!); return { exclusions: game.exclusions as number[][], history: game.history.length as number }; }, SAVE_KEY);
@@ -36,6 +36,8 @@ test('crossing out a cell’s answer is rejected like a wrong number', async ({ 
   await expect(page.getByRole('status').filter({ hasText: `${answer} rejected, it is the answer for this cell` })).toHaveCount(1);
   await page.waitForTimeout(300);
   expect(await saved(page)).toEqual(before);
+  await page.keyboard.press(String(other));
+  await expect(cell(page, a)).toHaveAccessibleName(new RegExp(`ruled out ${[wrong, other].sort().join(', ')}`));
 });
 
 test('with Block incorrect answers off, the answer can be crossed out', async ({ page }) => {

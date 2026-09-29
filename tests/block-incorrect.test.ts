@@ -86,8 +86,8 @@ test('with Filter number keys on, a batch is still refused when a wrong peer num
   const empty = game.givens.flatMap((v, i) => v ? [] : [i]);
   const answerCell = empty[0], digit = game.solution[answerCell];
   const peer = empty.find(i => i !== answerCell && peers(answerCell).includes(i) && game.solution[i] !== digit && !peers(i).some(p => game.values[p] === digit))!;
-  const other = empty.find(i => i !== answerCell && i !== peer && game.solution[i] !== digit && !peers(i).includes(peer))!;
   const wrongPeer = enter(game, { index: peer, value: digit });
+  const other = empty.find(i => i !== answerCell && i !== peer && game.solution[i] !== digit && !peers(i).some(p => wrongPeer.values[p] === digit))!;
   assert.equal(wrongPeer.values[peer], digit);
   assert.deepEqual(incorrectExclusions(wrongPeer, { indices: [answerCell, other], value: digit }), [answerCell]);
   assert.equal(toggleExclusions(wrongPeer, { indices: [answerCell, other], value: digit, filterNumberKeys: true, blockIncorrectAnswers: true }), wrongPeer);

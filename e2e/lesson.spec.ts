@@ -138,8 +138,8 @@ test('crossing out a practice board cell’s answer is refused, and Undo locks o
   await cell.click();
   await page.keyboard.press(String(board.solution[target]));
   await expect(cell).toHaveClass(/rejecting/);
-  await expect(cell).not.toHaveAccessibleName(new RegExp(`ruled out ${board.solution[target]}`));
   const undo = page.getByRole('button', { name: 'Undo', exact: true });
+  await expect(undo).toBeDisabled();
   await crossOut(page, answer(1));
   await expect(undo).toBeEnabled();
   await tapFooter(page);
