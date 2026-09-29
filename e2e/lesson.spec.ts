@@ -127,3 +127,22 @@ test('a quick double tap on Check still shows the feedback', async ({ page }) =>
   await expect(prompt(page)).toHaveText('Not quite');
   await expect(page.locator('.walk-panel')).toBeVisible();
 });
+
+test('crossing out a practice board cell’s answer is refused, and Undo locks once the board is checked', async ({ page }) => {
+  await openLesson(page);
+  await tapFooter(page);
+  await expect(prompt(page)).toHaveText('Find the pointing pair');
+  const board = practiceGame(LESSON_BANK.pointing[1], 1);
+  const target = board.values.findIndex(v => !v);
+  const cell = page.locator(`.board [data-index="${target}"]`);
+  await cell.click();
+  await page.keyboard.press(String(board.solution[target]));
+  await expect(cell).toHaveClass(/rejecting/);
+  const undo = page.getByRole('button', { name: 'Undo', exact: true });
+  await expect(undo).toBeDisabled();
+  await crossOut(page, answer(1));
+  await expect(undo).toBeEnabled();
+  await tapFooter(page);
+  await expect(prompt(page)).toHaveText('That’s the pointing pair');
+  await expect(undo).toBeDisabled();
+});

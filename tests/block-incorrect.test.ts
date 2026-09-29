@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createGame, enter, undo, rejectEntry, toggleExclusions, incorrectExclusions } from '../src/lib/game.ts';
-import { generatePuzzle, conflicts } from '../src/lib/sudoku.ts';
+import { generatePuzzle, conflicts, peers } from '../src/lib/sudoku.ts';
 import { DEFAULT_PREFS, restorePreferences } from '../src/lib/preferences.ts';
 
 test('blocking rejects a wrong answer without duplicates or changes to history and annotations', () => {
@@ -70,4 +70,25 @@ test('a batch exclusion is refused whole when the digit is the answer in any sel
   const excluded = toggleExclusions(game, { indices, value: digit });
   assert.deepEqual(incorrectExclusions(excluded, { indices, value: digit }), []);
   assert.deepEqual(toggleExclusions(excluded, { indices, value: digit, blockIncorrectAnswers: true }).exclusions[empty[0]], []);
+});
+
+test('an exclusion on a filled cell or a given is never refused', () => {
+  const game = createGame(generatePuzzle('hard', 19));
+  const given = game.givens.findIndex(Boolean);
+  assert.equal(rejectEntry(game, { index: given, value: game.solution[given], exclude: true, blockIncorrectAnswers: true }), null);
+  const empty = game.givens.indexOf(0);
+  const filled = enter(game, { index: empty, value: game.solution[empty] });
+  assert.equal(rejectEntry(filled, { index: empty, value: game.solution[empty], exclude: true, blockIncorrectAnswers: true }), null);
+});
+
+test('with Filter number keys on, a batch is still refused when a wrong peer number would have skipped the answer cell', () => {
+  const game = createGame(generatePuzzle('hard', 19));
+  const empty = game.givens.flatMap((v, i) => v ? [] : [i]);
+  const answerCell = empty[0], digit = game.solution[answerCell];
+  const peer = empty.find(i => i !== answerCell && peers(answerCell).includes(i) && game.solution[i] !== digit && !peers(i).some(p => game.values[p] === digit))!;
+  const wrongPeer = enter(game, { index: peer, value: digit });
+  const other = empty.find(i => i !== answerCell && i !== peer && game.solution[i] !== digit && !peers(i).some(p => wrongPeer.values[p] === digit))!;
+  assert.equal(wrongPeer.values[peer], digit);
+  assert.deepEqual(incorrectExclusions(wrongPeer, { indices: [answerCell, other], value: digit }), [answerCell]);
+  assert.equal(toggleExclusions(wrongPeer, { indices: [answerCell, other], value: digit, filterNumberKeys: true, blockIncorrectAnswers: true }), wrongPeer);
 });
