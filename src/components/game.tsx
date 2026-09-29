@@ -28,6 +28,7 @@ import { LESSON_BANK } from '@/lib/lesson-bank';
 import { findStep } from '@/lib/steps';
 import { THEME_COLOR } from '@/lib/theme-color';
 import { LessonBar, LessonDone, LessonFooter, LessonPrompt } from './lesson';
+import { GameBar } from './game-bar';
 
 type Sheet = 'restart' | 'new' | 'settings' | 'help' | 'install' | null;
 // The game gets its own history entry above Home, so the browser's back button returns Home.
@@ -384,7 +385,7 @@ export default function SudokuGame() {
       resetSelection(); selectCell(next); board.current?.querySelector<HTMLButtonElement>(`[data-index="${next}"]`)?.focus();
     } else if (/^[1-9]$/.test(event.key)) { event.preventDefault(); input(Number(event.key)); focusSelectedCell(); }
     else if (['Backspace','Delete','0'].includes(event.key)) { event.preventDefault(); input(0); focusSelectedCell(); }
-    else if (event.key.toLowerCase() === 'h') { event.preventDefault(); if ((event.target as Element).closest('.digit-focus-bar')) focusAfterRender.current = HINT_STRIP_FOCUS; showHint(); }
+    else if (event.key.toLowerCase() === 'h') { event.preventDefault(); if ((event.target as Element).closest('.digit-focus-bar, .game-bar .hint-button')) focusAfterRender.current = HINT_STRIP_FOCUS; showHint(); }
     else if (event.key.toLowerCase() === 'x') { event.preventDefault(); toggleEntryMode('exclude'); }
     else if (event.key.toLowerCase() === 'n') { event.preventDefault(); toggleEntryMode('note'); }
   };
@@ -607,25 +608,21 @@ export default function SudokuGame() {
   if (replayView && replaying && game) return <div className="app"><ReplayPage replay={replaying} givens={game.givens} solution={game.solution} level={game.difficulty} seconds={replayView.seconds} onExit={exitReplay}/></div>;
   if (historyData) return <div className="app"><HistoryPage hideTimer={preferences.hideTimer} solves={historyData.solves} total={homeData.solved} today={historyData.today} onExit={exitHistory}/></div>;
   if (learnOpen) return <div className="app"><LearnPage learned={learned} onOpen={id => openLesson(id, 'list')} onExit={exitLearn}/></div>;
+  const gameMeta = <>
+    <button className="difficulty-button" disabled={busy} onClick={() => { setDifficulty(game?.difficulty ?? 'easy'); openSheet('new'); }} aria-label={`Difficulty: ${game?.difficulty ?? 'easy'}. Start a new puzzle`}><LevelBars level={game?.difficulty ?? 'easy'}/><span className="capitalize">{game?.difficulty ?? 'easy'}</span><Icon name="chevron" size={14}/></button>
+    <div className="time-controls">{clockId ? <Clock key={clockId} id={clockId} resetRevision={clockResetRevision} hidden={preferences.hideTimer} running={!paused && !sheet && !busy && !complete && !away}/> : <span className="clock">00:00</span>}<button className="pause-button" aria-label={paused ? 'Resume game' : 'Pause game'} disabled={busy || complete || !game} onClick={() => { resetSelection(); setBlockedEntry(null); setCelebration(null); setPaused(value => !value); }}><Icon name={paused ? 'play' : 'pause'} size={15}/></button></div>
+  </>;
   const onHome = view === 'home' && !lesson;
   return <div className="app" onKeyDown={onHome ? undefined : handleKey}>
     {onHome ? busy && !game ? <header className="app-bar"><h1 className="brand"><AppMark small/><span>Sudoku</span></h1></header> : <Home state={homeState(game)} game={game} seconds={preferences.hideTimer ? null : homeData.seconds} learned={LESSON_BANDS.flatMap(band => band.lessons).filter(id => homeData.learned[id]).length}
       next={nextLesson(homeData.learned)} solved={homeData.solved} greeting={homeData.greeting} onContinue={continueGame} onPlay={playLevel} onLesson={id => openLesson(id, 'home')} onLearn={openLearn} onSettings={() => openSheet('settings')} onHistory={openHistory} onReplay={homeState(game) === 'done' && replayOf(game?.id) ? () => openReplay('home') : undefined} onInstall={installed ? undefined : () => openSheet('install')}
       notice={<>{error && <div className="notice" role="alert"><span>{error}</span><button onClick={() => setError('')} aria-label="Dismiss message"><Icon name="close" size={16}/></button></div>}{storageError && <p className="storage-warning" role="status">Saving is unavailable in this browser. Keep this tab open to continue your puzzle.</p>}</>}/> : <>
-    {lesson ? <LessonBar name={lessonName(lesson.id)} done={lessonDone} current={lesson.phase === 'practice' ? lesson.board - 1 : null} count={lessonBoards.length - 1} back={{ hint: 'Your game', list: 'Learn', home: 'Home' }[lesson.from]} onExit={exitLesson}/> : <header className="app-bar">
-      <h1 className="brand"><AppMark small/><span>Sudoku</span></h1>
-      <div className="app-actions">
-        {!installed && <button className="install-button" onClick={() => openSheet('install')}><Icon name="download" size={17}/><span>Install app</span></button>}
-        <button className="icon-button home-button" aria-label="Home" title="Home" disabled={busy} onClick={leaveGame}><Icon name="home"/></button>
-        <button className="icon-button settings-button" aria-label="Settings" onClick={() => openSheet('settings')}><Icon name="settings"/></button>
-      </div>
-    </header>}
+    {lesson ? <LessonBar name={lessonName(lesson.id)} done={lessonDone} current={lesson.phase === 'practice' ? lesson.board - 1 : null} count={lessonBoards.length - 1} back={{ hint: 'Your game', list: 'Learn', home: 'Home' }[lesson.from]} onExit={exitLesson}/>
+      : <GameBar meta={gameMeta} onHome={leaveGame} homeDisabled={busy} onHint={() => { focusAfterRender.current = HINT_STRIP_FOCUS; showHint(); }} hintDisabled={!game || complete} onSettings={() => openSheet('settings')}/>}
 
     <main className="game play">
-      <div className={`game-meta ${lesson ? 'lesson-hidden' : ''}`}>
-        <button className="difficulty-button" disabled={busy} onClick={() => { setDifficulty(game?.difficulty ?? 'easy'); openSheet('new'); }} aria-label={`Difficulty: ${game?.difficulty ?? 'easy'}. Start a new puzzle`}><LevelBars level={game?.difficulty ?? 'easy'}/><span className="capitalize">{game?.difficulty ?? 'easy'}</span><Icon name="chevron" size={14}/></button>
-        <div className="time-controls">{clockId ? <Clock key={clockId} id={clockId} resetRevision={clockResetRevision} hidden={preferences.hideTimer} running={!paused && !sheet && !busy && !complete && !away}/> : <span className="clock">00:00</span>}<button className="pause-button" aria-label={paused ? 'Resume game' : 'Pause game'} disabled={busy || complete || !game} onClick={() => { resetSelection(); setBlockedEntry(null); setCelebration(null); setPaused(value => !value); }}><Icon name={paused ? 'play' : 'pause'} size={15}/></button></div>
-      </div>
+      {/* Lessons hide the game's difficulty and clock but keep them mounted. */}
+      {lesson && <div className="game-meta lesson-hidden">{gameMeta}</div>}
 
       <div className="puzzle-panel">
       {lesson && <LessonPrompt name={lessonName(lesson.id)} state={lesson.phase === 'watch' ? 'watch' : lesson.result?.correct || lesson.phase === 'done' ? 'correct' : lesson.result ? 'wrong' : 'practice'}/>}
@@ -642,7 +639,6 @@ export default function SudokuGame() {
         </> : <button className="focus-button" disabled={!selectedCellValue || batchSelection} onClick={() => setFocusedDigit(selectedCellValue)} aria-label={selectedCellValue ? `Focus on ${selectedCellValue}` : 'Focus on a number'} aria-describedby={selectedCellValue && !focusHoldLearned ? 'focus-hold-hint' : undefined}>
           <Icon name="focus" size={18}/><span className="focus-copy"><span>{selectedCellValue ? <>Focus on <strong>{selectedCellValue}</strong></> : 'Select a number to focus'}</span><span id="focus-hold-hint" className="focus-hint" hidden={!selectedCellValue || focusHoldLearned}>Or hold a filled cell</span></span>
         </button>}
-          <button className="hint-button" aria-label="Show a hint" title="Hint (H)" disabled={!game || complete} onClick={() => { focusAfterRender.current = HINT_STRIP_FOCUS; showHint(); }}><Icon name="bulb" size={19}/></button>
         </>}
       </div>
 

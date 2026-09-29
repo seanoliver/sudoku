@@ -28,7 +28,7 @@ test('a lesson opens from the last hint step, and leaving it restores the untouc
   await expect(footer(page)).toHaveText('Start practice');
   await page.getByRole('button', { name: 'Your game' }).click();
   await expect(page.locator('.lesson-bar')).toHaveCount(0);
-  await expect(page.locator('.app-bar .brand')).toBeVisible();
+  await expect(page.locator('.game-bar')).toBeVisible();
   expect(JSON.parse(await saved(page, SAVE_KEY) ?? 'null')).toEqual(JSON.parse(before ?? 'null'));
 });
 
@@ -76,7 +76,7 @@ test('finishing every practice board marks the lesson learned', async ({ page })
   await expect(page.locator('.lesson-done h2')).toHaveText('Pointing pair learned');
   expect(JSON.parse(await saved(page, LEARNED_KEY) ?? '{}')).toHaveProperty('pointing');
   await page.getByRole('button', { name: 'Back to your game' }).click();
-  await expect(page.locator('.app-bar .brand')).toBeVisible();
+  await expect(page.locator('.game-bar')).toBeVisible();
 });
 
 test('the game timer does not run during a lesson', async ({ page }) => {

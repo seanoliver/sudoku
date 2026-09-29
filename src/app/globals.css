@@ -49,6 +49,10 @@ h1,h2,h3,p { margin: 0; }
 .install-button { display: flex; align-items: center; gap: 7px; min-height: 44px; font-size: 13px; font-weight: 500; color: var(--secondary); }
 .icon-button { width: 40px; height: 40px; display: grid; place-items: center; border-radius: 50%; color: var(--secondary); }
 .settings-button { background: var(--surface); box-shadow: 0 1px 3px #23395508; border: 1px solid var(--line); }
+/* One compact row above the board: Home, then difficulty and clock, then Hint and Settings. Task 3 styles it. */
+.game-bar { max-width: var(--game-width); height: var(--bar-height); margin: 0 auto; display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 8px; }
+.game-bar-center { display: flex; align-items: center; justify-content: center; gap: 14px; min-width: 0; }
+.game-bar-actions { display: flex; align-items: center; gap: 4px; }
 :root { --game-width: 444px; --around-board: 416px; }
 .game { max-width: var(--game-width); margin: 28px auto 0; }
 /* Shrinks the board on short screens so every key stays on screen. */
@@ -409,6 +413,8 @@ h1,h2,h3,p { margin: 0; }
   :root { --play-width: max(260px, min(var(--game-width), calc(100svh - 260px - var(--pad-bottom) - var(--safe-top) - max(0px, var(--safe-bottom) - var(--pad-bottom))))); }
   /* A lesson keeps its header and adds a footer button. */
   :root:has(.lesson-bar) { --play-width: max(200px, min(var(--game-width), calc(100svh - 278px - var(--bar-height) - var(--pad-bottom) - var(--safe-top) - max(0px, var(--safe-bottom) - var(--pad-bottom))))); }
+  /* The game bar takes the height the header and difficulty row shared. */
+  .game-bar { height: 40px; max-width: var(--play-width); }
   .app-bar:not(.lesson-bar):has(~ .game.play) { height: 0; position: relative; max-width: var(--play-width); }
   .app-bar:not(.lesson-bar):has(~ .game.play) :is(.brand, .install-button) { display: none; }
   .app-bar:not(.lesson-bar):has(~ .game.play) .app-actions { position: absolute; top: 6px; right: 0; z-index: 3; gap: 4px; }
