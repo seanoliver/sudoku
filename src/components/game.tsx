@@ -79,7 +79,6 @@ export default function SudokuGame() {
   const [blockedEntry, setBlockedEntry] = useState<(Rejection & { index: number; value: number; id: number }) | null>(null);
   const [storageError, setStorageError] = useState(false);
   const [sheet, setSheet] = useState<Sheet>(null);
-  // The last undo or redo, shown while the board is still the one it produced and digit focus hasn't changed.
   const [recovery, setRecovery] = useState<(Recovery & { id: number; game: GameState; focus: number | null; flashing: boolean }) | null>(null);
   const recoveryId = useRef(0);
   const recoveryTimers = useRef<number[]>([]);
@@ -610,6 +609,7 @@ export default function SudokuGame() {
     const focusOnly = !remaining || filtered || (!batchSelection && !numberFocus && (selected < 0 || Boolean(game?.values[selected])));
     return { remaining, filtered, focusOnly };
   };
+  // Any other edit or focus change replaces `game` or `focusedDigit`, which hides the description.
   const shownRecovery = recovery?.game === game && recovery.focus === focusedDigit ? recovery : null;
   const flashing = shownRecovery?.flashing ? new Set(shownRecovery.action.cells) : null;
   const canErase = Boolean(!batchSelection && editable && (game.values[selected] || game.notes[selected].length || game.exclusions[selected].length));

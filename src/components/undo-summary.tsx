@@ -3,13 +3,11 @@ import type { Action, Recovery } from '@/lib/undo-description';
 
 const ICONS = { number: 'numbers', notes: 'pencil', exclusion: 'exclude' } as const;
 
-/** A 9 × 9 thumbnail with the action's cells filled. */
 function MiniBoard({ cells }: { cells: readonly number[] }) {
   const on = new Set(cells);
   return <span className="undo-mini">{Array.from({ length: 81 }, (_, i) => <span key={i} className={on.has(i) ? 'on' : undefined}/>)}</span>;
 }
 
-/** Fills the focus bar for a moment after undo or redo: the direction, where it happened, and what kind of action it was. */
 export function UndoSummary({ recovery: { direction, action } }: { recovery: Recovery }) {
   return <span className={`undo-summary undo-${action.kind}`} aria-hidden="true">
     <Icon name="undo" size={17} style={direction === 'redo' ? { transform: 'scaleX(-1)' } : undefined}/>

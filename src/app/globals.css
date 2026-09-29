@@ -181,7 +181,6 @@ h1,h2,h3,p { margin: 0; }
 :is(.erase-control, .history-control):disabled { opacity: .35; }
 .edit-actions { display: grid; grid-template-columns: 1fr 1.2fr 1fr; gap: 6px; }
 .edit-actions > * { min-width: 0; }
-/* After undo or redo: the action's cells are outlined, and the focus bar shows the direction, where, and what kind. */
 .undo-number { --undo-color: var(--blue); }.undo-notes { --undo-color: var(--note-blue); }.undo-exclusion { --undo-color: var(--note-red); }
 .cell.undo-flash { outline: 2px dashed var(--undo-color); outline-offset: -5px; background: color-mix(in srgb, var(--undo-color) 16%, var(--surface)); animation: undo-flash 1.6s ease-out both; }
 @keyframes undo-flash { 0% { outline-offset: -2px; } 20% { outline-offset: -5px; } 75% { outline-color: var(--undo-color); } 100% { outline-color: transparent; background: var(--surface); } }
