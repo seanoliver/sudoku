@@ -16,6 +16,7 @@
     "build:share-image": "node scripts/build-share-image.mjs"
   },
   "dependencies": {
+    "motion": "13.4.6",
     "next": "16.3.5",
     "react": "19.3.0",
     "react-dom": "19.3.0"
