@@ -151,26 +151,28 @@ for (const [width, height] of [[890, 626], [1440, 790], [1024, 768]] as const) {
 }
 
 for (const [width, height] of [[375, 553], [466, 590]] as const) {
-  test(`at ${width} × ${height} the header is one row and the grid stays`, async ({ page }) => {
+  test(`at ${width} × ${height} the game bar is one row and the grid stays`, async ({ page }) => {
     await page.setViewportSize({ width, height });
     await seed(page);
     await openGame(page);
-    const [difficulty, home, settings, one, four] = await Promise.all([box(page, '.difficulty-button'), box(page, '.home-button'), box(page, '.app-bar .settings-button'), key(page, 1), key(page, 4)]);
-    expect(Math.abs(difficulty.y + difficulty.height / 2 - (home.y + home.height / 2))).toBeLessThan(6);
-    expect(Math.abs(settings.y - home.y)).toBeLessThan(1);
+    const buttons = await Promise.all(['.home-button', '.difficulty-button', '.pause-button', '.hint-button', '.settings-button'].map(s => box(page, `.game-bar ${s}`)));
+    const middle = (b: { y: number; height: number }) => b.y + b.height / 2;
+    for (const b of buttons) expect(Math.abs(middle(b) - middle(buttons[0]))).toBeLessThan(4);
+    const [one, four] = await Promise.all([key(page, 1), key(page, 4)]);
     expect(four.y).toBeGreaterThan(one.y + one.height - 1);
-    await expect(page.locator('.app-bar .brand')).toBeHidden();
   });
 }
 
-test('the installed app on a short phone fits with its taller app bar', async ({ page }) => {
+// Playwright cannot emulate display-mode: standalone, so the variables stand in for the status bar and a taller game bar.
+test('the installed app on a short phone fits with a taller game bar', async ({ page }) => {
   await page.setViewportSize({ width: 375, height: 667 });
   await page.addInitScript(() => document.addEventListener('DOMContentLoaded', () => {
     document.documentElement.style.setProperty('--safe-top', '20px');
-    document.documentElement.style.setProperty('--bar-height', '60px');
+    document.documentElement.style.setProperty('--game-bar-height', '60px');
   }));
   await seed(page);
   await openGame(page);
+  expect((await box(page, '.game-bar')).height).toBe(60);
   expect(await page.evaluate(() => document.documentElement.scrollHeight <= innerHeight)).toBe(true);
 });
 
@@ -207,12 +209,13 @@ for (const [width, height] of [[375, 629], [375, 553], [390, 664]] as const) {
   });
 }
 
-test('on short portrait screens Home and Settings line up with the board', async ({ page }) => {
-  for (const [width, height] of [[375, 553], [700, 620]] as const) {
+test('on short portrait screens Home and Settings line up with the board card', async ({ page }) => {
+  for (const [width, height] of [[375, 553], [466, 590]] as const) {
     await page.setViewportSize({ width, height });
     await seed(page);
     await openGame(page);
-    const [board, settings] = await Promise.all([box(page, '.board-wrap'), box(page, '.app-bar .settings-button')]);
-    expect(Math.abs(settings.x + settings.width - (board.x + board.width))).toBeLessThan(2);
+    const [card, home, settings] = await Promise.all([box(page, '.puzzle-panel'), box(page, '.game-bar .home-button'), box(page, '.game-bar .settings-button')]);
+    expect(Math.abs(home.x - card.x)).toBeLessThan(2);
+    expect(Math.abs(settings.x + settings.width - (card.x + card.width))).toBeLessThan(2);
   }
 });
