@@ -61,7 +61,7 @@ Before deploying through the CLI, verify that its signed-in account can access C
 
 ## Roadmap
 
-See the [feature roadmap](docs/ROADMAP.md) for what has shipped and what comes next: recovery checkpoints, chosen deductions, and the open research items.
+See the [feature roadmap](docs/ROADMAP.md) for what has shipped and what comes next: the open research items.
 
 ## Development
 

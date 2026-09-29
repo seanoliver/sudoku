@@ -19,7 +19,7 @@ test('blocking rejects a wrong answer without duplicates or changes to history a
   assert.equal(enter(correct, { index: 0, value: 0, blockIncorrectAnswers: true }).values[0], 0);
 });
 
-test('blocking allows notes and exclusions regardless of the solution', () => {
+test('blocking allows notes of any digit and exclusions of wrong digits', () => {
   const game = createGame(generatePuzzle('hard', 19));
   const index = game.givens.indexOf(0);
   const value = game.solution[index] % 9 + 1;
