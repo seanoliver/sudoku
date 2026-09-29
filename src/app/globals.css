@@ -55,13 +55,22 @@ h1,h2,h3,p { margin: 0; }
 .game-bar .icon-button { width: 40px; height: 40px; background: none; border: 0; box-shadow: none; }.game-bar .icon-button:disabled { opacity: .4; }
 .game-bar .difficulty-button { font-size: 15px; font-weight: 600; color: var(--ink); }.game-bar .difficulty-button>svg { color: var(--secondary); }
 .game-bar .clock { font-size: 15px; }
+/* Short screens narrow the bar to the board card: tighter spacing, then the level bars alone stand for the difficulty. */
+.game-bar { container: game-bar / inline-size; }
+@container game-bar (max-width: 340px) {
+  .game-bar-center { gap: 8px; }.game-bar .time-controls { gap: 4px; }.game-bar .difficulty-button { gap: 5px; }
+  .game-bar-actions { gap: 0; }.game-bar .icon-button { width: 36px; }
+}
+@container game-bar (max-width: 297px) { .game-bar .difficulty-button > .capitalize { display: none; } }
 /* The play content sits centered in the height under the bar. */
 .app:has(> .game-bar:not(.lesson-hidden)) { display: flex; flex-direction: column; }
 .app:has(> .game-bar:not(.lesson-hidden)) > .game.play { width: 100%; margin-top: auto; margin-bottom: auto; }
-:root { --game-width: 444px; --around-board: 416px; --game-bar-height: 56px; }
-.game { max-width: var(--game-width); margin: 28px auto 0; }
+:root { --game-width: 444px; --around-board: 416px; --game-top: 28px; --game-bar-height: 56px; --above-play: var(--game-bar-height); --lesson-footer: 0px; }
+/* A lesson swaps the game bar for its own header, keeps the top margin, and adds a footer button under the controls. */
+:root:has(.lesson-bar) { --above-play: calc(var(--bar-height) + var(--game-top)); --lesson-footer: 56px; }
+.game { max-width: var(--game-width); margin: var(--game-top) auto 0; }
 /* Shrinks the board on short screens so every key stays on screen. */
-.game.play { max-width: max(280px, min(var(--game-width), calc(100svh - var(--around-board) - var(--game-bar-height) - var(--safe-top) - max(0px, var(--safe-bottom) - var(--pad-bottom))))); }
+.game.play { max-width: max(280px, min(var(--game-width), calc(100svh - var(--around-board) - var(--above-play) - var(--lesson-footer) - var(--safe-top) - max(0px, var(--safe-bottom) - var(--pad-bottom))))); }
 .difficulty-button { display: flex; align-items: center; gap: 8px; color: var(--secondary); font-size: 13px; font-weight: 550; min-height: 30px; }
 .capitalize { text-transform: capitalize; }
 .level-mark { display: flex; align-items: flex-end; gap: 2px; height: 13px; }.level-mark i { width: 3px; border-radius: 1px; background: var(--line); }.level-mark i:nth-child(1) { height: 4px; }.level-mark i:nth-child(2) { height: 7px; }.level-mark i:nth-child(3) { height: 10px; }.level-mark i:nth-child(4) { height: 13px; }.level-mark i.active { background: var(--blue); }
@@ -117,23 +126,22 @@ h1,h2,h3,p { margin: 0; }
   .number-pad.mode-note .number-key:not(:disabled):hover { background: var(--selection); }.number-pad.mode-exclude .number-key:not(:disabled):hover { background: var(--red-soft); }
   .icon-button:hover { background: var(--line); }
 }
-@media (min-width: 601px) and (max-height: 950px) { :root { --bar-height: 68px; }:root { --game-width: 420px; --around-board: 384px; }.game { margin-top: 12px; }.desktop-caption { margin-top: 22px; } }
+@media (min-width: 601px) and (max-height: 950px) { :root { --bar-height: 68px; }:root { --game-width: 420px; --around-board: 333px; --game-top: 12px; }.desktop-caption { margin-top: 22px; } }
 @media (max-width: 600px) {
   :root { --pad-bottom: 10px; }
   .app { padding-left: max(17px,env(safe-area-inset-left)); padding-right: max(17px,env(safe-area-inset-right)); }
   :root { --bar-height: 66px; }.brand { font-size: 16px; }.app-actions { gap: 12px; }.settings-button { width: 34px; height: 34px; }
-  :root { --around-board: 344px; }.game { margin-top: 19px; }
+  :root { --around-board: 283px; --game-top: 19px; }
   .number-key { border-radius: 7px; }.number-key>span { font-size: 25px; }.desktop-caption { display: none; }
   .sheet { width: 100%; max-width: 100%; max-height: 92svh; margin: auto 0 0; border-radius: 22px 22px 0 0; border-bottom: 0; }.sheet-content { padding: 31px 25px max(20px,env(safe-area-inset-bottom)); }.sheet-handle { display: block; position: absolute; width: 32px; height: 4px; border-radius: 4px; background: var(--line); top: 10px; left: calc(50% - 16px); }.sheet-close { top: 15px; }.sheet h2 { font-size: 23px; }
   .completion { gap: 10px; }.completion h2 { font-size: 19px; }.completion p { font-size: 11px; }.completion .primary-button { font-size: 12px; padding: 0 12px; }
 }
 @media (max-width: 600px) and (max-height: 760px) {
-  :root { --bar-height: 53px; }:root { --game-width: 354px; --around-board: 297px; }.game { margin-top: 8px; }.progress-line { margin-top: 7px; }
+  :root { --bar-height: 53px; }:root { --game-width: 354px; --around-board: 248px; --game-top: 8px; }.progress-line { margin-top: 7px; }
 }
 @media (max-width: 360px) { .app { padding-left: 12px; padding-right: 12px; }.cell-number,.rejected-digit { font-size: 23px; }.number-key>span { font-size: 23px; }.sheet-content { padding-left: 20px; padding-right: 20px; } }
 @media (max-width: 600px) and (max-height: 640px) { .progress-line { margin-top: 5px; } }
 @media (display-mode: standalone) { :root { --bar-height: 60px; } }
-@media (min-width: 601px) and (max-height: 760px) { :root { --around-board: 352px; } }
 @media (prefers-reduced-motion: reduce) { *,*::before,*::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; } }
 @media (prefers-reduced-motion: reduce) { .rejected-digit,.rejection-source { animation: none !important; } }
 @media (prefers-reduced-motion: reduce) { .unit-celebration { animation: none !important; opacity: 1; } }
@@ -401,7 +409,7 @@ h1,h2,h3,p { margin: 0; }
 @media (prefers-reduced-motion: reduce) { .home-hero .home-board { animation: none; } }
 /* Folding phones open, laptops, and iPads in landscape. */
 @media (min-aspect-ratio: 5/4) and (min-height: 500px) and (max-height: 820px) {
-  :root { --board: max(200px, min(560px, calc(100vw - 388px - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px)), calc(100svh - 144px - var(--bar-height) - var(--safe-top) - max(0px, var(--safe-bottom) - var(--pad-bottom))))); --side-width: calc(var(--board) + 28px + 320px); }
+  :root { --board: max(200px, min(576px, calc(100vw - 388px - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px)), calc(100svh - 77px - var(--above-play) - var(--safe-top) - max(0px, var(--safe-bottom) - var(--pad-bottom))))); --side-width: calc(var(--board) + 28px + 320px); }
   /* The bar spans both columns; the board card and the controls card sit side by side under it. */
   .game-bar { max-width: var(--side-width); }
   .game.play { max-width: var(--side-width); display: grid; grid-template-columns: var(--board) 320px; column-gap: 28px; align-items: start; }
@@ -415,13 +423,15 @@ h1,h2,h3,p { margin: 0; }
 }
 /* Folding phones closed, and small phones in Safari. */
 @media (max-height: 629px) and (aspect-ratio < 5/4), (min-width: 601px) and (max-height: 760px) and (aspect-ratio < 5/4) {
-  :root { --play-width: max(260px, min(var(--game-width), calc(100svh - 260px - var(--pad-bottom) - var(--safe-top) - max(0px, var(--safe-bottom) - var(--pad-bottom))))); }
+  :root { --game-bar-height: 44px; --play-width: max(260px, min(var(--game-width), calc(100svh - 228px - var(--game-bar-height) - var(--pad-bottom) - var(--safe-top) - max(0px, var(--safe-bottom) - var(--pad-bottom))))); }
   /* A lesson keeps its header and adds a footer button. */
-  :root:has(.lesson-bar) { --play-width: max(200px, min(var(--game-width), calc(100svh - 278px - var(--bar-height) - var(--pad-bottom) - var(--safe-top) - max(0px, var(--safe-bottom) - var(--pad-bottom))))); }
+  :root:has(.lesson-bar) { --play-width: max(200px, min(var(--game-width), calc(100svh - 280px - var(--bar-height) - var(--pad-bottom) - var(--safe-top) - max(0px, var(--safe-bottom) - var(--pad-bottom))))); }
   .game-bar { max-width: var(--play-width); }
   .app:has(.game.play) .desktop-caption { display: none; }
-  .game.play { margin-top: 6px; max-width: var(--play-width); }
-  .game.play .digit-focus-bar { height: 36px; font-size: 12px; }
+  .game.play { margin-top: 0; max-width: var(--play-width); }
+  .game.play .progress-line { margin-top: 5px; }
+  .game.play :is(.digit-focus-bar, .lesson-prompt) { height: 36px; font-size: 12px; }
+  .lesson-footer { margin-top: 8px; }
   .game.play .digit-focus-bar .clear-focus-button { width: 36px; height: 36px; min-height: 0; }
 }
 /* Landscape phones: too short for either layout, so the page scrolls. */
