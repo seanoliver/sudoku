@@ -6,7 +6,6 @@ import { peers } from '../src/lib/sudoku.ts';
 import { PREFS_KEY, DEFAULT_PREFS } from '../src/lib/preferences.ts';
 
 const game = createGame(createPuzzle('medium', 7));
-// Two neighbouring empty cells in one row, so they can be drag-selected; their answers differ.
 const a = game.values.findIndex((v, i) => !v && i % 9 < 8 && !game.values[i + 1]);
 const b = a + 1;
 const answer = game.solution[a];
