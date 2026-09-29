@@ -1,2 +1,3 @@
 import SudokuGame from '@/components/game';
-export default function Page() { return <SudokuGame/>; }
+import { MotionProvider } from '@/components/motion-provider';
+export default function Page() { return <MotionProvider><SudokuGame/></MotionProvider>; }
