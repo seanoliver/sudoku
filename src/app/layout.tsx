@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from 'next';
+import { Analytics } from '@vercel/analytics/next';
 import './globals.css';
 import { THEME_COLOR } from '@/lib/theme-color';
 export const metadata: Metadata = {
@@ -16,5 +17,5 @@ export const viewport: Viewport = {
   themeColor: [{ media: '(prefers-color-scheme: light)', color: THEME_COLOR.light }, { media: '(prefers-color-scheme: dark)', color: THEME_COLOR.dark }],
 };
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  return <html lang="en" suppressHydrationWarning><head><script dangerouslySetInnerHTML={{ __html: `try{var t=JSON.parse(localStorage.getItem('sudoku.preferences.v1')||'null')?.theme;if(['system','light','dark'].includes(t))document.documentElement.setAttribute('data-theme',t)}catch{}` }}/></head><body>{children}</body></html>;
+  return <html lang="en" suppressHydrationWarning><head><script dangerouslySetInnerHTML={{ __html: `try{var t=JSON.parse(localStorage.getItem('sudoku.preferences.v1')||'null')?.theme;if(['system','light','dark'].includes(t))document.documentElement.setAttribute('data-theme',t)}catch{}` }}/></head><body>{children}<Analytics /></body></html>;
 }
