@@ -17,7 +17,7 @@
     "size:first-load": "node scripts/first-load-js.mjs"
   },
   "dependencies": {
-    "@vercel/analytics": "^2.0.1",
+    "@vercel/analytics": "2.0.1",
     "motion": "13.4.6",
     "next": "16.3.5",
     "react": "19.3.0",

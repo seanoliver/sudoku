@@ -50,7 +50,7 @@ Keyboard: arrow keys move, 1–9 enter, N switches to Notes and X to Exclude (pr
 
 Use HTTPS on a hosted deployment (localhost is suitable for development). Visit once online. The install card on Home opens the Install sheet, which says when offline play is ready. On iOS, use Safari → Share → Add to Home Screen. Supported Android and desktop browsers offer their own installation UI; the app also handles the install prompt when available. A LAN HTTP address on a physical phone does not provide the secure context required for service workers.
 
-No account, backend, analytics, advertising, or external font requests. Clearing browser data removes saved progress. Browser storage may be evicted by the operating system. Multiple tabs do not synchronize games; use one active tab per device.
+No account, backend, advertising, or external font requests. Anonymous page-view counts come from Vercel Web Analytics, which sets no cookies. Clearing browser data removes saved progress. Browser storage may be evicted by the operating system. Multiple tabs do not synchronize games; use one active tab per device.
 
 ## Hosting
 
