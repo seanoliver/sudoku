@@ -97,3 +97,17 @@ test('the answer on the last step sits where a placed number sits in its cell', 
   expect(Math.abs(answer.y - placed.y)).toBeLessThan(1);
   await expect(page.locator('.cell.walk-answer .notes')).toBeHidden();
 });
+
+test('arrowing onto a walkthrough cell keeps its ring', async ({ page }) => {
+  await openWalkthrough(page, xyWing);
+  const ringed = Number(await page.locator('.board .cell.walk-focus').first().getAttribute('data-index'));
+  const from = Number(await page.locator('.board .cell[tabindex="0"]').getAttribute('data-index'));
+  await page.locator('.board .cell[tabindex="0"]').focus();
+  const [rows, cols] = [Math.floor(ringed / 9) - Math.floor(from / 9), ringed % 9 - from % 9];
+  for (let k = 0; k < Math.abs(rows); k++) await page.keyboard.press(rows > 0 ? 'ArrowDown' : 'ArrowUp');
+  for (let k = 0; k < Math.abs(cols); k++) await page.keyboard.press(cols > 0 ? 'ArrowRight' : 'ArrowLeft');
+  await expect(page.locator(`.board [data-index="${ringed}"]`)).toBeFocused();
+  await expect(page.locator(`.board [data-index="${ringed}"]`)).toHaveClass(/selected/);
+  await expect(page.locator('.board .selection-outline')).toHaveCount(0);
+  await expect(page.locator(`.board [data-index="${ringed}"]`)).not.toHaveCSS('box-shadow', 'none');
+});
