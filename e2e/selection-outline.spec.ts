@@ -25,7 +25,8 @@ test('one outline follows the selected cell, without moving under reduced motion
   await page.keyboard.press('ArrowRight');
   await expect(outline(page, target + 1)).toHaveCount(1);
   await expect(page.locator('.board .selection-outline')).toHaveCount(1);
-  expect(await outline(page, target + 1).evaluate(element => getComputedStyle(element).transform)).toBe('none');
+  // WebKit reports an untransformed element as the identity matrix.
+  expect(['none', 'matrix(1, 0, 0, 1, 0, 0)']).toContain(await outline(page, target + 1).evaluate(element => getComputedStyle(element).transform));
 });
 
 test('a drag selection draws one outline around the group', async ({ page }) => {
