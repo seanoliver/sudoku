@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { gameBefore } from './fixtures.ts';
+import { gameBefore, stepToEnd } from './fixtures.ts';
 import { SAVE_KEY } from '../src/lib/game.ts';
 import { lessonOf } from '../src/lib/lessons.ts';
 
@@ -63,8 +63,8 @@ test('back from a lesson opened by a hint returns to the game, then to Home', as
   await page.getByRole('button', { name: 'Show a hint' }).click();
   await page.locator('.hint-action').click();
   await page.locator('.hint-action').click();
-  while (await page.getByRole('button', { name: 'Next step' }).isEnabled()) await page.getByRole('button', { name: 'Next step' }).click();
-  await page.getByRole('button', { name: 'Learn pointing pair ›' }).click();
+  await stepToEnd(page);
+  await page.getByRole('button', { name: 'Learn pointing pair' }).click();
   await expect(page.locator('.lesson-bar')).toBeVisible();
   await page.goBack();
   await expect(page.locator('.lesson-bar')).toHaveCount(0);

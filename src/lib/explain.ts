@@ -5,7 +5,7 @@ type Mark = { cell: number; digit: number };
 /** One walkthrough line: a sentence and exactly what the board shows with it. */
 export type ExplainLine = {
   text: string;
-  /** Shaded gray: the row, column, or box the sentence names. */
+  /** The row, column, or box the sentence names; kept at full contrast. */
   house?: readonly number[];
   /** Ringed dark: the cells the sentence is about. */
   focus?: readonly number[];
@@ -13,7 +13,7 @@ export type ExplainLine = {
   target?: readonly number[];
   /** Coloring fills revealed so far: 0 gold, 1 blue. */
   colored?: ReadonlyMap<number, 0 | 1>;
-  /** Candidates drawn in front of everything. */
+  /** Candidates the sentence uses, shown on the cells' own notes. */
   chips?: readonly Mark[];
   /** Links between `digit` chips; `newest` draws the last pair heavier. */
   links?: { digit: number; pairs: readonly [number, number][]; newest: boolean };

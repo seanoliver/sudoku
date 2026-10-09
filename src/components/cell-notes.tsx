@@ -43,6 +43,6 @@ export function CellNotes({ manual, automatic, excluded, boardKey, filled, focus
 
   // Keep glyphs mounted for exit animations; the cell's label describes only current notes.
   return <span className="notes" ref={grid} aria-hidden="true" hidden={filled}>
-    {DIGITS.map(digit => <span key={digit} className={`note-digit ${automatic.includes(digit) ? 'note-generated' : ''} ${excluded.includes(digit) ? 'note-excluded' : ''} ${focusedDigit === digit && !excluded.includes(digit) && (manual.includes(digit) || automatic.includes(digit)) ? 'note-focused' : ''}`} data-visible={manual.includes(digit) || automatic.includes(digit) || excluded.includes(digit)}>{digit}</span>)}
+    {DIGITS.map(digit => <span key={digit} className={`note-digit ${automatic.includes(digit) ? 'note-generated' : ''} ${excluded.includes(digit) ? 'note-excluded' : ''} ${focusedDigit === digit && !excluded.includes(digit) && (manual.includes(digit) || automatic.includes(digit)) ? 'note-focused' : ''}`} data-digit={digit} data-visible={manual.includes(digit) || automatic.includes(digit) || excluded.includes(digit)}>{digit}</span>)}
   </span>;
 }

@@ -20,7 +20,7 @@ import { HISTORY_KEY, readHistory, recordCompleted, recordSeen, type PuzzleHisto
 import { applyHint, nextHint, type Hint } from '@/lib/hints';
 import { hintView, type HintLevel } from '@/lib/hint-view';
 import { explainStep, type ExplainLine } from '@/lib/explain';
-import { WalkthroughOverlay, WalkthroughPanel } from './hint-walkthrough';
+import { WalkthroughLinks, WalkthroughPanel } from './hint-walkthrough';
 import { grade, hasLesson, LEARNED_KEY, LESSON_BANDS, lessonName, lessonOf, markLearned, practiceGame, readLearned, sameBoard, type Grade, type Learned, type LessonId } from '@/lib/lessons';
 import { HistoryPage } from './history-page';
 import { ReplayPage } from './replay-page';
@@ -50,13 +50,15 @@ const DIGITS = [1,2,3,4,5,6,7,8,9];
 const EMPTY_NOTES: number[] = [];
 const FOCUS_HINT_KEY = 'sudoku.focus-hold-learned.v1';
 const HINT_STRIP_FOCUS = '.hint-strip .hint-action, .hint-strip .clear-focus-button';
-const WALK_NEXT_FOCUS = '.walk-stepper button:last-child';
+const WALK_NEXT_FOCUS = '.walk-next';
 const LESSON_FOOTER_FOCUS = '.lesson-footer';
 /** The player's game and its view, set aside untouched while they're on the Learn page or in a lesson. */
 type Held = { game: GameState | null; selected: number; focus: number | null; entry: EntryModeState; paused: boolean };
 /** A lesson in progress. `from` is where leaving it returns to. */
 type LessonState = { id: LessonId; from: 'hint' | 'list' | 'home'; phase: 'watch' | 'practice' | 'done'; board: number; start: GameState; result: Grade | null; line: number };
-const walkClasses = (line: ExplainLine, cell: number) => [line.house?.includes(cell) ? 'walk-house' : '', line.focus?.includes(cell) ? 'walk-focus' : '', line.target?.includes(cell) ? 'walk-target' : '', line.colored?.has(cell) ? `walk-${line.colored.get(cell) ? 'blue' : 'gold'}` : '', line.ghost?.cell === cell ? 'walk-answer' : ''];
+const marks = (list: ExplainLine['chips'], cell: number) => list?.filter(mark => mark.cell === cell).map(mark => mark.digit).join(' ') || undefined;
+const walkUses = (line: ExplainLine, cell: number) => Boolean(line.house?.includes(cell) || line.focus?.includes(cell) || line.target?.includes(cell) || line.colored?.has(cell) || line.ghost?.cell === cell || marks(line.chips, cell) || marks(line.strike, cell));
+const walkClasses = (line: ExplainLine, cell: number) => [walkUses(line, cell) ? 'walk-used' : '', line.focus?.includes(cell) ? 'walk-focus' : '', line.target?.includes(cell) ? 'walk-target' : '', line.colored?.has(cell) ? `walk-${line.colored.get(cell) ? 'blue' : 'gold'}` : '', line.ghost?.cell === cell ? 'walk-answer' : ''];
 /** Reads, updates and saves play history; storage failures only lose history, never the game. */
 const updateHistory = (change: (history: PuzzleHistory) => PuzzleHistory) => { try { localStorage.setItem(HISTORY_KEY, JSON.stringify(change(readHistory(localStorage.getItem(HISTORY_KEY))))); } catch { /* History is optional. */ } };
 const seenPuzzles = () => { try { return readHistory(localStorage.getItem(HISTORY_KEY)).seen; } catch { return []; } };
@@ -73,6 +75,7 @@ const distance = (a: number, b: number) => Math.abs(Math.floor(a / 9) - Math.flo
 export default function SudokuGame() {
   const [game, setGame] = useState<GameState | null>(null);
   const [selected, setSelected] = useState(0);
+  const boardWrap = useRef<HTMLDivElement>(null);
   const [focusedDigit, setFocusedDigit] = useState<number | null>(null);
   const [focusHoldLearned, setFocusHoldLearned] = useState(false);
   const [entry, setEntry] = useState<EntryModeState>(INITIAL_ENTRY_MODE);
@@ -410,15 +413,15 @@ export default function SudokuGame() {
   const candidates = useMemo(() => values && exclusions ? getPlayableCandidates({ values, exclusions }) : null,
     [values, exclusions]);
   const walkStep = activeHint?.level === 3 && activeHint.hint.kind === 'step' ? activeHint.hint.step : null;
-  const lessonStep = lesson?.phase === 'watch' ? findStep(lesson.start.values, getPlayableCandidates(lesson.start)) : lesson?.result && !lesson.result.correct ? lesson.result.step : null;
+  const lessonStep = useMemo(() => lesson?.phase === 'watch' ? findStep(lesson.start.values, getPlayableCandidates(lesson.start)) : lesson?.result && !lesson.result.correct ? lesson.result.step : null, [lesson?.phase, lesson?.start, lesson?.result]);
   const shownStep = lesson ? lessonStep : walkStep;
-  const walkthrough = shownStep && values && candidates ? explainStep(shownStep, { values, candidates }) : null;
+  const walkthrough = useMemo(() => shownStep && values && candidates ? explainStep(shownStep, { values, candidates }) : null, [shownStep, values, candidates]);
   const walkIndex = walkthrough ? Math.min((lesson ? lesson.line : activeHint?.line) ?? 0, walkthrough.length - 1) : 0;
   const walkLine = walkthrough?.[walkIndex] ?? null;
   const stepWalkthrough = (line: number, at?: number) => {
     if (!walkthrough || (!activeHint && !lesson)) return;
     // Keep focus inside the app's key handler: Safari leaves it on <body> after a click, a disabled stepper button drops it, and leaving the last step removes Apply.
-    const focused = document.activeElement, lost = !focused || focused === document.body;
+    const focused = document.activeElement, lost = !focused || focused === document.body || focused.matches('.walk-panel p');
     if (lost || focused.closest('.walk-panel, .hint-strip')) focusAfterRender.current = line >= walkthrough.length - 1 ? lesson ? LESSON_FOOTER_FOCUS : HINT_STRIP_FOCUS : line === 0 || lost || focused.closest('.hint-strip') ? WALK_NEXT_FOCUS : null;
     if (at !== undefined) hintAdvancedAt.current = at;
     if (lesson) setLesson({ ...lesson, line }); else if (activeHint) setHintState({ ...activeHint, line });
@@ -652,7 +655,7 @@ export default function SudokuGame() {
       </div>
 
       <p className="sr-only" role="status">{walkLine && walkthrough ? `${lesson ? lessonName(lesson.id) : hintDisplay?.text}. Step ${walkIndex + 1} of ${walkthrough.length}. ${walkLine.text}` : hintDisplay?.label ?? ''}</p>
-      <div className={`board-wrap ${complete ? 'is-complete' : ''} ${walkLine ? 'walkthrough' : ''}`}>
+      <div ref={boardWrap} className={`board-wrap ${complete ? 'is-complete' : ''} ${walkLine ? 'walkthrough' : ''}`}>
         <div className="board" role="grid" aria-label="Sudoku puzzle" aria-rowcount={9} aria-colcount={9} ref={board} {...selection.pointerHandlers} aria-multiselectable={batchSelection} aria-busy={busy} inert={paused || busy}>
           {Array.from({ length: 9 }, (_, row) => <div role="row" className="board-row" key={row}>
             {Array.from({ length: 9 }, (_, col) => {
@@ -666,7 +669,7 @@ export default function SudokuGame() {
               const same = value > 0 && selectedValue === value;
               const classes = ['cell', given ? 'given' : 'entered', selectedCell ? 'selected' : '', !selectedCell && related.has(i) && preferences.highlightPeers && !complete ? 'related' : '', same && !selectedCell && !complete ? 'matching' : '', possible.has(i) ? 'possible' : '', excludedPossible.has(i) ? 'excluded-possible' : '', badCells.has(i) ? 'conflict' : '', rejection?.cells.includes(i) ? 'rejecting' : '', ...(walkLine ? walkClasses(walkLine, i) : [...(hintDisplay?.cells.get(i) ?? [])].map(role => `hint-${role}`))].filter(Boolean).join(' ');
               const sides = selectedCell && !walkLine ? batchSelection ? outlineEdges.get(i) : null : undefined;
-              return <div role="gridcell" aria-selected={selectedCell} aria-readonly={given} aria-rowindex={row+1} aria-colindex={col+1} key={i} className="cell-slot"><button className={classes} data-index={i} data-given={given} tabIndex={selected === i ? 0 : -1} aria-label={`Row ${row+1}, column ${col+1}, ${value ? `${value}${given ? ', given' : ''}` : notes.length ? `${generated ? 'generated notes' : 'notes'} ${notes.join(', ')}` : 'empty'}${!value && ruledOut.length ? `, ruled out ${ruledOut.join(', ')}` : ''}${possible.has(i) ? `, possible placement for ${selectedValue}` : ''}${excludedPossible.has(i) ? `, excluded placement for ${selectedValue}` : ''}${badCells.has(i) ? ', incorrect answer' : ''}`} aria-disabled={complete} onClick={event => selection.clickCell(event, i)}>
+              return <div role="gridcell" aria-selected={selectedCell} aria-readonly={given} aria-rowindex={row+1} aria-colindex={col+1} key={i} className="cell-slot"><button className={classes} data-index={i} data-given={given} tabIndex={selected === i ? 0 : -1} aria-label={`Row ${row+1}, column ${col+1}, ${value ? `${value}${given ? ', given' : ''}` : notes.length ? `${generated ? 'generated notes' : 'notes'} ${notes.join(', ')}` : 'empty'}${!value && ruledOut.length ? `, ruled out ${ruledOut.join(', ')}` : ''}${possible.has(i) ? `, possible placement for ${selectedValue}` : ''}${excludedPossible.has(i) ? `, excluded placement for ${selectedValue}` : ''}${badCells.has(i) ? ', incorrect answer' : ''}`} aria-disabled={complete} data-chip={walkLine ? marks(walkLine.chips, i) : undefined} data-strike={walkLine ? marks(walkLine.strike, i) : undefined} onClick={event => selection.clickCell(event, i)}>
                 {celebrating && celebratedCells.has(i) && <span key={`celebrate-${celebrating.id}`} className="unit-celebration" style={{ animationDelay: `${distance(i, celebrating.origin) * CELEBRATION_STEP_MS}ms` }} aria-hidden="true"/>}
                 {value ? placed?.index === i && !given ? <span key={placed.id} className="cell-number placed" onAnimationEnd={() => setPlaced(null)}>{value}</span> : <span className="cell-number">{value}</span> : null}
                 {walkLine?.ghost?.cell === i && <span className="walk-ghost" aria-hidden="true">{walkLine.ghost.digit}</span>}
@@ -678,7 +681,7 @@ export default function SudokuGame() {
             })}
           </div>)}
         </div>
-        {walkLine && <WalkthroughOverlay line={walkLine}/>}
+        {walkLine && <WalkthroughLinks line={walkLine} wrap={boardWrap}/>}
         {(paused || busy || !game) && <div className="board-cover">
           {busy ? <><span className="spinner"/><h2>Getting your puzzle ready</h2></> : paused ? <><span className="pause-emblem"><Icon name="pause" size={28}/></span><h2>Take a break</h2><p>Your puzzle will be right here.</p><button className="primary-button" onClick={() => setPaused(false)}><Icon name="play" size={17}/>Resume puzzle</button></> : <><h2>Let’s try that again</h2><button className="primary-button" onClick={() => requestPuzzle(difficulty)}>Create puzzle</button></>}
         </div>}
@@ -691,7 +694,7 @@ export default function SudokuGame() {
       <div className="play-side">
       {complete ? <div className="completion" role="status"><span className="success-mark"><Icon name="check" size={25}/></span><div><h2>Nicely done.</h2><p>Every number in its place.</p></div><div className="completion-actions">{replayOf(game?.id) && <button className="text-button replay-button" onClick={() => openReplay('game')}><Icon name="play" size={15}/>Replay</button>}<button className="primary-button" onClick={() => openSheet('new')}>Play again</button></div></div> : <>
         <div className="controls-area">
-          {walkLine && walkthrough && <WalkthroughPanel index={walkIndex} count={walkthrough.length} text={walkLine.text} onStep={stepWalkthrough} learn={!lesson && walkStep && walkIndex === walkthrough.length - 1 && hasLesson(lessonOf(walkStep)) ? { name: lessonName(lessonOf(walkStep)), onOpen: () => openLesson(lessonOf(walkStep)) } : undefined}/>}
+          {walkLine && walkthrough && <WalkthroughPanel title={lesson ? lessonName(lesson.id) : hintDisplay?.text ?? ''} index={walkIndex} count={walkthrough.length} text={walkLine.text} onStep={stepWalkthrough} learn={!lesson && walkStep && walkIndex === walkthrough.length - 1 && hasLesson(lessonOf(walkStep)) ? { name: lessonName(lessonOf(walkStep)), onOpen: at => { if (at - hintAdvancedAt.current > 350) openLesson(lessonOf(walkStep)); } } : undefined}/>}
           {lesson?.phase === 'done' && <LessonDone name={lessonName(lesson.id)} back={{ hint: 'Back to your game', list: 'Back to Learn', home: 'Back home' }[lesson.from]} onExit={exitLesson}/>}
           <div className="note-controls" aria-label="Puzzle tools" inert={Boolean(walkLine) || lesson?.phase === 'done' || Boolean(lesson?.result?.correct)}>
             <div className="mode-switch" role="group" aria-label="Entry mode">
