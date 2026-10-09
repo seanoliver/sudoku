@@ -7,6 +7,8 @@ const game = JSON.stringify(createGame(createPuzzle('medium', 7)));
 const sheet = (page: Page) => page.locator('dialog.sheet');
 const settings = (page: Page) => page.getByRole('button', { name: 'Settings' });
 const openSettings = async (page: Page) => { await settings(page).click(); await expect(sheet(page)).toBeVisible(); };
+/** Moves the pointer in small steps about one frame apart, as a slow finger does, so the release is not read as a flick. */
+const slowDrag = async (page: Page, x: number, y: number, by: number) => { for (let k = 1; k <= 8; k++) { await page.mouse.move(x, y + by * k / 8); await page.waitForTimeout(16); } };
 const appScale = (page: Page) => page.locator('.app').evaluate(element => getComputedStyle(element).scale);
 
 test.beforeEach(async ({ page }) => {
@@ -40,18 +42,24 @@ test('a tap on the dimmed background closes the sheet', async ({ page }) => {
   await expect(sheet(page)).toBeHidden();
 });
 
-test('dragging the handle far enough closes the sheet, and a short drag springs back', async ({ page }) => {
+const handleCenter = async (page: Page) => { const box = (await page.locator('.sheet-handle').boundingBox())!; return { x: box.x + box.width / 2, y: box.y + box.height / 2 }; };
+
+test('dragging the handle far enough closes the sheet', async ({ page }) => {
   await openSettings(page);
-  const handle = (await page.locator('.sheet-handle').boundingBox())!;
-  const x = handle.x + handle.width / 2, y = handle.y + handle.height / 2;
-  await page.mouse.move(x, y); await page.mouse.down();
-  await page.mouse.move(x, y + 40, { steps: 8 }); await page.mouse.up();
-  await expect(sheet(page)).toBeVisible();
-  await expect(sheet(page)).not.toHaveAttribute('data-closing', '');
-  expect(await sheet(page).evaluate(element => (element as HTMLElement).style.translate)).toBe('');
+  const { x, y } = await handleCenter(page);
   await page.mouse.move(x, y); await page.mouse.down();
   await page.mouse.move(x, y + 200, { steps: 10 }); await page.mouse.up();
   await expect(sheet(page)).toBeHidden();
+});
+
+test('a short, slow drag springs the sheet back', async ({ page }) => {
+  await openSettings(page);
+  const { x, y } = await handleCenter(page);
+  await page.mouse.move(x, y); await page.mouse.down();
+  await slowDrag(page, x, y, 40); await page.mouse.up();
+  await expect(sheet(page)).toBeVisible();
+  await expect(sheet(page)).not.toHaveAttribute('data-closing', '');
+  expect(await sheet(page).evaluate(element => (element as HTMLElement).style.translate)).toBe('');
 });
 
 test('Restart from Settings becomes a centered alert', async ({ page }) => {
@@ -93,11 +101,42 @@ test.describe('with motion on, a short drag', () => {
 
   test('springs the sheet back without replaying its rise', async ({ page }) => {
     await openSettings(page);
-    await page.waitForTimeout(500);
+    await expect.poll(() => sheet(page).evaluate(element => element.getAnimations().length)).toBe(0);
     const handle = (await page.locator('.sheet-handle').boundingBox())!;
     const x = handle.x + handle.width / 2, y = handle.y + handle.height / 2;
     await page.mouse.move(x, y); await page.mouse.down();
-    await page.mouse.move(x, y + 40, { steps: 8 }); await page.mouse.up();
+    await slowDrag(page, x, y, 40); await page.mouse.up();
     expect(await sheet(page).evaluate(element => element.getAnimations().filter(animation => animation instanceof CSSAnimation).length)).toBe(0);
+  });
+});
+
+test('dragging still works after a trip to Learn and back', async ({ page }) => {
+  await page.getByRole('button', { name: 'Home' }).click();
+  await page.getByRole('button', { name: /All techniques/ }).click();
+  await page.locator('.lesson-back').click();
+  await page.getByRole('button', { name: 'Continue' }).click();
+  await openSettings(page);
+  const handle = (await page.locator('.sheet-handle').boundingBox())!;
+  const x = handle.x + handle.width / 2, y = handle.y + handle.height / 2;
+  await page.mouse.move(x, y); await page.mouse.down();
+  await page.mouse.move(x, y + 200, { steps: 10 }); await page.mouse.up();
+  await expect(sheet(page)).toBeHidden();
+});
+
+test('a closing sheet ignores taps', async ({ page }) => {
+  await openSettings(page);
+  await sheet(page).evaluate(element => { (element as HTMLElement).dataset.closing = ''; });
+  expect(await sheet(page).evaluate(element => getComputedStyle(element).pointerEvents)).toBe('none');
+});
+
+test.describe('with motion on, the shrunk game', () => {
+  test.use({ reducedMotion: 'no-preference' });
+
+  test('keeps its own background over the black page', async ({ page }) => {
+    await openSettings(page);
+    await expect.poll(() => appScale(page)).toBe('0.93');
+    const canvas = await page.evaluate(() => getComputedStyle(document.body).getPropertyValue('--canvas'));
+    expect(canvas.trim()).not.toBe('');
+    expect(await page.locator('.app').evaluate(element => getComputedStyle(element).backgroundColor)).not.toBe('rgba(0, 0, 0, 0)');
   });
 });

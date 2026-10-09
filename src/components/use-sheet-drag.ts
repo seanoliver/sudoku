@@ -1,44 +1,47 @@
-import { useEffect, type RefObject } from 'react';
+import { useRef, type PointerEvent } from 'react';
+import { closesOnRelease, type Sample } from '@/lib/sheet-drag';
 
-const CLOSE_DISTANCE = 100;
-const CLOSE_SPEED = 0.5;
+type Sheet = PointerEvent<HTMLDialogElement>;
 
-/** Lets a finger drag the sheet down by its handle: far or fast enough closes it, anything less springs it back. */
-export function useSheetDrag(dialog: RefObject<HTMLDialogElement | null>, onDismiss: () => void) {
-  useEffect(() => {
-    const sheet = dialog.current;
-    if (!sheet) return;
-    let start: { id: number; y: number; at: number } | null = null, last = { y: 0, at: 0 };
-    const offset = (y: number) => { const dy = y - start!.y; return dy > 0 ? dy : dy / 4; };
-    const down = (event: PointerEvent) => {
+/** Pointer handlers for the sheet: dragging its handle down far or fast enough closes it, anything less springs it back. */
+export function useSheetDrag(onDismiss: () => void) {
+  const drag = useRef<{ id: number; startY: number; previous: Sample; last: Sample } | null>(null);
+  const offset = (y: number) => { const dy = y - drag.current!.startY; return dy > 0 ? dy : dy / 4; };
+  const reset = (sheet: HTMLDialogElement) => { drag.current = null; delete sheet.dataset.dragging; };
+  const cancel = (event: Sheet) => {
+    if (drag.current?.id !== event.pointerId) return;
+    reset(event.currentTarget);
+    event.currentTarget.style.translate = '';
+  };
+  return {
+    onPointerDown: (event: Sheet) => {
+      const sheet = event.currentTarget;
       if (!(event.target as Element).closest('.sheet-handle') || sheet.dataset.kind === 'restart') return;
-      start = { id: event.pointerId, y: event.clientY, at: event.timeStamp };
-      last = { y: event.clientY, at: event.timeStamp };
+      // A mouse drag would otherwise select text and scroll the sheet out from under the pointer.
+      event.preventDefault();
+      const sample = { y: event.clientY, at: event.timeStamp };
+      drag.current = { id: event.pointerId, startY: event.clientY, previous: sample, last: sample };
       (event.target as Element).setPointerCapture(event.pointerId);
       sheet.dataset.dragging = '';
-    };
-    const move = (event: PointerEvent) => {
-      if (start?.id !== event.pointerId) return;
-      sheet.style.translate = `0 ${offset(event.clientY)}px`;
-      last = { y: event.clientY, at: event.timeStamp };
-    };
-    const up = (event: PointerEvent) => {
-      if (start?.id !== event.pointerId) return;
-      const distance = offset(event.clientY), speed = (event.clientY - last.y) / Math.max(1, event.timeStamp - last.at);
-      start = null;
-      delete sheet.dataset.dragging;
-      if (distance > CLOSE_DISTANCE || (distance > 0 && speed > CLOSE_SPEED)) onDismiss();
-      else sheet.style.translate = '';
-    };
-    sheet.addEventListener('pointerdown', down);
-    sheet.addEventListener('pointermove', move);
-    sheet.addEventListener('pointerup', up);
-    sheet.addEventListener('pointercancel', up);
-    return () => {
-      sheet.removeEventListener('pointerdown', down);
-      sheet.removeEventListener('pointermove', move);
-      sheet.removeEventListener('pointerup', up);
-      sheet.removeEventListener('pointercancel', up);
-    };
-  }, [dialog, onDismiss]);
+    },
+    onPointerMove: (event: Sheet) => {
+      const current = drag.current;
+      if (!current || current.id !== event.pointerId) return;
+      if (!event.buttons) { cancel(event); return; }
+      event.currentTarget.style.translate = `0 ${offset(event.clientY)}px`;
+      current.previous = current.last;
+      current.last = { y: event.clientY, at: event.timeStamp };
+    },
+    onPointerUp: (event: Sheet) => {
+      const current = drag.current;
+      if (!current || current.id !== event.pointerId) return;
+      const distance = offset(event.clientY);
+      reset(event.currentTarget);
+      // The release repeats the last move's position, so speed comes from the two moves before it.
+      if (closesOnRelease({ distance, previous: current.previous, last: current.last })) onDismiss();
+      else event.currentTarget.style.translate = '';
+    },
+    onPointerCancel: cancel,
+    reset,
+  };
 }
