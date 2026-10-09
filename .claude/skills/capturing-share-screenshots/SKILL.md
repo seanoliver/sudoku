@@ -29,6 +29,21 @@ Capture the real app at phone size with equal side margins and the feature visib
 
 Reference capture: `docs/screenshots/smart-highlighting-phone-centered.png`.
 
+## Clips
+
+Playwright's `recordVideo` records frames at CSS-pixel size and ignores `deviceScaleFactor`. If `recordVideo.size` is larger than the viewport, for example 780 × 1688 to get a 2x clip, the page fills only the top-left 390 × 844, and the rest of the frame is gray (`#808080`). That is how the first PR #65 clip broke.
+
+1. Set `recordVideo.size` equal to the viewport (`{ width: 390, height: 844 }`).
+2. Upscale afterward if you need a larger file: `ffmpeg -i raw.webm -vf "scale=780:1688:flags=lanczos,format=yuv420p" -c:v libx264 -crf 16 -movflags +faststart -an out.mp4`.
+3. Trim dead frames at the start (page load) with `-ss`.
+4. **Gate:** extract frames at the start, middle, and end, and open each one with Read. Then confirm that the bottom-right corner is not filler:
+   ```bash
+   ffmpeg -v error -ss 1 -i out.mp4 -frames:v 1 -vf "crop=40:40:iw-40:ih-40" -f rawvideo -pix_fmt gray - \
+     | od -An -v -tu1 | tr -s ' ' '\n' | grep -v '^$' | sort -u
+   ```
+   Output that is only `128`, or only `0`, means filler. Do not ship that clip.
+5. Report the duration, dimensions, and the frames you inspected.
+
 ## Output
 
 Report to Sean:
