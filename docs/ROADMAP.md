@@ -275,6 +275,7 @@ Status: queued for research. The feature outcomes below are uncommitted. Complet
 - **Idea:** Turn Sudoku into a native iOS app once the web app is settled. Sean added this on September 23 as a later goal, after the current web work.
 - **Research:** Compare a full native rewrite in Swift/SwiftUI with wrapping the existing web app. List what must carry over: saved games and preferences, offline play, haptics, and App Store requirements.
 - **Output:** A recommended approach and a scope proposal. Start only after Sean confirms the web version is where he wants it.
+- **Status:** Researched on October 9 ([investigation](investigations/2026-10-09-ios-wrapper.md)): wrap the web app with Capacitor, bundling a static export, so one codebase ships to the web and iOS. Haptics need the native bridge; App Review guideline 4.2 is the main risk. Sean approved the first three scope steps: run it on his iPhone from Xcode, compare haptic mappings by feel, and test edge swipe-back.
 
 ## 1. Digit locking
 
