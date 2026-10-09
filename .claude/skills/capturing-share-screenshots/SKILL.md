@@ -29,6 +29,19 @@ Capture the real app at phone size with equal side margins and the feature visib
 
 Reference capture: `docs/screenshots/smart-highlighting-phone-centered.png`.
 
+## Clips
+
+Playwright's `recordVideo` records frames at CSS-pixel size and ignores `deviceScaleFactor`. Playwright rounds `recordVideo.size` down to even numbers, scales the page down to fit it, and pads any leftover area with gray. A 780 × 1688 size on a 390 × 844 viewport leaves the app in the top-left corner. A viewport raised to 860 tall leaves a gray strip on the right.
+
+1. Set `recordVideo: { dir, size }` with `size` equal to the viewport, and keep both dimensions even. If the Measure step raises the viewport height, change `size` to match.
+2. Remove `reducedMotion: 'reduce'` from the template's context. The app honors it, so a clip of a motion feature would show no motion.
+3. After `context.close()`, read the file from `await page.video().path()`.
+4. Trim and upscale in one encode, into the scratchpad: `ffmpeg -ss <load time> -i raw.webm -vf "scale=iw*2:ih*2:flags=lanczos,format=yuv420p" -c:v libx264 -crf 16 -movflags +faststart -an clip.mp4`.
+5. **Gate:** run `check-clip.sh <clip>` (next to this file). It samples the right and bottom edges at 10%, 50%, and 90% of the clip and exits 1 on gray padding, black bars, or a frame it cannot decode. Do not ship a clip that fails.
+6. Extract frames at the start, middle, and end and open each one with Read.
+7. Save it as `docs/screenshots/<feature>-post.mp4`, after the existing-file check in the Save step above.
+8. Report the duration, dimensions, the gate output, and the frames you inspected.
+
 ## Output
 
 Report to Sean:
