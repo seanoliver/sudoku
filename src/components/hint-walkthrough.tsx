@@ -41,14 +41,17 @@ export function WalkthroughPanel({ title, index, count, text, onStep, learn }: {
   const last = index >= count - 1;
   const panel = useRef<HTMLDivElement>(null), sentence = useRef<HTMLParagraphElement>(null);
   const [clipped, setClipped] = useState(false);
-  // Grow past the keypad card into the free space below it, up to the screen's bottom or a lesson's footer; scroll the sentence only past that.
+  // Grow past the keypad card into the free space below it, up to the screen's bottom or a lesson's footer; then try smaller text; scroll the sentence only past that.
   useLayoutEffect(() => {
     const fit = () => {
       if (!panel.current || !sentence.current) return;
       const footer = document.querySelector('.lesson-footer')?.getBoundingClientRect().top;
       const limit = (footer ?? innerHeight) - 12 - panel.current.getBoundingClientRect().top;
       panel.current.style.maxHeight = `${Math.max(limit, panel.current.parentElement?.clientHeight ?? 0)}px`;
-      setClipped(sentence.current.scrollHeight > sentence.current.clientHeight + 1);
+      const overflows = () => sentence.current!.scrollHeight > sentence.current!.clientHeight + 1;
+      delete panel.current.dataset.fit;
+      if (overflows()) panel.current.dataset.fit = 'compact';
+      setClipped(overflows());
     };
     fit();
     addEventListener('resize', fit);

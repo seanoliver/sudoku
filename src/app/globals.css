@@ -480,6 +480,9 @@ h1,h2,h3,p { margin: 0; }
 .walk-next { background: var(--ink); color: var(--surface); }
 .walk-next:disabled { opacity: .3; }
 .walk-learn { background: var(--hint-soft); color: var(--hint-strong); }
+/* The panel measures its sentence right after resizing it, so its size must not transition, including under the reduced-motion rule. */
+.walk-panel, .walk-panel p { transition-property: none; }
+.walk-panel[data-fit='compact'] { gap: 8px; padding-top: 12px; }.walk-panel[data-fit='compact'] p { font-size: 16px; }
 @media (max-width: 360px), (max-height: 760px) { .walk-panel { gap: 8px; padding-top: 12px; }.walk-panel p { font-size: 16px; } }
 @media (max-width: 360px) { .walk-ghost { font-size: 23px; } }
 .walk-panel p.clipped { mask-image: linear-gradient(#000 calc(100% - 22px), transparent); }

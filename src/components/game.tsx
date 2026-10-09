@@ -421,7 +421,7 @@ export default function SudokuGame() {
   const stepWalkthrough = (line: number, at?: number) => {
     if (!walkthrough || (!activeHint && !lesson)) return;
     // Keep focus inside the app's key handler: Safari leaves it on <body> after a click, a disabled stepper button drops it, and leaving the last step removes Apply.
-    const focused = document.activeElement, lost = !focused || focused === document.body;
+    const focused = document.activeElement, lost = !focused || focused === document.body || focused.matches('.walk-panel p');
     if (lost || focused.closest('.walk-panel, .hint-strip')) focusAfterRender.current = line >= walkthrough.length - 1 ? lesson ? LESSON_FOOTER_FOCUS : HINT_STRIP_FOCUS : line === 0 || lost || focused.closest('.hint-strip') ? WALK_NEXT_FOCUS : null;
     if (at !== undefined) hintAdvancedAt.current = at;
     if (lesson) setLesson({ ...lesson, line }); else if (activeHint) setHintState({ ...activeHint, line });

@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { focusState, gameBefore, historyLength, openWalkthrough } from './fixtures.ts';
+import { focusState, gameBefore, historyLength, openWalkthrough, stepToEnd } from './fixtures.ts';
 
 const xyWing = gameBefore(step => step.technique === 'xy-wing');
 const next = (page: Page) => page.getByRole('button', { name: 'Next step' });
@@ -149,8 +149,15 @@ const SIZES = [{ width: 390, height: 844, strict: true }, { width: 1280, height:
 for (const { strict, ...viewport } of SIZES) test.describe(`at ${viewport.width} × ${viewport.height}`, () => {
   test.use({ viewport });
 
-  for (const technique of ['coloring', 'swordfish', 'x-wing'] as const) test(`every ${technique} step shows its whole sentence and keeps its buttons on screen`, async ({ page }) => {
+  for (const technique of ['coloring', 'swordfish', 'x-wing'] as const) for (const place of ['hint', 'lesson'] as const) test(`every ${technique} step in a ${place} shows its whole sentence and keeps its buttons on screen`, async ({ page }) => {
     await openWalkthrough(page, gameBefore(step => step.technique === technique));
+    if (place === 'lesson') {
+      await stepToEnd(page);
+      await page.locator('.walk-learn').click();
+      await expect(page.locator('.lesson-bar')).toBeVisible();
+      await expect(counter(page)).toHaveText(/^1 of /);
+      await expect.poll(() => page.evaluate(() => document.scrollingElement!.scrollHeight <= innerHeight)).toBe(true);
+    }
     for (;;) {
       const fit = await page.evaluate(() => {
         const action = document.querySelector('.walk-actions')!.getBoundingClientRect(), sentence = document.querySelector('.walk-panel p') as HTMLElement;
@@ -173,4 +180,23 @@ test('a double tap on Next before the last step does not open the lesson', async
   await expect(counter(page)).toHaveText('2 of 2');
   await page.waitForTimeout(400);
   await expect(page.locator('.lesson-bar')).toHaveCount(0);
+});
+
+test.describe('at 320 × 568', () => {
+  test.use({ viewport: { width: 320, height: 568 } });
+
+  test('stepping from a scrolled sentence keeps focus in the app', async ({ page }) => {
+    await openWalkthrough(page, gameBefore(step => step.technique === 'coloring'));
+    let checked = 0;
+    while (await next(page).count() && await next(page).isEnabled()) {
+      const sentence = page.locator('.walk-panel p');
+      if (await sentence.getAttribute('tabindex') === '0') {
+        await sentence.focus();
+        await page.keyboard.press('h');
+        expect((await focusState(page)).inApp).toBe(true);
+        checked++;
+      } else await next(page).click();
+    }
+    expect(checked).toBeGreaterThan(0);
+  });
 });
