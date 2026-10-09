@@ -239,7 +239,17 @@ What this app uses, checked against that list:
   - The exported layout chunk still references `_vercel/insights/script.js`.
 - Read the Capacitor haptics Swift and web source and the `CAPBridgeViewController.swift` source directly on GitHub.
 - Checked npm dist-tags for `@capacitor/core` and `@capacitor/haptics` on 2026-10-09.
-- Not verified on a device: haptic latency, swipe-back with `pushState`, Web Worker under `capacitor://`, safe areas, callouts, 120Hz for CSS transitions, `display-mode` in WKWebView, WKWebView storage eviction.
+- Not verified on a device by the research itself: haptic latency, swipe-back with `pushState`, Web Worker under `capacitor://`, safe areas, callouts, 120Hz for CSS transitions, `display-mode` in WKWebView, WKWebView storage eviction.
+
+## Device spike results (October 9)
+
+Scope steps 1 to 3 ran on Sean's iPhone 16 Pro Max from a local branch (`spike/ios-wrapper`), Capacitor 8.5.2 and `@capacitor/haptics` 8.0.2, signed with his existing paid developer team.
+
+- **Runs:** the bundled static export loads, puzzles generate (the Web Worker works under `capacitor://`), and safe areas and the status bar are right. Sean: "the layout is perfect".
+- **Haptics:** the stock plugin works and feels right: selection on a move, light impact on an entry, medium on a finished unit, success on a solve, error on a refused number. A local plugin with `.soft`, `.rigid`, and intensity was dropped; stock was enough.
+- **Swipe-back:** `allowsBackForwardNavigationGestures` is the wrong tool for this app. It slides a snapshot taken when the page was left, so stale UI showed during the swipe, and Learn, History, and Replay add no history entries. A `UIScreenEdgePanGestureRecognizer` that streams the finger position to the web app works on every screen: the current screen follows the finger over its real destination (Home or Learn rendered live, or a copy of the game screen taken when a lesson or replay covered it), then finishes by pressing that screen's back control or springs back. A swipe that only switched screens after the gesture ended felt worse than no gesture.
+- **Gotcha:** Capacitor 8's `SceneDelegate` sets `rootViewController = CAPBridgeViewController()` in code, so a custom controller named in `Main.storyboard` never loads. Change the `SceneDelegate` line.
+- **Web parity:** the web bundle is unchanged in size (185.3 kB first load) because the iOS code is behind a build-time flag.
 
 ## References
 
