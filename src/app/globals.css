@@ -219,33 +219,12 @@ h1,h2,h3,p { margin: 0; }
 .cell.selected.hint-area { background: var(--selection); }.cell.hint-mistake:focus-visible:not(.selected) { box-shadow: inset 0 0 0 2px var(--blue), inset 0 0 0 4px var(--red); }
 .board-wrap.walkthrough .cell:is(.selected, .related, .matching, .possible, .excluded-possible) { background: var(--surface); box-shadow: none; }
 .board-wrap.walkthrough .cell:focus-visible { box-shadow: none; outline: 2px dashed var(--blue); outline-offset: -5px; }
-.board-wrap.walkthrough .notes .note-digit { opacity: .18; }
-.board-wrap.walkthrough .cell.walk-house { background: color-mix(in srgb, var(--ink) 11%, var(--surface)); }
-.board-wrap.walkthrough .cell.walk-gold { background: color-mix(in srgb, var(--hint) 42%, var(--surface)); }
-.board-wrap.walkthrough .cell.walk-blue { background: color-mix(in srgb, var(--blue) 30%, var(--surface)); }
-.board-wrap.walkthrough .cell.walk-focus { box-shadow: inset 0 0 0 3px var(--ink); z-index: 2; }
-.board-wrap.walkthrough .cell.walk-target { box-shadow: inset 0 0 0 3px var(--red); z-index: 2; }
-.walk-overlay { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 3; }
-.walk-overlay > line { stroke: var(--ink); stroke-width: 1.5px; vector-effect: non-scaling-stroke; stroke-linecap: round; opacity: .45; }
-.walk-overlay > line.current { stroke-width: 3px; opacity: .9; }
-.walk-chip rect { fill: var(--surface); stroke: var(--ink); stroke-width: 1px; vector-effect: non-scaling-stroke; }
-.walk-chip text { font-size: .21px; font-weight: 800; fill: var(--ink); text-anchor: middle; dominant-baseline: central; }
-.walk-chip.struck rect { fill: var(--red-soft); stroke: var(--red); }
-.walk-chip.struck text { fill: var(--red); }
-.walk-strike { stroke: var(--red); stroke-width: 2px; vector-effect: non-scaling-stroke; stroke-linecap: round; }
-.walk-ghost { position: absolute; inset: 0; display: grid; place-items: center; font-size: clamp(23px, 6.4vw, 29px); line-height: 1; font-weight: 460; color: var(--hint-strong); pointer-events: none; }
+.walk-ghost { position: absolute; inset: 0; display: grid; place-items: center; font-size: clamp(23px, 6.4vw, 29px); line-height: 1; font-weight: 600; color: var(--hint-strong); pointer-events: none; }
 .board-wrap.walkthrough .cell.walk-answer .notes { visibility: hidden; }
 .play-side { display: contents; }
 .controls-area { position: relative; display: grid; grid-template-columns: minmax(122px, 36%) minmax(0, 1fr); gap: 10px; margin-top: 12px; padding: 10px; border-radius: var(--radius-card-lg); background: var(--surface); box-shadow: 0 1px 2px #0000000d; }
 @media (max-height: 760px) { .number-pad { gap: 6px; } .number-pad .number-key { height: 48px; } .controls-area { margin-top: 8px; } .note-controls { gap: 6px; } .mode-option { min-height: 36px; } :is(.erase-control, .history-control) { min-height: 36px; } }
 
-.walk-panel { position: absolute; top: 0; left: 0; right: 0; min-height: 100%; z-index: 5; display: flex; flex-direction: column; gap: 8px; padding: 12px 16px; border-radius: var(--radius-card-lg); background: var(--hint-soft); border: 1px solid color-mix(in srgb, var(--hint) 35%, transparent); }
-.walk-panel-head { display: flex; align-items: center; justify-content: space-between; font-size: 13px; color: var(--hint-strong); text-transform: uppercase; letter-spacing: .04em; }
-.walk-panel p { margin: 0; font-size: 16px; line-height: 1.4; color: var(--ink); }
-.walk-stepper { display: flex; align-items: center; gap: 6px; font-weight: 600; font-variant-numeric: tabular-nums; }
-.walk-stepper button { width: 32px; height: 32px; border-radius: 16px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); font-size: 20px; line-height: 1; display: grid; place-items: center; }
-.walk-stepper button:disabled { opacity: .35; }
-@media (max-width: 360px) { .walk-panel p { font-size: 15px; }.walk-ghost { font-size: 23px; } }
 .lesson-hidden { display: none !important; }
 .lesson-bar { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; }
 .lesson-back { justify-self: start; display: inline-flex; align-items: center; gap: 2px; min-height: 44px; color: var(--blue-strong); font-weight: 600; font-size: 14px; }
@@ -265,7 +244,6 @@ h1,h2,h3,p { margin: 0; }
 .lesson-done { position: absolute; top: 0; left: 0; right: 0; min-height: 100%; z-index: 5; display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 16px; border-radius: var(--radius-card-lg); background: color-mix(in srgb, var(--green) 12%, var(--surface)); text-align: center; }
 .lesson-done h2 { margin: 0; font-size: 18px; }
 .lesson-done p { margin: 2px 0 0; color: var(--muted); font-size: 14px; }
-.walk-learn { align-self: flex-start; padding: 2px 0; color: var(--hint-strong); font-size: 14px; font-weight: 650; }
 .app .note-controls[inert], .app .number-pad[inert] { opacity: .45; }
 .learn-button { color: var(--ink); }
 .learn-count { font-size: 12px; font-weight: 500; color: var(--muted); }
@@ -448,3 +426,59 @@ h1,h2,h3,p { margin: 0; }
 /* CSS rather than Motion, so it can never be left small if Motion fails to load. */
 .cell-number.placed { animation: number-placed 160ms cubic-bezier(.2, .8, .2, 1); }
 @keyframes number-placed { from { transform: scale(.9); } }
+
+/* The walkthrough: cells the step does not use fade, and its marks sit on the cells' own note digits. */
+.board-wrap.walkthrough .cell:not(.walk-used) > * { opacity: .22; }
+.board-wrap.walkthrough .notes { position: relative; }
+.board-wrap.walkthrough .notes .note-digit { opacity: 0; }
+.board-wrap.walkthrough .cell[data-chip~="1"] .note-digit[data-digit="1"],
+.board-wrap.walkthrough .cell[data-chip~="2"] .note-digit[data-digit="2"],
+.board-wrap.walkthrough .cell[data-chip~="3"] .note-digit[data-digit="3"],
+.board-wrap.walkthrough .cell[data-chip~="4"] .note-digit[data-digit="4"],
+.board-wrap.walkthrough .cell[data-chip~="5"] .note-digit[data-digit="5"],
+.board-wrap.walkthrough .cell[data-chip~="6"] .note-digit[data-digit="6"],
+.board-wrap.walkthrough .cell[data-chip~="7"] .note-digit[data-digit="7"],
+.board-wrap.walkthrough .cell[data-chip~="8"] .note-digit[data-digit="8"],
+.board-wrap.walkthrough .cell[data-chip~="9"] .note-digit[data-digit="9"] { opacity: 1; transform: scale(1.25); position: relative; z-index: 1; border-radius: 50%; font-weight: 750; color: var(--ink); background: color-mix(in srgb, var(--ink) 13%, var(--surface)); box-shadow: 0 0 0 1.5px var(--surface); }
+.board-wrap.walkthrough .cell[data-strike~="1"] .note-digit[data-digit="1"],
+.board-wrap.walkthrough .cell[data-strike~="2"] .note-digit[data-digit="2"],
+.board-wrap.walkthrough .cell[data-strike~="3"] .note-digit[data-digit="3"],
+.board-wrap.walkthrough .cell[data-strike~="4"] .note-digit[data-digit="4"],
+.board-wrap.walkthrough .cell[data-strike~="5"] .note-digit[data-digit="5"],
+.board-wrap.walkthrough .cell[data-strike~="6"] .note-digit[data-digit="6"],
+.board-wrap.walkthrough .cell[data-strike~="7"] .note-digit[data-digit="7"],
+.board-wrap.walkthrough .cell[data-strike~="8"] .note-digit[data-digit="8"],
+.board-wrap.walkthrough .cell[data-strike~="9"] .note-digit[data-digit="9"] { opacity: 1; transform: scale(1.25); position: relative; z-index: 1; border-radius: 50%; font-weight: 750; color: var(--red); background: color-mix(in srgb, var(--red) 16%, var(--surface)); box-shadow: 0 0 0 1.5px var(--surface); }
+.board-wrap.walkthrough .cell[data-strike~="1"] .note-digit[data-digit="1"]::after,
+.board-wrap.walkthrough .cell[data-strike~="2"] .note-digit[data-digit="2"]::after,
+.board-wrap.walkthrough .cell[data-strike~="3"] .note-digit[data-digit="3"]::after,
+.board-wrap.walkthrough .cell[data-strike~="4"] .note-digit[data-digit="4"]::after,
+.board-wrap.walkthrough .cell[data-strike~="5"] .note-digit[data-digit="5"]::after,
+.board-wrap.walkthrough .cell[data-strike~="6"] .note-digit[data-digit="6"]::after,
+.board-wrap.walkthrough .cell[data-strike~="7"] .note-digit[data-digit="7"]::after,
+.board-wrap.walkthrough .cell[data-strike~="8"] .note-digit[data-digit="8"]::after,
+.board-wrap.walkthrough .cell[data-strike~="9"] .note-digit[data-digit="9"]::after { content: ''; position: absolute; left: -2px; right: -2px; top: calc(50% - 1px); height: 2px; border-radius: 1px; background: var(--red); transform: rotate(-45deg); }
+.board-wrap.walkthrough .cell:is(.walk-focus, .walk-target) { z-index: 2; }
+.board-wrap.walkthrough .cell:is(.walk-focus, .walk-target)::after { content: ''; position: absolute; inset: -2px; border-radius: 10px; border: 2.5px solid var(--ink); pointer-events: none; z-index: 2; }
+.board-wrap.walkthrough .cell.walk-target::after { border-color: var(--red); }
+.board-wrap.walkthrough .board-row:first-child .cell::after { top: 0; }.board-wrap.walkthrough .board-row:last-child .cell::after { bottom: 0; }.board-wrap.walkthrough .cell-slot:first-child > .cell::after { left: 0; }.board-wrap.walkthrough .cell-slot:last-child > .cell::after { right: 0; }
+.board-wrap.walkthrough .cell:is(.walk-blue, .walk-gold)::before { content: ''; position: absolute; inset: 3px; border-radius: 9px; background: color-mix(in srgb, var(--blue) 26%, var(--surface)); }
+.board-wrap.walkthrough .cell.walk-gold::before { background: color-mix(in srgb, var(--hint) 34%, var(--surface)); }
+.board-wrap.walkthrough .cell:not(.walk-used)::before { opacity: .22; }
+.walk-links { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 3; }
+.walk-links line { stroke: var(--ink); stroke-width: 1.5px; stroke-linecap: round; opacity: .35; }
+.walk-links line.current { stroke: var(--hint); stroke-width: 2.5px; opacity: 1; }
+.walk-panel { position: absolute; inset: 0 0 auto; min-height: 100%; z-index: 5; display: flex; flex-direction: column; gap: 10px; padding: 14px 16px 12px; border-radius: var(--radius-card-lg); background: var(--surface); }
+.walk-progress { display: flex; gap: 4px; }
+.walk-progress i { flex: 1; height: 3px; border-radius: 2px; background: var(--line); transition: background-color .2s ease; }
+.walk-progress i.done { background: var(--hint); }
+.walk-eyebrow { font-size: 13px; font-weight: 600; color: var(--secondary); font-variant-numeric: tabular-nums; }
+.walk-panel p { flex: 1; margin: 0; font-size: 18px; line-height: 1.4; font-weight: 550; letter-spacing: -.015em; color: var(--ink); }
+.walk-actions { display: flex; gap: 10px; align-items: center; }
+.walk-back { flex: none; width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; background: var(--canvas); color: var(--ink); }
+.walk-back:disabled { opacity: .3; }
+.walk-next, .walk-learn { flex: 1; height: 44px; border-radius: 999px; font-size: 16px; font-weight: 650; }
+.walk-next { background: var(--ink); color: var(--surface); }
+.walk-next:disabled { opacity: .3; }
+.walk-learn { background: var(--hint-soft); color: var(--hint-strong); }
+@media (max-width: 360px) { .walk-panel p { font-size: 16px; }.walk-ghost { font-size: 23px; } }

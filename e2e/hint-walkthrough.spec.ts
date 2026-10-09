@@ -4,7 +4,7 @@ import { focusState, gameBefore, historyLength, openWalkthrough } from './fixtur
 const xyWing = gameBefore(step => step.technique === 'xy-wing');
 const next = (page: Page) => page.getByRole('button', { name: 'Next step' });
 const previous = (page: Page) => page.getByRole('button', { name: 'Previous step' });
-const counter = (page: Page) => page.locator('.walk-stepper span');
+const counter = (page: Page) => page.locator('.walk-count');
 const apply = (page: Page) => page.locator('.hint-strip .hint-action');
 
 test.describe('focus through an XY-wing walkthrough', () => {
@@ -109,5 +109,38 @@ test('arrowing onto a walkthrough cell keeps its ring', async ({ page }) => {
   await expect(page.locator(`.board [data-index="${ringed}"]`)).toBeFocused();
   await expect(page.locator(`.board [data-index="${ringed}"]`)).toHaveClass(/selected/);
   await expect(page.locator('.board .selection-outline')).toHaveCount(0);
-  await expect(page.locator(`.board [data-index="${ringed}"]`)).not.toHaveCSS('box-shadow', 'none');
+  expect(await page.locator(`.board [data-index="${ringed}"]`).evaluate(element => getComputedStyle(element, '::after').borderTopWidth)).not.toBe('0px');
+});
+
+test.describe('marks line up with the notes they point at', () => {
+  test.beforeEach(async ({ page }) => openWalkthrough(page, xyWing));
+
+  test('each candidate mark is the cell\'s own note digit, shown', async ({ page }) => {
+    const marked = page.locator('.board .cell[data-chip], .board .cell[data-strike]');
+    expect(await marked.count()).toBeGreaterThan(0);
+    for (const cell of await marked.all()) {
+      const digits = `${await cell.getAttribute('data-chip') ?? ''} ${await cell.getAttribute('data-strike') ?? ''}`.trim().split(/\s+/);
+      for (const digit of digits) await expect(cell.locator(`.note-digit[data-digit="${digit}"]`)).toHaveCSS('opacity', '1');
+    }
+  });
+
+  test('cells the step does not use fade, and the cells it uses do not', async ({ page }) => {
+    const unused = page.locator('.board .cell:not(.walk-used)').first();
+    await expect(unused.locator('> *').first()).toHaveCSS('opacity', '0.22');
+    await expect(page.locator('.board .cell.walk-focus').first()).toHaveClass(/walk-used/);
+  });
+});
+
+test('every link ends on the note digit it joins', async ({ page }) => {
+  await openWalkthrough(page, gameBefore(step => step.technique === 'coloring'));
+  await next(page).click();
+  const lines = page.locator('.walk-links line');
+  expect(await lines.count()).toBeGreaterThan(0);
+  const ends = await page.evaluate(() => {
+    const wrap = document.querySelector('.board-wrap')!.getBoundingClientRect();
+    const notes = [...document.querySelectorAll('.board .cell[data-chip] .note-digit')].filter(note => getComputedStyle(note).opacity === '1').map(note => { const r = note.getBoundingClientRect(); return { x: r.left + r.width / 2 - wrap.left, y: r.top + r.height / 2 - wrap.top }; });
+    return [...document.querySelectorAll('.walk-links line')].flatMap(line => [[+line.getAttribute('x1')!, +line.getAttribute('y1')!], [+line.getAttribute('x2')!, +line.getAttribute('y2')!]])
+      .map(([x, y]) => Math.min(...notes.map(note => Math.hypot(note.x - x, note.y - y))));
+  });
+  for (const distance of ends) expect(distance).toBeLessThan(8);
 });
