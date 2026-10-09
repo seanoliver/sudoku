@@ -6,7 +6,6 @@ import { peers } from '../src/lib/sudoku.ts';
 
 const game = createGame(createPuzzle('medium', 7));
 const empty = (i: number) => !game.values[i];
-// Three empty cells in a row and the empty cell under the last one: an L shape.
 const start = game.values.findIndex((_, i) => i % 9 <= 6 && i < 72 && [i, i + 1, i + 2, i + 11].every(empty));
 const shape = [start, start + 1, start + 2, start + 11];
 const target = game.values.findIndex((v, i) => !v && i > 30);

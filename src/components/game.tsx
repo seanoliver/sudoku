@@ -67,7 +67,6 @@ const REJECTION_MS = 800;
 const CELEBRATION_STEP_MS = 45;
 const CELEBRATION_MS = 520;
 /** Manhattan distance between two cells on the 9x9 grid. */
-// A short tap on phones that support it; other devices ignore it.
 const buzz = () => { try { navigator.vibrate?.(8); } catch { /* Haptics are optional. */ } };
 const distance = (a: number, b: number) => Math.abs(Math.floor(a / 9) - Math.floor(b / 9)) + Math.abs(a % 9 - b % 9);
 
@@ -113,7 +112,6 @@ export default function SudokuGame() {
   const lessonTappedAt = useRef(-Infinity);
   const [celebration, setCelebration] = useState<{ id: number; origin: number; cells: number[]; label: string } | null>(null);
   const celebrationId = useRef(0);
-  // The cell whose number was just placed, so only that number scales in.
   const [placed, setPlaced] = useState<{ index: number; id: number } | null>(null);
   const placedId = useRef(0);
   const complete = game ? isComplete(game) : false;

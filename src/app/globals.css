@@ -438,13 +438,12 @@ h1,h2,h3,p { margin: 0; }
 /* Landscape phones: too short for either layout, so the page scrolls. */
 @media (max-height: 499px) and (min-aspect-ratio: 5/4) { .game.play, .game-bar { max-width: var(--play-cap); } }
 
-/* The selection outline: a rounded halo just outside the selected cell. A drag selection draws one shared outline. */
 .selection-outline { --outline: var(--blue); position: absolute; inset: -2px; z-index: 3; pointer-events: none; border-radius: 10px; border: 2.5px solid var(--outline); box-shadow: 0 0 0 4px color-mix(in srgb, var(--outline) 22%, transparent); }
 .cell-slot:has(> .cell:is(.conflict, .rejecting)) > .selection-outline { --outline: var(--red); }
 .cell.selected:focus-visible:not(.hint-mistake) { box-shadow: none; }
 .selection-outline.group { inset: -1px; border-width: 0; border-radius: 0; box-shadow: none; }
 .selection-outline.edge-top { border-top-width: 2.5px; }.selection-outline.edge-right { border-right-width: 2.5px; }.selection-outline.edge-bottom { border-bottom-width: 2.5px; }.selection-outline.edge-left { border-left-width: 2.5px; }
 .selection-outline.edge-top.edge-left { border-top-left-radius: 10px; }.selection-outline.edge-top.edge-right { border-top-right-radius: 10px; }.selection-outline.edge-bottom.edge-left { border-bottom-left-radius: 10px; }.selection-outline.edge-bottom.edge-right { border-bottom-right-radius: 10px; }
-/* A number just placed scales in from 90%. CSS rather than Motion, so it can never be left small if Motion fails to load. */
+/* CSS rather than Motion, so it can never be left small if Motion fails to load. */
 .cell-number.placed { animation: number-placed 160ms cubic-bezier(.2, .8, .2, 1); }
 @keyframes number-placed { from { transform: scale(.9); } }
