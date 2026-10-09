@@ -34,8 +34,10 @@ body { margin: 0; color: var(--ink); font-family: -apple-system, BlinkMacSystemF
 button { font: inherit; color: inherit; cursor: pointer; -webkit-tap-highlight-color: transparent; touch-action: manipulation; border: 0; background: none; padding: 0; }
 button:disabled { cursor: default; }
 button:focus-visible { outline: 3px solid var(--blue); outline-offset: 3px; }
-button:not(:disabled):active { transform: scale(.96); }
+button:not(:disabled, [data-pressable]):active { transform: scale(.96); }
 button { transition: transform 100ms ease, background-color 120ms ease, opacity 120ms ease; }
+/* Pressable buttons press in on a spring; a CSS transform transition would lag it. */
+button[data-pressable] { transition: background-color 120ms ease, opacity 120ms ease; }
 svg { flex-shrink: 0; display: inline-block; vertical-align: middle; }
 h1,h2,h3,p { margin: 0; }
 .app { min-height: 100svh; padding: var(--safe-top) max(20px, env(safe-area-inset-right)) max(var(--pad-bottom), var(--safe-bottom)) max(20px, env(safe-area-inset-left)); }
@@ -85,11 +87,11 @@ h1,h2,h3,p { margin: 0; }
 .board-row:last-child .cell-slot:first-child .cell { border-bottom-left-radius: var(--board-inner-radius); }
 .board-row:last-child .cell-slot:last-child .cell { border-bottom-right-radius: var(--board-inner-radius); }
 .cell-number { position: relative; font-size: clamp(23px, 6.4vw, 29px); line-height: 1; font-weight: 460; }.cell.entered { color: var(--blue-strong); }.cell.entered .cell-number { font-weight: 430; }
-.cell.related { background: var(--peer); }.cell.matching { background: var(--matching); }.cell.possible { background: var(--possible); }.cell.excluded-possible { background: var(--red-soft); }.cell.selected { background: var(--selection); z-index: 1; box-shadow: inset 0 0 0 2px var(--blue); }
+.cell.related { background: var(--peer); }.cell.matching { background: var(--matching); }.cell.possible { background: var(--possible); }.cell.excluded-possible { background: var(--red-soft); }.cell.selected { background: var(--selection); z-index: 1; }
 .cell:focus-visible { outline: 0; box-shadow: inset 0 0 0 2px var(--blue); z-index: 2; }.cell:not(:disabled):active { transform: none; }
-.cell.conflict { color: var(--red); background: var(--red-soft); }.cell.conflict.selected { box-shadow: inset 0 0 0 2px var(--red); }
+.cell.conflict { color: var(--red); background: var(--red-soft); }
 .conflict-dot { width: 3px; height: 3px; border-radius: 50%; background: var(--red); position: absolute; bottom: 3px; }
-.cell.rejecting { background: var(--red-soft); }.cell.rejecting.selected { box-shadow: inset 0 0 0 2px var(--red); }.cell.rejecting .notes { visibility: hidden; }
+.cell.rejecting { background: var(--red-soft); }.cell.rejecting .notes { visibility: hidden; }
 .rejected-digit { position: absolute; inset: 0; display: grid; place-items: center; font-size: clamp(23px, 6.4vw, 29px); line-height: 1; font-weight: 430; color: var(--red); pointer-events: none; animation: reject-shake 250ms ease-in-out, reject-fade 800ms ease-in forwards; }
 .rejected-digit::after { content: ''; position: absolute; left: 50%; top: 50%; width: 1.15em; height: 2px; margin: -1px 0 0 -.575em; border-radius: 1px; background: currentColor; transform: rotate(45deg); }
 .rejection-source { position: absolute; inset: 0; border-radius: inherit; box-shadow: inset 0 0 0 2px var(--red); pointer-events: none; animation: reject-pulse 800ms ease-out forwards; }
@@ -435,3 +437,14 @@ h1,h2,h3,p { margin: 0; }
 }
 /* Landscape phones: too short for either layout, so the page scrolls. */
 @media (max-height: 499px) and (min-aspect-ratio: 5/4) { .game.play, .game-bar { max-width: var(--play-cap); } }
+
+/* The selection outline: a rounded halo just outside the selected cell. A drag selection draws one shared outline. */
+.selection-outline { --outline: var(--blue); position: absolute; inset: -2px; z-index: 3; pointer-events: none; border-radius: 10px; border: 2.5px solid var(--outline); box-shadow: 0 0 0 4px color-mix(in srgb, var(--outline) 22%, transparent); }
+.cell-slot:has(> .cell:is(.conflict, .rejecting)) > .selection-outline { --outline: var(--red); }
+.cell.selected:focus-visible:not(.hint-mistake) { box-shadow: none; }
+.selection-outline.group { inset: -1px; border-width: 0; border-radius: 0; box-shadow: none; }
+.selection-outline.edge-top { border-top-width: 2.5px; }.selection-outline.edge-right { border-right-width: 2.5px; }.selection-outline.edge-bottom { border-bottom-width: 2.5px; }.selection-outline.edge-left { border-left-width: 2.5px; }
+.selection-outline.edge-top.edge-left { border-top-left-radius: 10px; }.selection-outline.edge-top.edge-right { border-top-right-radius: 10px; }.selection-outline.edge-bottom.edge-left { border-bottom-left-radius: 10px; }.selection-outline.edge-bottom.edge-right { border-bottom-right-radius: 10px; }
+/* A number just placed scales in from 90%. CSS rather than Motion, so it can never be left small if Motion fails to load. */
+.cell-number.placed { animation: number-placed 160ms cubic-bezier(.2, .8, .2, 1); }
+@keyframes number-placed { from { transform: scale(.9); } }

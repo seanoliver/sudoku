@@ -1,0 +1,18 @@
+# Polish step 3b: game screen motion
+
+**Goal:** the game screen's motion from the [app polish design](2026-09-29-app-polish-design.md): the merged-halo selection outline ([design](2026-10-08-selection-outline-design.md)) gliding between cells, placed numbers scaling in, one press response on keys and tools, short haptics on number keys, and a safe fallback when Motion's deferred features fail to load.
+
+**Architecture:** the outline is one element per selected cell, drawn by CSS. A single selection renders it as `m.span` with a shared `layoutId`, so Motion animates it from the previous cell. A drag selection renders plain spans whose drawn sides come from a pure `selectionEdges` helper. A new `Pressable` (`m.button`, `whileTap` scale 0.96 on the snappy spring) replaces the plain buttons on the number keys, mode switch, and Undo, Erase, and Redo; those buttons drop the CSS `:active` scale so the spring is the only press response. A placed number gets a short CSS scale-in from 0.9, keyed by the placement. It is CSS rather than Motion because an `m` element renders its `initial` scale inline before Motion's features load, so a failed load would leave the number small.
+
+**Out of scope:** sheets (step 4), the finish moment (step 5), moving the rejection shake and unit celebrations onto springs (they stay CSS, and already respect reduced motion), haptics on anything except number keys.
+
+## Tasks
+
+1. **`selectionEdges`** in `src/lib/selection-edges.ts`: for a set of selected indices, each cell's exposed sides (top, right, bottom, left). Unit tests: a single cell has four sides; two adjacent cells share no side; an L shape; the board edge counts as exposed.
+2. **Outline.** In `src/components/game.tsx`, render the mark inside the selected cell's slot: `m.span` with `layoutId="selection-outline"` and `SPRINGS.snappy` for a single selection, a plain span with `edge-*` classes for a batch. No mark during the walkthrough or after completion. CSS in `globals.css`: halo outside the cell, red when the cell is `conflict` or `rejecting`, no inset `box-shadow` on `.cell.selected` and no focus ring on the selected cell. Keep `hint-mistake`'s red ring.
+3. **Placed numbers.** Track the last placement (index and a counter) in `input`; that cell's number renders with a `placed` class, keyed by the counter, which runs a 160ms CSS scale-in from 0.9 (the global reduced-motion rule cuts it to nothing). Givens and loaded games render plain.
+4. **`Pressable`** in `src/components/pressable.tsx`; use it for number keys, mode options, and the three tools. Exclude those from `button:not(:disabled):active { transform }` and from the transform transition.
+5. **Haptics:** `navigator.vibrate?.(8)` on a number key press when entering a value, note, or exclusion.
+6. **Load failure:** the provider's `features` loader catches, logs `[motion] features failed to load`, and resolves to `{}` so the app stays usable without motion.
+7. **Tests (e2e, `e2e/selection-outline.spec.ts`):** tapping a cell moves the one outline into it; a drag selection of an L shape gives each cell only its outer sides; a rejected entry turns the outline red; with reduced motion, the outline has no transform right after moving; number keys still enter digits.
+8. **Verify:** `pnpm typecheck && pnpm lint && pnpm test && pnpm build && pnpm test:e2e`; `pnpm size:first-load` stays within the step 3 ceiling (first load at most 194.3 kB, deferred at most 30 kB). Capture the built UI at the approved states and compare with `docs/designs/selection-outline-approved*.png`; record a `.webm` of selection and number motion for the PR.
