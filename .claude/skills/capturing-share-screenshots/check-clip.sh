@@ -12,7 +12,7 @@ for pct in 10 50 90; do
       | od -An -v -tu1 | tr -s ' ' '\n' | grep -v '^$' | sort -n | uniq || true)
     if [ -z "$vals" ]; then echo "FAIL ${pct}% $edge: no frame decoded"; status=1; continue; fi
     lo=$(echo "$vals" | head -1); hi=$(echo "$vals" | tail -1)
-    # Gray padding encodes to 126-130; black bars to 0. The app's dark canvas reads 13.
+    # Gray padding reads about 120-135 after encoding; black bars read 0. The app's dark canvas reads 13.
     if { [ "$lo" -ge 120 ] && [ "$hi" -le 136 ]; } || [ "$hi" -le 5 ]; then
       echo "FAIL ${pct}% $edge: filler (values $lo-$hi)"; status=1
     else
