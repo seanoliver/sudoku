@@ -7,8 +7,8 @@ Sean asked whether the Sudoku web app can ship to the iOS App Store as a native 
 The app today:
 
 - Next.js 16.3.5, React 19.3.0, `motion` 13.4.6 (`package.json`).
-- One route, `/`. Home, the game, Learn, and lessons are views inside `src/components/game.tsx`, switched by state; entering the game and opening Replay also push history entries (`docs/investigations/2026-09-27-back-button-history.md`).
-- No server features. `src/app/` holds `layout.tsx`, `page.tsx`, `manifest.ts`, and static `opengraph-image.png` and `twitter-image.png`. No `next/image`, no Server Actions, no cookies.
+- One route, `/`. Home, the game, Learn, lessons, History, and Replay are views inside `src/components/game.tsx`, switched by state; entering the game and opening Replay also push history entries (`docs/investigations/2026-09-27-back-button-history.md`).
+- No server features. `src/app/` includes `layout.tsx`, `page.tsx`, `manifest.ts`, `globals.css`, and static `opengraph-image.png` and `twitter-image.png`. No `next/image`, no Server Actions, no cookies.
 - Puzzle generation runs in a dedicated Web Worker (`new Worker(new URL('../lib/puzzle.worker.ts', import.meta.url))`, `game.tsx:173`).
 - Offline comes from `scripts/build-sw.mjs`, which writes `public/sw.js` after `next build`. The app registers it at `game.tsx:248`.
 - `next.config.ts` sets custom `headers()` for `/sw.js`.
@@ -59,19 +59,19 @@ What UIKit offers that the plugin does not expose:
 
 - `UIImpactFeedbackGenerator.FeedbackStyle` has five cases: `heavy`, `light`, `medium`, `rigid`, `soft`. Source: https://developer.apple.com/documentation/uikit/uiimpactfeedbackgenerator/feedbackstyle (iOS 10+).
 - `impactOccurred(intensity:)` "Triggers impact feedback with a specific intensity" (iOS 13+). Source: https://developer.apple.com/documentation/uikit/uiimpactfeedbackgenerator/impactoccurred(intensity:)
-- The plugin builds a new impact generator on every call and does not call `prepare()` first. Apple says `prepare()` "Prepares the generator to trigger feedback". Source: https://developer.apple.com/documentation/uikit/uifeedbackgenerator/prepare() . Whether this adds noticeable latency is UNVERIFIED. It needs a feel test on a phone.
+- The plugin builds a new impact generator on every call and does not call `prepare()` first. Apple says `prepare()` "Prepares the generator to trigger feedback". Source: https://developer.apple.com/documentation/uikit/uifeedbackgenerator/prepare() . Whether this adds noticeable latency is UNVERIFIED. It needs a feel test on a phone. (Resolved on device: see Device spike results.)
 - Every call crosses the async JS-to-native bridge, and the plugin then hops to the main queue (`DispatchQueue.main.async`). Latency is UNVERIFIED and needs a device test. (Resolved on device: see Device spike results.)
 
 If Sean wants `.soft`, `.rigid`, intensity, or pre-warmed generators, Capacitor supports a local plugin in the app project: a Swift class that subclasses `CAPPlugin` and conforms to `CAPBridgedPlugin`, registered in `capacitorDidLoad()` with `bridge?.registerPluginInstance(...)`, and called from JS through `registerPlugin`. Source: https://capacitorjs.com/docs/ios/custom-code (v8). This is about 40 lines of Swift.
 
-The plugin's web fallback throws when `navigator.vibrate` is missing (`src/web.ts`, `throw this.unavailable('Browser does not support the vibrate API')`). The web build must catch that or skip the call, as `buzz()` already does.
+The plugin's web fallback throws when `navigator.vibrate` is missing (`src/web.ts`, `throw this.unavailable('Browser does not support the vibrate API')`). Because the plugin's methods are `async`, the caller gets a rejected promise, which a synchronous `try`/`catch` like `buzz()` does not catch. Call the plugin only in the native build (or when `Capacitor.isNativePlatform()` is true), or attach `.catch()`.
 
 **Apple's guidance on using haptics** (HIG, Playing haptics, https://developer.apple.com/design/human-interface-guidelines/playing-haptics):
 
 - "Use system-provided haptic patterns according to their documented meanings."
 - "Use haptics consistently throughout your app or game."
 - "Avoid overusing haptics."
-- "Make haptics optional. Let people turn off or mute haptics."
+- "Make haptics optional. Let people turn off or mute haptics, and make sure people can still enjoy your app or game without them."
 - UIKit's own text: impact is for when "a user interface object collides with something or snaps into place"; selection is "to indicate a change in selection"; notification is "to indicate successes, failures, and warnings". Source: https://developer.apple.com/documentation/uikit/uifeedbackgenerator
 
 A plausible mapping for this app (a design proposal, not a source claim): selection tick when the selected cell moves; light or soft impact on number entry; success notification on puzzle complete; error notification when Block incorrect answers refuses a number; a selection sequence while drag-selecting cells. Add a Haptics setting to meet "Make haptics optional".
@@ -111,18 +111,18 @@ Capacitor core source read: `ios/Capacitor/Capacitor/CAPBridgeViewController.swi
 
 - `WKWebView.allowsBackForwardNavigationGestures`: "A Boolean value that indicates whether horizontal swipe gestures trigger backward and forward page navigation. The default value is false." Source: https://developer.apple.com/documentation/webkit/wkwebview/allowsbackforwardnavigationgestures
 - Capacitor has no config key for it (not in the v8 config page) and the core source never sets it (code search for the name in `ionic-team/capacitor` returned nothing).
-- To turn it on, subclass `CAPBridgeViewController`. Its open hooks include `capacitorDidLoad()`, `webViewConfiguration(for:)`, and `webView(with:configuration:)`. Source: the Swift file above, and https://capacitorjs.com/docs/ios/viewcontroller (v8), which lists "Changing WKWebViewConfiguration properties" and "Substituting a custom WKWebView subclass" as reasons to subclass. (On device this gesture proved the wrong tool; see Device spike results.)
+- To turn it on, subclass `CAPBridgeViewController`. Its open hooks include `capacitorDidLoad()`, `webViewConfiguration(for:)`, and `webView(with:configuration:)`. Source: the Swift file above, and https://capacitorjs.com/docs/ios/viewcontroller (v8), which gives "changing the properties of the WKWebViewConfiguration, substituting a custom subclass of WKWebView for Capacitor to use" among the reasons to subclass. (On device this gesture proved the wrong tool; see Device spike results.)
 - The app's back navigation is same-document `pushState` entries. Whether the WKWebView swipe gesture walks those entries, and how its page snapshot looks during the swipe, is UNVERIFIED. It must be tested on a phone. If it looks wrong, a native `UIScreenEdgePanGestureRecognizer` that calls `history.back()` through the bridge is the fallback. (Resolved on device: see Device spike results.)
 
 **Safe areas.**
 
 - `layout.tsx` already sets `viewportFit: 'cover'`.
-- Capacitor sets `scrollView.contentInsetAdjustmentBehavior` from `ios.contentInset`, and its default is `UIScrollViewContentInsetAdjustmentNever` (`CAPInstanceDescriptor.m`). With that default, the page draws edge to edge and CSS `env(safe-area-inset-*)` handles the insets. I expect current CSS to work as is (UNVERIFIED until run on a device).
+- Capacitor sets `scrollView.contentInsetAdjustmentBehavior` from `ios.contentInset`, and its default is `UIScrollViewContentInsetAdjustmentNever` (`CAPInstanceDescriptor.m`). With that default, the page draws edge to edge and CSS `env(safe-area-inset-*)` handles the insets. I expect current CSS to work as is (UNVERIFIED until run on a device). (Resolved on device: see Device spike results.)
 - The v8 SystemBars plugin injects `--safe-area-inset-*` variables on Android only. Its page says nothing about iOS insets. Source: https://capacitorjs.com/docs/apis/system-bars
 
 **Status bar.**
 
-- `@capacitor/status-bar`: `Style.Default`: "The style is based on the device appearance." It requires `UIViewControllerBasedStatusBarAppearance` = `YES` in Info.plist. `overlaysWebView` defaults to `true`. Source: https://capacitorjs.com/docs/apis/status-bar (v8)
+- `@capacitor/status-bar`: `Style.Default`: "The style is based on the device appearance." It requires `UIViewControllerBasedStatusBarAppearance` = `YES` in Info.plist. `overlaysWebView` defaults to `true`. Source: https://capacitorjs.com/docs/apis/status-bar (v8) (Resolved on device: see Device spike results.)
 - The app has an in-app light, dark, and system theme. When the user forces a theme against the system, call `StatusBar.setStyle` to match.
 
 **Splash screen.**
@@ -139,7 +139,7 @@ Capacitor core source read: `ios/Capacitor/Capacitor/CAPBridgeViewController.swi
 **Text selection and long-press callouts.**
 
 - `globals.css` already sets `user-select: none` on the board and number pad, and `-webkit-touch-callout: none` on cells.
-- Apple's archived Safari CSS reference documents `-webkit-touch-callout` with values `none` and `inherit`. Source: https://developer.apple.com/library/archive/documentation/AppleApplications/Reference/SafariCSSRef/Articles/StandardCSSProperties.html . Developer forum threads report gaps on recent iOS versions (https://developer.apple.com/forums/thread/808606). Test on device.
+- Apple's archived Safari CSS reference documents `-webkit-touch-callout` with values `none` and `inherit`. Source: https://developer.apple.com/library/archive/documentation/AppleApplications/Reference/SafariCSSRef/Articles/StandardCSSProperties.html . One developer forum thread reports `-webkit-touch-callout: none` not working on iOS 26.1 (https://developer.apple.com/forums/thread/808606). Test on device.
 - `ios.allowsLinkPreview` ("Allow destination previews when pressing on links") maps to `WKWebView.allowsLinkPreview`. Set it to `false`.
 - A native-only CSS class (for example `html.native { -webkit-user-select: none }` with opt-in for text that should be selectable) is cheap and keeps the web build unchanged.
 
@@ -211,7 +211,7 @@ What this app uses, checked against that list:
 
 ### Alternatives, briefly
 
-**SwiftUI rewrite.** A native app in Swift with SwiftUI, sharing no code with the web app. It gives the most native feel (UIKit haptics directly, native navigation and gestures, 120Hz), but it means two codebases: the solver, hints, lessons, and every screen would be ported or bridged, and the two would drift. That fails the parity goal, so it is not recommended for this app.
+**SwiftUI rewrite.** A native app in Swift with SwiftUI, sharing no code with the web app. It gives the most native feel (UIKit haptics directly, native navigation and gestures, 120Hz), but it means two codebases: the solver, hints, lessons, and every screen would be ported or bridged, and the two would drift. Its main advantage is App Review: a native app is far less exposed to guideline 4.2's "repackaged website" concern than a wrapper. That does not outweigh porting the solver, hints, and lessons and keeping two apps in step, which fails the parity goal, so it is not recommended for this app.
 
 **Hand-written WKWebView shell.** A Swift app with one `WKWebView`, a `WKURLSchemeHandler` to serve the export (https://developer.apple.com/documentation/webkit/wkurlschemehandler), and a `WKScriptMessageHandler` for JS-to-native calls ("An interface for receiving messages from JavaScript code running in a webpage", https://developer.apple.com/documentation/webkit/wkscriptmessagehandler). Haptics would be a few lines calling UIKit generators directly, with `.soft`, `.rigid`, intensity, and `prepare()`. Pros: no dependency, full control, slightly less bridge overhead. Cons: you rebuild what Capacitor already gives (scheme handler, status bar, splash, plugin bridge, CLI sync). Web rendering, 120Hz limits, and service worker limits are the same, because it is still WKWebView. A reasonable choice if Capacitor gets in the way, but not the place to start.
 
@@ -225,7 +225,7 @@ What this app uses, checked against that list:
 - The install card and `display-mode: standalone` logic (`game.tsx:225`, `globals.css:144`) assume a browser. Whether `display-mode: standalone` matches inside WKWebView is UNVERIFIED. Use a `native` class or `Capacitor.isNativePlatform()` instead.
 - `@vercel/analytics` would try to load `/_vercel/insights/script.js` from the bundle. Skip it on native, and answer App Privacy questions to match.
 - `Haptics.selectionChanged()` does nothing unless `selectionStart()` ran first.
-- The haptics web fallback throws without `navigator.vibrate`. Always guard on web.
+- The haptics plugin's web methods reject without `navigator.vibrate`. Call them only in the native build, or attach `.catch()`.
 - Swipe-back: WKWebView's built-in back gesture does not suit this app; see the device results below for the gesture that works.
 - Saved progress does not carry over. The app runs at `capacitor://localhost`, a different origin from sudoku.seanoliver.dev, so games, history, learned lessons, and preferences saved in the website's `localStorage` start fresh in the app unless an export and import, or a sync, is built.
 - Capacitor 8's iOS template sets `window?.rootViewController = CAPBridgeViewController()` in `SceneDelegate.swift`, so a custom controller named only in `Main.storyboard` never loads. Change that line too.
