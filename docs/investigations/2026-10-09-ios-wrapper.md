@@ -60,7 +60,7 @@ What UIKit offers that the plugin does not expose:
 - `UIImpactFeedbackGenerator.FeedbackStyle` has five cases: `heavy`, `light`, `medium`, `rigid`, `soft`. Source: https://developer.apple.com/documentation/uikit/uiimpactfeedbackgenerator/feedbackstyle (iOS 10+).
 - `impactOccurred(intensity:)` "Triggers impact feedback with a specific intensity" (iOS 13+). Source: https://developer.apple.com/documentation/uikit/uiimpactfeedbackgenerator/impactoccurred(intensity:)
 - The plugin builds a new impact generator on every call and does not call `prepare()` first. Apple says `prepare()` "Prepares the generator to trigger feedback". Source: https://developer.apple.com/documentation/uikit/uifeedbackgenerator/prepare() . Whether this adds noticeable latency is UNVERIFIED. It needs a feel test on a phone.
-- Every call crosses the async JS-to-native bridge, and the plugin then hops to the main queue (`DispatchQueue.main.async`). Latency is UNVERIFIED and needs a device test.
+- Every call crosses the async JS-to-native bridge, and the plugin then hops to the main queue (`DispatchQueue.main.async`). Latency is UNVERIFIED and needs a device test. (Resolved on device: see Device spike results.)
 
 If Sean wants `.soft`, `.rigid`, intensity, or pre-warmed generators, Capacitor supports a local plugin in the app project: a Swift class that subclasses `CAPPlugin` and conforms to `CAPBridgedPlugin`, registered in `capacitorDidLoad()` with `bridge?.registerPluginInstance(...)`, and called from JS through `registerPlugin`. Source: https://capacitorjs.com/docs/ios/custom-code (v8). This is about 40 lines of Swift.
 
@@ -111,8 +111,8 @@ Capacitor core source read: `ios/Capacitor/Capacitor/CAPBridgeViewController.swi
 
 - `WKWebView.allowsBackForwardNavigationGestures`: "A Boolean value that indicates whether horizontal swipe gestures trigger backward and forward page navigation. The default value is false." Source: https://developer.apple.com/documentation/webkit/wkwebview/allowsbackforwardnavigationgestures
 - Capacitor has no config key for it (not in the v8 config page) and the core source never sets it (code search for the name in `ionic-team/capacitor` returned nothing).
-- To turn it on, subclass `CAPBridgeViewController`. Its open hooks include `capacitorDidLoad()`, `webViewConfiguration(for:)`, and `webView(with:configuration:)`. Source: the Swift file above, and https://capacitorjs.com/docs/ios/viewcontroller (v8), which lists "Changing WKWebViewConfiguration properties" and "Substituting a custom WKWebView subclass" as reasons to subclass.
-- The app's back navigation is same-document `pushState` entries. Whether the WKWebView swipe gesture walks those entries, and how its page snapshot looks during the swipe, is UNVERIFIED. It must be tested on a phone. If it looks wrong, a native `UIScreenEdgePanGestureRecognizer` that calls `history.back()` through the bridge is the fallback.
+- To turn it on, subclass `CAPBridgeViewController`. Its open hooks include `capacitorDidLoad()`, `webViewConfiguration(for:)`, and `webView(with:configuration:)`. Source: the Swift file above, and https://capacitorjs.com/docs/ios/viewcontroller (v8), which lists "Changing WKWebViewConfiguration properties" and "Substituting a custom WKWebView subclass" as reasons to subclass. (On device this gesture proved the wrong tool; see Device spike results.)
+- The app's back navigation is same-document `pushState` entries. Whether the WKWebView swipe gesture walks those entries, and how its page snapshot looks during the swipe, is UNVERIFIED. It must be tested on a phone. If it looks wrong, a native `UIScreenEdgePanGestureRecognizer` that calls `history.back()` through the bridge is the fallback. (Resolved on device: see Device spike results.)
 
 **Safe areas.**
 
@@ -122,7 +122,7 @@ Capacitor core source read: `ios/Capacitor/Capacitor/CAPBridgeViewController.swi
 
 **Status bar.**
 
-- `@capacitor/status-bar`: `Style.Default` "follows the device appearance". It requires `UIViewControllerBasedStatusBarAppearance` = `YES` in Info.plist. `overlaysWebView` defaults to `true`. Source: https://capacitorjs.com/docs/apis/status-bar (v8)
+- `@capacitor/status-bar`: `Style.Default`: "The style is based on the device appearance." It requires `UIViewControllerBasedStatusBarAppearance` = `YES` in Info.plist. `overlaysWebView` defaults to `true`. Source: https://capacitorjs.com/docs/apis/status-bar (v8)
 - The app has an in-app light, dark, and system theme. When the user forces a theme against the system, call `StatusBar.setStyle` to match.
 
 **Splash screen.**
@@ -159,7 +159,7 @@ Capacitor core source read: `ios/Capacitor/Capacitor/CAPBridgeViewController.swi
 - Service workers: Capacitor maintainers state "Service workers are not supported on custom schemes" and call it "a limitation on the `WKWebView`, not a Capacitor bug". Sources: https://github.com/ionic-team/capacitor/issues/7858 , https://github.com/ionic-team/capacitor/issues/7069 . The register call fails with "serviceWorker.register() must be called with a script URL whose protocol is either HTTP or HTTPS" (issue 7069).
 - Consequence: skip `navigator.serviceWorker.register` when `Capacitor.isNativePlatform()` is true. Also hide the install card and the "offline ready" state in the native build. `isNativePlatform()`: "Check whether the currently running platform is native (`ios`, `android`)." Source: https://capacitorjs.com/docs/core-apis/web
 - Updates ship as new App Store builds. That fits 2.5.2.
-- The puzzle Web Worker is a separate chunk under `/_next/static/chunks/` in the export. That a dedicated worker loads from `capacitor://localhost` is UNVERIFIED. Test it first in the prototype, since puzzle generation depends on it.
+- The puzzle Web Worker is a separate chunk under `/_next/static/chunks/` in the export. That a dedicated worker loads from `capacitor://localhost` is UNVERIFIED. Test it first in the prototype, since puzzle generation depends on it. (Resolved on device: see Device spike results.)
 
 **Remote URL (`server.url`).**
 
@@ -207,7 +207,7 @@ What this app uses, checked against that list:
 - TestFlight: up to 100 internal testers and up to 10,000 external testers. Source: https://developer.apple.com/testflight/
 - "You can test a build for up to 90 days." The first build sent to an external group goes to App Review; "A review is required only for the first build." Prerequisites include test information (beta description, what to test, feedback email), provisioning profiles with application identifiers, and export compliance answers. Source: https://developer.apple.com/help/app-store-connect/test-a-beta-version/testflight-overview
 - App Review timing: "typically reviewing at least 50% of submissions in less than 24 hours and 90% in less than 48 hours." Source: https://developer.apple.com/distribute/app-review/
-- A fast path to a real phone: free account, Xcode, run on device. That is enough to judge haptics and swipe-back before paying.
+- A fast path to a real phone: Xcode and a personal team, run on device. (The device spike used Sean's existing paid team.)
 
 ### Alternatives, briefly
 
@@ -215,7 +215,7 @@ What this app uses, checked against that list:
 
 **Hand-written WKWebView shell.** A Swift app with one `WKWebView`, a `WKURLSchemeHandler` to serve the export (https://developer.apple.com/documentation/webkit/wkurlschemehandler), and a `WKScriptMessageHandler` for JS-to-native calls ("An interface for receiving messages from JavaScript code running in a webpage", https://developer.apple.com/documentation/webkit/wkscriptmessagehandler). Haptics would be a few lines calling UIKit generators directly, with `.soft`, `.rigid`, intensity, and `prepare()`. Pros: no dependency, full control, slightly less bridge overhead. Cons: you rebuild what Capacitor already gives (scheme handler, status bar, splash, plugin bridge, CLI sync). Web rendering, 120Hz limits, and service worker limits are the same, because it is still WKWebView. A reasonable choice if Capacitor gets in the way, but not the place to start.
 
-**React Native / Expo.** `expo-haptics` (SDK 57) exposes impact `Light`, `Medium`, `Heavy`, `Rigid`, `Soft`, plus notification and selection, mapped to UIKit generators. Source: https://docs.expo.dev/versions/latest/sdk/haptics/ . A true native UI would mean rewriting the board, keypad, sheets, and animations in React Native, which breaks single-codebase parity with the web app. Expo DOM components (`'use dom'`) can host web React code inside a web view and call native functions as async props, but are limited to single-page apps with "no SSR, SSG, or React Server Components rendering" and an async JSON bridge. Source: https://docs.expo.dev/guides/dom-components/ (modified 2026-09-29). That is a web view again, with a heavier toolchain than Capacitor for this app. Not worth it unless the app moves to native UI later.
+**React Native / Expo.** `expo-haptics` (SDK 57) exposes impact `Light`, `Medium`, `Heavy`, `Rigid`, `Soft`, plus notification and selection, mapped to UIKit generators. Source: https://docs.expo.dev/versions/latest/sdk/haptics/ . A true native UI would mean rewriting the board, keypad, sheets, and animations in React Native, which breaks single-codebase parity with the web app. Expo DOM components (`'use dom'`) can host web React code inside a web view and call native functions as async props, but are limited to single-page apps with no server rendering, static rendering, or React Server Components and an async JSON bridge. Source: https://docs.expo.dev/guides/dom-components/ (modified 2026-09-29). That is a web view again, with a heavier toolchain than Capacitor for this app. Not worth it unless the app moves to native UI later.
 
 ## Gotchas
 
@@ -227,7 +227,8 @@ What this app uses, checked against that list:
 - `Haptics.selectionChanged()` does nothing unless `selectionStart()` ran first.
 - The haptics web fallback throws without `navigator.vibrate`. Always guard on web.
 - Swipe-back: WKWebView's built-in back gesture does not suit this app; see the device results below for the gesture that works.
-- Saved progress does not carry over. The app runs at `capacitor://localhost`, a different origin from sudoku.seanoliver.dev, so games, history, and learned lessons saved in the website's `localStorage` start fresh in the app unless an export and import, or a sync, is built.
+- Saved progress does not carry over. The app runs at `capacitor://localhost`, a different origin from sudoku.seanoliver.dev, so games, history, learned lessons, and preferences saved in the website's `localStorage` start fresh in the app unless an export and import, or a sync, is built.
+- Capacitor 8's iOS template sets `window?.rootViewController = CAPBridgeViewController()` in `SceneDelegate.swift`, so a custom controller named only in `Main.storyboard` never loads. Change that line too.
 - Expect about 60fps for JS-driven animation inside the app. Do not reach for private API.
 - A privacy policy link is required in the app and in App Store Connect (5.1.1(i)).
 - Sudoku is a crowded category. Lead the submission notes and screenshots with what is different: graded techniques, hints that explain, lessons.
@@ -246,7 +247,7 @@ What this app uses, checked against that list:
 
 ## Device spike results (October 9)
 
-Scope steps 1 to 3 ran on Sean's iPhone 16 Pro Max from a local branch (`spike/ios-wrapper`), Capacitor 8.5.2 (the newest release at least two weeks old; 8.5.3 was the latest) and `@capacitor/haptics` 8.0.2, signed with his existing paid developer team.
+Scope steps 1 to 3 ran on Sean's iPhone 16 Pro Max from a local, unpushed branch, Capacitor 8.5.2 (the newest release at least two weeks old; 8.5.3 was the latest) and `@capacitor/haptics` 8.0.2, signed with his existing paid developer team.
 
 - **Runs:** the bundled static export loads, puzzles generate (the Web Worker works under `capacitor://`), and safe areas and the status bar are right. Sean: "the layout is perfect".
 - **Haptics:** the stock plugin works and feels right: selection on a move, light impact on an entry, medium on a finished unit, success on a solve, error on a refused number. A local plugin with `.soft`, `.rigid`, and intensity was dropped; stock was enough.
@@ -258,7 +259,15 @@ Scope steps 1 to 3 ran on Sean's iPhone 16 Pro Max from a local branch (`spike/i
 
 Use Capacitor with bundled assets from a static export. Do not use `server.url`. It is the smallest change that keeps one codebase. The web build on Vercel stays the same, and the iOS build is a second build target of the same app. Haptics are the main reason to do this, and they need a native bridge, since iPhone browsers give the web no haptics at all. Use `@capacitor/haptics`; on the device it felt right, and a local plugin with more styles was not needed.
 
-The device spike answered the open questions: haptics through the bridge feel right, the puzzle Web Worker runs under `capacitor://`, and swipe-back works with an interactive edge-pan gesture of our own (the built-in back gesture does not).
+The device spike answered the open questions about haptics, the worker, safe areas, and swipe-back: haptics through the bridge feel right, the puzzle Web Worker runs under `capacitor://`, the layout fits, and swipe-back works with an interactive edge-pan gesture of our own (the built-in back gesture does not).
+
+Still open:
+
+- Dark-mode launch: the launch screen and the web view's background before the page paints were not checked in dark mode.
+- Long-press callouts and text selection inside the app.
+- 120Hz for CSS transitions in WKWebView.
+- Whether iOS can evict the app's WKWebView storage.
+- Saved progress from the website: accept a fresh start in the app, or build export and import.
 
 Treat App Review as the main risk. Guideline 4.2's text gives no checklist. The best case is the app's real depth: graded puzzles, explained hints, and lessons, plus full offline play and native haptics. Widgets or Game Center can come later if review pushes back.
 
@@ -266,11 +275,11 @@ Treat App Review as the main risk. Guideline 4.2's text gives no checklist. The 
 
 For Sean to approve, in order:
 
-1. **Done: local device spike.** In a branch: add Capacitor and the iOS platform, make the static export work (`force-static` on `manifest.ts`, conditional `output: 'export'` and `headers()`), skip SW and analytics on native, wire `buzz()` to `@capacitor/haptics` on native. Run on Sean's iPhone from Xcode. Check the puzzle worker, safe areas, status bar, and dark launch.
-2. **Done: haptics feel test (stock chosen).** Add a temporary set of haptic mappings (selection on cell move, light or soft impact on entry, success on completion, error on refused number). Compare the stock plugin with a 40-line local plugin that adds `.soft`, `.rigid`, intensity, and `prepare()`. Sean picks by feel.
+1. **Done, except the dark launch check: local device spike.** In a branch: add Capacitor and the iOS platform, make the static export work (`force-static` on `manifest.ts`, conditional `output: 'export'` and `headers()`), skip SW and analytics on native, wire `buzz()` to `@capacitor/haptics` on native. Run on Sean's iPhone from Xcode. Check the puzzle worker, safe areas, status bar, and dark launch.
+2. **Done: haptics feel test.** The stock plugin was tested on the board and felt right; the local plugin with more styles was not needed.
 3. **Done: swipe-back.** A `UIScreenEdgePanGestureRecognizer` streams the finger position to the web app, which slides the screen over its real destination and finishes by pressing the screen's back control (see Device spike results).
-4. **Confirm membership.** The spike was signed with an existing paid developer team; confirm the Apple Developer Program membership is active before TestFlight.
-5. **Parity PR.** Land the build split (`pnpm build` unchanged, new `pnpm build:ios`), the native guards, a Haptics on/off setting, and a privacy policy page. Follow the three-directions rule for any visible setting.
+4. **Membership.** The spike was signed with an existing paid developer team; check its renewal date before TestFlight.
+5. **Parity PR.** Land the build split (`pnpm build` unchanged, new `pnpm build:ios`), the native guards, a Haptics on/off setting, and a privacy policy page. Follow the three-directions rule for any visible setting. Check the dark launch. Decide whether the app starts fresh or imports progress from the website; starting fresh is the smaller first release.
 6. **TestFlight.** Archive in Xcode, upload, test internally first, then one external group (first build gets reviewed).
 7. **App Store submission.** Write review notes and screenshots that lead with techniques, hints, lessons, offline play, and haptics. Hold widgets and Game Center as follow-ups if 4.2 comes up.
 
