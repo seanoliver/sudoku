@@ -427,7 +427,6 @@ h1,h2,h3,p { margin: 0; }
 .cell-number.placed { animation: number-placed 160ms cubic-bezier(.2, .8, .2, 1); }
 @keyframes number-placed { from { transform: scale(.9); } }
 
-/* The walkthrough: cells the step does not use fade, and its marks sit on the cells' own note digits. */
 .board-wrap.walkthrough .cell:not(.walk-used) > * { opacity: .22; }
 .board-wrap.walkthrough .notes { position: relative; }
 .board-wrap.walkthrough .notes .note-digit { opacity: 0; }
