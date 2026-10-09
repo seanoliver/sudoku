@@ -182,21 +182,16 @@ test('a double tap on Next before the last step does not open the lesson', async
   await expect(page.locator('.lesson-bar')).toHaveCount(0);
 });
 
-test.describe('at 320 × 568', () => {
-  test.use({ viewport: { width: 320, height: 568 } });
-
-  test('stepping from a scrolled sentence keeps focus in the app', async ({ page }) => {
-    await openWalkthrough(page, gameBefore(step => step.technique === 'coloring'));
-    let checked = 0;
-    while (await next(page).count() && await next(page).isEnabled()) {
-      const sentence = page.locator('.walk-panel p');
-      if (await sentence.getAttribute('tabindex') === '0') {
-        await sentence.focus();
-        await page.keyboard.press('h');
-        expect((await focusState(page)).inApp).toBe(true);
-        checked++;
-      } else await next(page).click();
-    }
-    expect(checked).toBeGreaterThan(0);
-  });
+test('stepping on from a scrolled sentence to one that fits keeps focus in the app', async ({ page }) => {
+  await openWalkthrough(page, xyWing);
+  await page.addStyleTag({ content: '.walk-panel p { font-size: 120px !important; }' });
+  await page.setViewportSize({ width: 390, height: 845 });
+  const sentence = page.locator('.walk-panel p');
+  await expect(sentence).toHaveAttribute('tabindex', '0');
+  await sentence.focus();
+  await page.evaluate(() => document.querySelectorAll('style').forEach(style => { if (style.textContent?.includes('120px')) style.remove(); }));
+  await page.keyboard.press('h');
+  await expect(counter(page)).toHaveText('2 of 4');
+  await expect(sentence).not.toHaveAttribute('tabindex', '0');
+  expect((await focusState(page)).inApp).toBe(true);
 });

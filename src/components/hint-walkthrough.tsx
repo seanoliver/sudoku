@@ -41,7 +41,6 @@ export function WalkthroughPanel({ title, index, count, text, onStep, learn }: {
   const last = index >= count - 1;
   const panel = useRef<HTMLDivElement>(null), sentence = useRef<HTMLParagraphElement>(null);
   const [clipped, setClipped] = useState(false);
-  // Grow past the keypad card into the free space below it, up to the screen's bottom or a lesson's footer; then try smaller text; scroll the sentence only past that.
   useLayoutEffect(() => {
     const fit = () => {
       if (!panel.current || !sentence.current) return;
