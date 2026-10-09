@@ -49,10 +49,36 @@ test('a rejected entry turns the outline red', async ({ page }) => {
   await expect(outline(page, target)).toHaveCSS('border-top-color', red);
 });
 
-test('number keys still enter digits, and the placed number scales in', async ({ page }) => {
+test('number keys still enter digits, and the placed number ends at full size', async ({ page }) => {
   await cell(page, target).click();
   await page.getByRole('button', { name: `Enter ${game.solution[target]}`, exact: true }).click();
   await expect(cell(page, target).locator('.cell-number')).toHaveText(String(game.solution[target]));
-  await expect(cell(page, target).locator('.cell-number')).toHaveClass(/placed/);
   await expect(cell(page, target).locator('.cell-number')).toHaveCSS('transform', 'none');
+});
+
+test('the outline stays inside the board on edge and corner cells', async ({ page }) => {
+  const board = (await page.locator('.board-wrap').boundingBox())!;
+  for (const i of [0, 8, 40, 72, 80]) {
+    await cell(page, i).click();
+    const box = (await outline(page, i).boundingBox())!;
+    expect(box.x).toBeGreaterThanOrEqual(board.x);
+    expect(box.y).toBeGreaterThanOrEqual(board.y);
+    expect(box.x + box.width).toBeLessThanOrEqual(board.x + board.width);
+    expect(box.y + box.height).toBeLessThanOrEqual(board.y + board.height);
+  }
+});
+
+test.describe('with motion on', () => {
+  test.use({ reducedMotion: 'no-preference' });
+
+  test('a placed number scales in once, and not again after leaving and continuing', async ({ page }) => {
+    await page.evaluate(() => { (window as unknown as { started: string[] }).started = []; document.addEventListener('animationstart', event => (window as unknown as { started: string[] }).started.push(event.animationName)); });
+    await cell(page, target).click();
+    await page.getByRole('button', { name: `Enter ${game.solution[target]}`, exact: true }).click();
+    await expect.poll(() => page.evaluate(() => (window as unknown as { started: string[] }).started)).toContain('number-placed');
+    await expect(cell(page, target).locator('.cell-number')).not.toHaveClass(/placed/);
+    await page.getByRole('button', { name: 'Home' }).click();
+    await page.getByRole('button', { name: 'Continue' }).click();
+    await expect(cell(page, target).locator('.cell-number')).not.toHaveClass(/placed/);
+  });
 });

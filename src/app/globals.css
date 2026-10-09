@@ -37,7 +37,7 @@ button:focus-visible { outline: 3px solid var(--blue); outline-offset: 3px; }
 button:not(:disabled, [data-pressable]):active { transform: scale(.96); }
 button { transition: transform 100ms ease, background-color 120ms ease, opacity 120ms ease; }
 /* Pressable buttons press in on a spring; a CSS transform transition would lag it. */
-button[data-pressable] { transition: background-color 120ms ease, opacity 120ms ease; }
+button:where([data-pressable]) { transition: background-color 120ms ease, opacity 120ms ease; }
 svg { flex-shrink: 0; display: inline-block; vertical-align: middle; }
 h1,h2,h3,p { margin: 0; }
 .app { min-height: 100svh; padding: var(--safe-top) max(20px, env(safe-area-inset-right)) max(var(--pad-bottom), var(--safe-bottom)) max(20px, env(safe-area-inset-left)); }
@@ -442,6 +442,7 @@ h1,h2,h3,p { margin: 0; }
 .cell-slot:has(> .cell:is(.conflict, .rejecting)) > .selection-outline { --outline: var(--red); }
 .cell.selected:focus-visible:not(.hint-mistake) { box-shadow: none; }
 .selection-outline.group { inset: -1px; border-width: 0; border-radius: 0; box-shadow: none; }
+.board-row:first-child .selection-outline { top: 0; }.board-row:last-child .selection-outline { bottom: 0; }.cell-slot:first-child > .selection-outline { left: 0; }.cell-slot:last-child > .selection-outline { right: 0; }
 .selection-outline.edge-top { border-top-width: 2.5px; }.selection-outline.edge-right { border-right-width: 2.5px; }.selection-outline.edge-bottom { border-bottom-width: 2.5px; }.selection-outline.edge-left { border-left-width: 2.5px; }
 .selection-outline.edge-top.edge-left { border-top-left-radius: 10px; }.selection-outline.edge-top.edge-right { border-top-right-radius: 10px; }.selection-outline.edge-bottom.edge-left { border-bottom-left-radius: 10px; }.selection-outline.edge-bottom.edge-right { border-bottom-right-radius: 10px; }
 /* CSS rather than Motion, so it can never be left small if Motion fails to load. */

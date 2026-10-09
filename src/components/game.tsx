@@ -66,8 +66,8 @@ const LevelBars = ({ level }: { level: Difficulty }) => <span className="level-m
 const REJECTION_MS = 800;
 const CELEBRATION_STEP_MS = 45;
 const CELEBRATION_MS = 520;
-/** Manhattan distance between two cells on the 9x9 grid. */
 const buzz = () => { try { navigator.vibrate?.(8); } catch { /* Haptics are optional. */ } };
+/** Manhattan distance between two cells on the 9x9 grid. */
 const distance = (a: number, b: number) => Math.abs(Math.floor(a / 9) - Math.floor(b / 9)) + Math.abs(a % 9 - b % 9);
 
 export default function SudokuGame() {
@@ -375,7 +375,7 @@ export default function SudokuGame() {
     if (!game || paused || busy || lessonLocked || complete) return;
     const next = direction === 'undo' ? undo(game) : redo(game);
     if (next === game) return;
-    resetSelection(); setBlockedEntry(null); setCelebration(null);
+    resetSelection(); setBlockedEntry(null); setCelebration(null); setPlaced(null);
     setGame(next);
     // Described in the order it was played, so undoing an exclusion is still an exclusion.
     const action = direction === 'undo' ? describeAction(next, game) : describeAction(game, next);
@@ -668,7 +668,7 @@ export default function SudokuGame() {
               const sides = selectedCell && !walkLine ? batchSelection ? outlineEdges.get(i) : null : undefined;
               return <div role="gridcell" aria-selected={selectedCell} aria-readonly={given} aria-rowindex={row+1} aria-colindex={col+1} key={i} className="cell-slot"><button className={classes} data-index={i} data-given={given} tabIndex={selected === i ? 0 : -1} aria-label={`Row ${row+1}, column ${col+1}, ${value ? `${value}${given ? ', given' : ''}` : notes.length ? `${generated ? 'generated notes' : 'notes'} ${notes.join(', ')}` : 'empty'}${!value && ruledOut.length ? `, ruled out ${ruledOut.join(', ')}` : ''}${possible.has(i) ? `, possible placement for ${selectedValue}` : ''}${excludedPossible.has(i) ? `, excluded placement for ${selectedValue}` : ''}${badCells.has(i) ? ', incorrect answer' : ''}`} aria-disabled={complete} onClick={event => selection.clickCell(event, i)}>
                 {celebrating && celebratedCells.has(i) && <span key={`celebrate-${celebrating.id}`} className="unit-celebration" style={{ animationDelay: `${distance(i, celebrating.origin) * CELEBRATION_STEP_MS}ms` }} aria-hidden="true"/>}
-                {value ? placed?.index === i && !given ? <span key={placed.id} className="cell-number placed">{value}</span> : <span className="cell-number">{value}</span> : null}
+                {value ? placed?.index === i && !given ? <span key={placed.id} className="cell-number placed" onAnimationEnd={() => setPlaced(null)}>{value}</span> : <span className="cell-number">{value}</span> : null}
                 {walkLine?.ghost?.cell === i && <span className="walk-ghost" aria-hidden="true">{walkLine.ghost.digit}</span>}
                 <CellNotes key={game?.id} focusedDigit={complete || walkLine ? null : focusedDigit} filled={Boolean(value)} manual={generated ? EMPTY_NOTES : notes} automatic={generated ? notes : EMPTY_NOTES} excluded={ruledOut} boardKey={boardKey}/>
                 {rejection?.cells.includes(i) && <span key={`rejected-${rejection.id}`} className="rejected-digit" aria-hidden="true">{rejection.value}</span>}
