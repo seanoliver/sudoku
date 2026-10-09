@@ -36,10 +36,11 @@ Playwright's `recordVideo` records frames at CSS-pixel size and ignores `deviceS
 1. Set `recordVideo: { dir, size }` with `size` equal to the viewport. If step 5 raises the viewport height, change `size` to match.
 2. Remove `reducedMotion: 'reduce'` from the template's context. The app honors it, so a clip of a motion feature would show no motion.
 3. After `context.close()`, read the file from `await page.video().path()`.
-4. Trim and upscale in one encode: `ffmpeg -ss <load time> -i raw.webm -vf "scale=780:1688:flags=lanczos,format=yuv420p" -c:v libx264 -crf 16 -movflags +faststart -an docs/screenshots/<feature>-post.mp4`. Scale by exactly 2 from the viewport so both sides stay even.
+4. Trim and upscale in one encode, into the scratchpad: `ffmpeg -ss <load time> -i raw.webm -vf "scale=iw*2:ih*2:flags=lanczos,format=yuv420p" -c:v libx264 -crf 16 -movflags +faststart -an clip.mp4`.
 5. **Gate:** run `check-clip.sh <clip>` (next to this file). It samples the right and bottom edges at 10%, 50%, and 90% of the clip and exits 1 on gray padding, black bars, or a frame it cannot decode. Do not ship a clip that fails.
 6. Extract frames at the start, middle, and end and open each one with Read.
-7. Report the duration, dimensions, the gate output, and the frames you inspected.
+7. Save it as `docs/screenshots/<feature>-post.mp4`, after the existing-file check in step 8.
+8. Report the duration, dimensions, the gate output, and the frames you inspected.
 
 ## Output
 

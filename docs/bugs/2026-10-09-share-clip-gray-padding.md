@@ -1,7 +1,7 @@
 # Share clip shows the app in one corner on gray
 
 ## Symptom
-The PR #65 clip (`docs/screenshots/selection-outline-post.mp4`, 780 × 1688) showed the app at 390 × 844 in the top-left corner. The rest of the frame was solid gray. It looked broken in the Typefully draft preview.
+The PR #65 clip (`docs/screenshots/selection-outline-post.mp4`, 780 × 1688, kept locally and in Typefully draft 11165730, not committed) showed the app at 390 × 844 in the top-left corner. The rest of the frame was solid gray. It looked broken in the Typefully draft preview.
 
 ## Root cause
 Playwright's `recordVideo` records frames at CSS-pixel size and ignores `deviceScaleFactor`. The recording set `recordVideo.size` to 780 × 1688 (2x the 390 × 844 viewport). Playwright filled the extra area with gray `#808080`. Nothing checked the frames before upload.

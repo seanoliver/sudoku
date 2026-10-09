@@ -1,12 +1,13 @@
 #!/usr/bin/env bash
 set -euo pipefail
+export LC_ALL=C
 clip=$1
 dur=$(ffprobe -v error -show_entries format=duration -of csv=p=0 "$clip")
 status=0
 for pct in 10 50 90; do
   t=$(awk -v d="$dur" -v p="$pct" 'BEGIN { printf "%.2f", d * p / 100 }')
   for edge in right bottom; do
-    [ "$edge" = right ] && crop="crop=3:ih:iw-3:0" || crop="crop=iw:3:0:ih-3"
+    [ "$edge" = right ] && crop="format=gray,crop=1:ih:iw-1:0" || crop="format=gray,crop=iw:1:0:ih-1"
     vals=$(ffmpeg -v error -ss "$t" -i "$clip" -frames:v 1 -vf "$crop" -f rawvideo -pix_fmt gray - \
       | od -An -v -tu1 | tr -s ' ' '\n' | grep -v '^$' | sort -n | uniq || true)
     if [ -z "$vals" ]; then echo "FAIL ${pct}% $edge: no frame decoded"; status=1; continue; fi
