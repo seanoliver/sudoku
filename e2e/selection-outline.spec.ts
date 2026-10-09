@@ -11,6 +11,7 @@ const shape = [start, start + 1, start + 2, start + 11];
 const target = game.values.findIndex((v, i) => !v && i > 30);
 const wrong = [1, 2, 3, 4, 5, 6, 7, 8, 9].find(d => d !== game.solution[target] && !peers(target).some(p => game.values[p] === d))!;
 
+const UNMOVED = ['none', 'matrix(1, 0, 0, 1, 0, 0)'];
 const seed = (page: Page) => page.addInitScript(([key, value]) => { if (!sessionStorage.getItem('seeded')) { localStorage.setItem(key, value); sessionStorage.setItem('seeded', '1'); } }, [SAVE_KEY, JSON.stringify(game)]);
 const cell = (page: Page, i: number) => page.locator(`.board [data-index="${i}"]`);
 const outline = (page: Page, i: number) => cell(page, i).locator('xpath=following-sibling::*[contains(@class, "selection-outline")]');
@@ -25,7 +26,7 @@ test('one outline follows the selected cell, without moving under reduced motion
   await page.keyboard.press('ArrowRight');
   await expect(outline(page, target + 1)).toHaveCount(1);
   await expect(page.locator('.board .selection-outline')).toHaveCount(1);
-  expect(await outline(page, target + 1).evaluate(element => getComputedStyle(element).transform)).toBe('none');
+  expect(UNMOVED).toContain(await outline(page, target + 1).evaluate(element => getComputedStyle(element).transform));
 });
 
 test('a drag selection draws one outline around the group', async ({ page }) => {

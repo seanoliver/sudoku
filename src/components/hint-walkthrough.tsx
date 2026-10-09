@@ -1,45 +1,75 @@
+import { useLayoutEffect, useRef, useState, type RefObject } from 'react';
 import type { ExplainLine } from '@/lib/explain';
 import { inSentence } from '@/lib/lessons';
 
-/** Center of a candidate's slot in the notes grid, in board units (one cell = 1). The grid is 84% of the cell, inset 8%. */
-const noteAt = (cell: number, digit: number) => ({
-  x: cell % 9 + .08 + .84 * ((digit - 1) % 3 + .5) / 3,
-  y: Math.floor(cell / 9) + .08 + .84 * (Math.floor((digit - 1) / 3) + .5) / 3,
-});
+type Point = { x: number; y: number; r: number };
+type Link = { a: Point; b: Point; current: boolean };
 
-/** Links, candidate chips and strikes for one walkthrough line, drawn over the board. */
-export function WalkthroughOverlay({ line }: { line: ExplainLine }) {
-  const struck = new Set(line.strike?.map(({ cell, digit }) => `${cell}-${digit}`));
-  const chips = [...(line.chips ?? []), ...(line.strike ?? []).filter(mark => !line.chips?.some(chip => chip.cell === mark.cell && chip.digit === mark.digit))];
-  const { links } = line;
-  return <svg className="walk-overlay" viewBox="0 0 9 9" preserveAspectRatio="none" aria-hidden="true">
-    {links?.pairs.map(([p, q], k) => {
-      const a = noteAt(p, links.digit), b = noteAt(q, links.digit);
-      return <line key={`${p}-${q}`} className={links.newest && k === links.pairs.length - 1 ? 'current' : ''} x1={a.x} y1={a.y} x2={b.x} y2={b.y}/>;
-    })}
-    {chips.map(({ cell, digit }) => {
-      const { x, y } = noteAt(cell, digit), cross = struck.has(`${cell}-${digit}`);
-      return <g key={`${cell}-${digit}`} className={`walk-chip ${cross ? 'struck' : ''}`}>
-        <rect x={x - .15} y={y - .15} width=".3" height=".3" rx=".08"/>
-        <text x={x} y={y + .008}>{digit}</text>
-        {cross && <line className="walk-strike" x1={x - .14} y1={y - .14} x2={x + .14} y2={y + .14}/>}
-      </g>;
+/** Links between linked candidates, drawn between the measured centers of the cells' own note digits. */
+export function WalkthroughLinks({ line, wrap }: { line: ExplainLine; wrap: RefObject<HTMLDivElement | null> }) {
+  const [drawn, setDrawn] = useState<{ width: number; height: number; links: Link[] }>({ width: 0, height: 0, links: [] });
+  useLayoutEffect(() => {
+    const element = wrap.current;
+    if (!element || !line.links) return;
+    const { digit, pairs, newest } = line.links;
+    const measure = () => {
+      // The SVG fills the padding box, inside the board's border.
+      const box = element.getBoundingClientRect(), left = box.left + element.clientLeft, top = box.top + element.clientTop;
+      const center = (cell: number): Point | null => {
+        const note = element.querySelector(`[data-index="${cell}"] .note-digit[data-digit="${digit}"]`)?.getBoundingClientRect();
+        return note ? { x: note.left + note.width / 2 - left, y: note.top + note.height / 2 - top, r: note.width / 2 + 1 } : null;
+      };
+      const links = pairs.flatMap(([p, q], k) => { const a = center(p), b = center(q); return a && b ? [{ a, b, current: newest && k === pairs.length - 1 }] : []; });
+      setDrawn({ width: element.clientWidth, height: element.clientHeight, links });
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [line, wrap]);
+  if (!line.links || !drawn.links.length) return null;
+  return <svg className="walk-links" viewBox={`0 0 ${drawn.width} ${drawn.height}`} aria-hidden="true">
+    {drawn.links.map(({ a, b, current }, k) => {
+      const dx = b.x - a.x, dy = b.y - a.y, length = Math.hypot(dx, dy) || 1, ux = dx / length, uy = dy / length;
+      return <line key={k} className={current ? 'current' : ''} x1={a.x + ux * a.r} y1={a.y + uy * a.r} x2={b.x - ux * b.r} y2={b.y - uy * b.r}/>;
     })}
   </svg>;
 }
 
-/** The sentence for the current line, with ‹ › to move through the walkthrough. */
-export function WalkthroughPanel({ index, count, text, onStep, learn }: { index: number; count: number; text: string; onStep: (index: number, at: number) => void; learn?: { name: string; onOpen: () => void } }) {
-  return <div className="walk-panel">
-    <div className="walk-panel-head">
-      <strong>Why this works</strong>
-      <div className="walk-stepper">
-        <button aria-label="Previous step" disabled={index === 0} onClick={event => onStep(index - 1, event.timeStamp)}>‹</button>
-        <span>{index + 1} of {count}</span>
-        <button aria-label="Next step" disabled={index >= count - 1} onClick={event => onStep(index + 1, event.timeStamp)}>›</button>
-      </div>
+/** Progress, the sentence for the current line, and back and Next to move through the walkthrough. */
+export function WalkthroughPanel({ title, index, count, text, onStep, learn }: { title: string; index: number; count: number; text: string; onStep: (index: number, at: number) => void; learn?: { name: string; onOpen: (at: number) => void } }) {
+  const last = index >= count - 1;
+  const panel = useRef<HTMLDivElement>(null), sentence = useRef<HTMLParagraphElement>(null);
+  const [clipped, setClipped] = useState(false);
+  useLayoutEffect(() => {
+    const fit = () => {
+      if (!panel.current || !sentence.current) return;
+      const footer = document.querySelector('.lesson-footer')?.getBoundingClientRect().top;
+      const app = document.querySelector('.app');
+      const bottom = footer !== undefined ? footer - 12 : innerHeight - Math.max(12, app ? parseFloat(getComputedStyle(app).paddingBottom) : 0);
+      const limit = bottom - panel.current.getBoundingClientRect().top;
+      panel.current.style.maxHeight = `${Math.max(limit, panel.current.parentElement?.clientHeight ?? 0)}px`;
+      const overflows = () => sentence.current!.scrollHeight > sentence.current!.clientHeight + 1;
+      delete panel.current.dataset.fit;
+      sentence.current.scrollTop = 0;
+      sentence.current.removeAttribute('data-end');
+      if (overflows()) panel.current.dataset.fit = 'compact';
+      setClipped(overflows());
+    };
+    fit();
+    addEventListener('resize', fit);
+    return () => removeEventListener('resize', fit);
+  }, [text]);
+  return <div className="walk-panel" ref={panel}>
+    <div className="walk-progress" aria-hidden="true">{Array.from({ length: count }, (_, k) => <i key={k} className={k <= index ? 'done' : ''}/>)}</div>
+    <span className="walk-eyebrow">{title} · <span className="walk-count">{index + 1} of {count}</span></span>
+    <p ref={sentence} className={clipped ? 'clipped' : ''} tabIndex={clipped ? 0 : undefined} onScroll={event => { const p = event.currentTarget; p.toggleAttribute('data-end', p.scrollTop + p.clientHeight >= p.scrollHeight - 1); }}>{text}</p>
+    <div className="walk-actions">
+      <button className="walk-back" aria-label="Previous step" disabled={index === 0} onClick={event => onStep(index - 1, event.timeStamp)}>
+        <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M10 3 5 8l5 5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+      </button>
+      {last && learn ? <button className="walk-learn" onClick={event => learn.onOpen(event.timeStamp)}>Learn {inSentence(learn.name)}</button>
+        : <button className="walk-next" aria-label="Next step" disabled={last} onClick={event => onStep(index + 1, event.timeStamp)}>Next</button>}
     </div>
-    <p>{text}</p>
-    {learn && <button className="walk-learn" onClick={learn.onOpen}>Learn {inSentence(learn.name)} ›</button>}
   </div>;
 }

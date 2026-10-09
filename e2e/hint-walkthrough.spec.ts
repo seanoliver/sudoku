@@ -1,10 +1,10 @@
 import { expect, test, type Page } from '@playwright/test';
-import { focusState, gameBefore, historyLength, openWalkthrough } from './fixtures.ts';
+import { focusState, gameBefore, historyLength, openWalkthrough, stepToEnd } from './fixtures.ts';
 
 const xyWing = gameBefore(step => step.technique === 'xy-wing');
 const next = (page: Page) => page.getByRole('button', { name: 'Next step' });
 const previous = (page: Page) => page.getByRole('button', { name: 'Previous step' });
-const counter = (page: Page) => page.locator('.walk-stepper span');
+const counter = (page: Page) => page.locator('.walk-count');
 const apply = (page: Page) => page.locator('.hint-strip .hint-action');
 
 test.describe('focus through an XY-wing walkthrough', () => {
@@ -109,5 +109,104 @@ test('arrowing onto a walkthrough cell keeps its ring', async ({ page }) => {
   await expect(page.locator(`.board [data-index="${ringed}"]`)).toBeFocused();
   await expect(page.locator(`.board [data-index="${ringed}"]`)).toHaveClass(/selected/);
   await expect(page.locator('.board .selection-outline')).toHaveCount(0);
-  await expect(page.locator(`.board [data-index="${ringed}"]`)).not.toHaveCSS('box-shadow', 'none');
+  expect(await page.locator(`.board [data-index="${ringed}"]`).evaluate(element => getComputedStyle(element, '::after').borderTopWidth)).not.toBe('0px');
+});
+
+test.describe('marks line up with the notes they point at', () => {
+  test.beforeEach(async ({ page }) => openWalkthrough(page, xyWing));
+
+  test('each candidate mark is the cell\'s own note digit, shown', async ({ page }) => {
+    const marked = page.locator('.board .cell[data-chip], .board .cell[data-strike]');
+    expect(await marked.count()).toBeGreaterThan(0);
+    for (const cell of await marked.all()) {
+      const digits = `${await cell.getAttribute('data-chip') ?? ''} ${await cell.getAttribute('data-strike') ?? ''}`.trim().split(/\s+/);
+      for (const digit of digits) await expect(cell.locator(`.note-digit[data-digit="${digit}"]`)).toHaveCSS('opacity', '1');
+    }
+  });
+
+  test('cells the step does not use fade, and the cells it uses do not', async ({ page }) => {
+    const unused = page.locator('.board .cell:not(.walk-used)').first();
+    await expect(unused.locator('> *').first()).toHaveCSS('opacity', '0.22');
+    await expect(page.locator('.board .cell.walk-focus').first()).toHaveClass(/walk-used/);
+  });
+});
+
+test('every link ends at the edge of the note digit it joins', async ({ page }) => {
+  await openWalkthrough(page, gameBefore(step => step.technique === 'coloring'));
+  await next(page).click();
+  const lines = page.locator('.walk-links line');
+  expect(await lines.count()).toBeGreaterThan(0);
+  const gaps = await page.evaluate(() => {
+    const wrap = document.querySelector('.board-wrap') as HTMLElement, box = wrap.getBoundingClientRect();
+    const notes = [...document.querySelectorAll('.board .cell[data-chip] .note-digit')].filter(note => getComputedStyle(note).opacity === '1').map(note => { const r = note.getBoundingClientRect(); return { x: r.left + r.width / 2 - box.left - wrap.clientLeft, y: r.top + r.height / 2 - box.top - wrap.clientTop, edge: r.width / 2 + 1 }; });
+    return [...document.querySelectorAll('.walk-links line')].flatMap(line => [[+line.getAttribute('x1')!, +line.getAttribute('y1')!], [+line.getAttribute('x2')!, +line.getAttribute('y2')!]])
+      .map(([x, y]) => Math.min(...notes.map(note => Math.abs(Math.hypot(note.x - x, note.y - y) - note.edge))));
+  });
+  for (const gap of gaps) expect(gap).toBeLessThan(1);
+});
+
+const SIZES = [{ width: 390, height: 844, strict: true }, { width: 1280, height: 800, strict: true }, { width: 375, height: 553, strict: false }, { width: 320, height: 568, strict: false }];
+for (const { strict, ...viewport } of SIZES) test.describe(`at ${viewport.width} × ${viewport.height}`, () => {
+  test.use({ viewport });
+
+  for (const technique of ['coloring', 'swordfish', 'x-wing'] as const) for (const place of ['hint', 'lesson'] as const) test(`every ${technique} step in a ${place} shows its whole sentence and keeps its buttons on screen`, async ({ page }) => {
+    await openWalkthrough(page, gameBefore(step => step.technique === technique));
+    if (place === 'lesson') {
+      await stepToEnd(page);
+      await page.locator('.walk-learn').click();
+      await expect(page.locator('.lesson-bar')).toBeVisible();
+      await expect(counter(page)).toHaveText(/^1 of /);
+      await expect.poll(() => page.evaluate(() => document.scrollingElement!.scrollHeight <= innerHeight)).toBe(true);
+    }
+    for (;;) {
+      const fit = await page.evaluate(() => {
+        const action = document.querySelector('.walk-actions')!.getBoundingClientRect(), sentence = document.querySelector('.walk-panel p') as HTMLElement;
+        return { bottom: action.bottom, height: innerHeight, scroll: document.scrollingElement!.scrollHeight, hidden: sentence.scrollHeight - sentence.clientHeight, cue: sentence.classList.contains('clipped') && sentence.tabIndex === 0 };
+      });
+      expect(fit.bottom).toBeLessThanOrEqual(fit.height);
+      expect(fit.scroll).toBeLessThanOrEqual(fit.height);
+      if (strict) expect(fit.hidden).toBeLessThanOrEqual(1);
+      else expect(fit.hidden <= 1 || fit.cue).toBe(true);
+      if (!await next(page).count() || !await next(page).isEnabled()) break;
+      await next(page).click();
+    }
+  });
+});
+
+test('a double tap on Next before the last step does not open the lesson', async ({ page }) => {
+  await openWalkthrough(page, gameBefore(step => step.technique === 'locked-candidates'));
+  await expect(counter(page)).toHaveText('1 of 2');
+  await next(page).dblclick();
+  await expect(counter(page)).toHaveText('2 of 2');
+  await page.waitForTimeout(400);
+  await expect(page.locator('.lesson-bar')).toHaveCount(0);
+});
+
+test('stepping on from a scrolled sentence to one that fits keeps focus in the app', async ({ page }) => {
+  await openWalkthrough(page, xyWing);
+  await page.addStyleTag({ content: '.walk-panel p { font-size: 120px !important; }' });
+  await page.setViewportSize({ width: 390, height: 845 });
+  const sentence = page.locator('.walk-panel p');
+  await expect(sentence).toHaveAttribute('tabindex', '0');
+  await sentence.focus();
+  await page.evaluate(() => document.querySelectorAll('style').forEach(style => { if (style.textContent?.includes('120px')) style.remove(); }));
+  await page.keyboard.press('h');
+  await expect(counter(page)).toHaveText('2 of 4');
+  await expect(sentence).not.toHaveAttribute('tabindex', '0');
+  expect((await focusState(page)).inApp).toBe(true);
+});
+
+test('a scrolled sentence fades at the bottom until it is scrolled to its end, and starts faded again on the next step', async ({ page }) => {
+  await openWalkthrough(page, xyWing);
+  await page.addStyleTag({ content: '.walk-panel p { font-size: 120px !important; }' });
+  await page.setViewportSize({ width: 390, height: 845 });
+  const sentence = page.locator('.walk-panel p');
+  await expect(sentence).toHaveClass(/clipped/);
+  const mask = () => sentence.evaluate(element => getComputedStyle(element).maskImage || getComputedStyle(element).webkitMaskImage);
+  expect(await mask()).not.toBe('none');
+  await sentence.evaluate(element => { element.scrollTop = element.scrollHeight; element.dispatchEvent(new Event('scroll')); });
+  await expect.poll(mask).toBe('none');
+  await next(page).click();
+  await expect(counter(page)).toHaveText('2 of 4');
+  await expect.poll(mask).not.toBe('none');
 });

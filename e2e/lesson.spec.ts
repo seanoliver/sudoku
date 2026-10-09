@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { answer, crossOut, footer, gameBefore, openGame, prompt, tapFooter } from './fixtures.ts';
+import { answer, crossOut, footer, gameBefore, openGame, prompt, stepToEnd, tapFooter } from './fixtures.ts';
 import { SAVE_KEY } from '../src/lib/game.ts';
 import { LESSON_BANK } from '../src/lib/lesson-bank.ts';
 import { LEARNED_KEY, lessonOf, practiceGame } from '../src/lib/lessons.ts';
@@ -16,8 +16,8 @@ async function openLesson(page: Page) {
   await page.getByRole('button', { name: 'Show a hint' }).click();
   await page.locator('.hint-action').click();
   await page.locator('.hint-action').click();
-  while (await page.getByRole('button', { name: 'Next step' }).isEnabled()) await page.getByRole('button', { name: 'Next step' }).click();
-  await page.getByRole('button', { name: 'Learn pointing pair ›' }).click();
+  await stepToEnd(page);
+  await page.getByRole('button', { name: 'Learn pointing pair' }).click();
   await expect(page.locator('.lesson-title strong')).toHaveText('Pointing pair');
   return before;
 }
@@ -94,8 +94,8 @@ test('a placement lesson grades the right digit as right, even where the cell ha
   await page.getByRole('button', { name: 'Show a hint' }).click();
   await page.locator('.hint-action').click();
   await page.locator('.hint-action').click();
-  while (await page.getByRole('button', { name: 'Next step' }).isEnabled()) await page.getByRole('button', { name: 'Next step' }).click();
-  await page.getByRole('button', { name: 'Learn naked single ›' }).click();
+  await stepToEnd(page);
+  await page.getByRole('button', { name: 'Learn naked single' }).click();
   await tapFooter(page);
   const board = practiceGame(LESSON_BANK['naked-single'][1], 1);
   const { cell, digit } = allSteps(board.values, getPlayableCandidates(board), 'naked-single')[0].placement!;

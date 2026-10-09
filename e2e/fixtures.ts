@@ -38,7 +38,7 @@ export const focusState = (page: Page) => page.evaluate(() => {
   return { inApp: Boolean(element?.closest('.app')), label: element?.getAttribute('aria-label') ?? element?.className ?? '' };
 });
 
-export const stepLabel = (page: Page) => page.locator('.walk-stepper span').textContent();
+export const stepLabel = (page: Page) => page.locator('.walk-count').textContent();
 export const historyLength = (page: Page) => page.evaluate(key => JSON.parse(localStorage.getItem(key) ?? '{}').history?.length ?? 0, SAVE_KEY);
 
 /** The crossings-out that answer practice board `board` of the pointing lesson. */
@@ -62,4 +62,11 @@ export async function openGame(page: Page) {
   await page.goto('/');
   await page.getByRole('button', { name: 'Continue' }).click();
   await page.locator('.board .cell').first().waitFor();
+}
+
+/** Presses Next until the walkthrough's last step, where Next is disabled or replaced by Learn, then waits out the 350 ms double-tap guard on Learn. */
+export async function stepToEnd(page: Page) {
+  const next = page.getByRole('button', { name: 'Next step' });
+  while (await next.count() && await next.isEnabled()) await next.click();
+  await page.waitForTimeout(400);
 }
