@@ -1,4 +1,4 @@
-import { useLayoutEffect, useState, type RefObject } from 'react';
+import { useLayoutEffect, useRef, useState, type RefObject } from 'react';
 import type { ExplainLine } from '@/lib/explain';
 import { inSentence } from '@/lib/lessons';
 
@@ -13,13 +13,14 @@ export function WalkthroughLinks({ line, wrap }: { line: ExplainLine; wrap: RefO
     if (!element || !line.links) return;
     const { digit, pairs, newest } = line.links;
     const measure = () => {
-      const box = element.getBoundingClientRect();
+      // The SVG fills the padding box, inside the board's border.
+      const box = element.getBoundingClientRect(), left = box.left + element.clientLeft, top = box.top + element.clientTop;
       const center = (cell: number): Point | null => {
         const note = element.querySelector(`[data-index="${cell}"] .note-digit[data-digit="${digit}"]`)?.getBoundingClientRect();
-        return note ? { x: note.left + note.width / 2 - box.left, y: note.top + note.height / 2 - box.top, r: note.width / 2 + 1 } : null;
+        return note ? { x: note.left + note.width / 2 - left, y: note.top + note.height / 2 - top, r: note.width / 2 + 1 } : null;
       };
       const links = pairs.flatMap(([p, q], k) => { const a = center(p), b = center(q); return a && b ? [{ a, b, current: newest && k === pairs.length - 1 }] : []; });
-      setDrawn({ width: box.width, height: box.height, links });
+      setDrawn({ width: element.clientWidth, height: element.clientHeight, links });
     };
     measure();
     const observer = new ResizeObserver(measure);
@@ -38,10 +39,25 @@ export function WalkthroughLinks({ line, wrap }: { line: ExplainLine; wrap: RefO
 /** Progress, the sentence for the current line, and back and Next to move through the walkthrough. */
 export function WalkthroughPanel({ title, index, count, text, onStep, learn }: { title: string; index: number; count: number; text: string; onStep: (index: number, at: number) => void; learn?: { name: string; onOpen: (at: number) => void } }) {
   const last = index >= count - 1;
-  return <div className="walk-panel">
+  const panel = useRef<HTMLDivElement>(null), sentence = useRef<HTMLParagraphElement>(null);
+  const [clipped, setClipped] = useState(false);
+  // Grow past the keypad card into the free space below it, up to the screen's bottom or a lesson's footer; scroll the sentence only past that.
+  useLayoutEffect(() => {
+    const fit = () => {
+      if (!panel.current || !sentence.current) return;
+      const footer = document.querySelector('.lesson-footer')?.getBoundingClientRect().top;
+      const limit = (footer ?? innerHeight) - 12 - panel.current.getBoundingClientRect().top;
+      panel.current.style.maxHeight = `${Math.max(limit, panel.current.parentElement?.clientHeight ?? 0)}px`;
+      setClipped(sentence.current.scrollHeight > sentence.current.clientHeight + 1);
+    };
+    fit();
+    addEventListener('resize', fit);
+    return () => removeEventListener('resize', fit);
+  }, [text]);
+  return <div className="walk-panel" ref={panel}>
     <div className="walk-progress" aria-hidden="true">{Array.from({ length: count }, (_, k) => <i key={k} className={k <= index ? 'done' : ''}/>)}</div>
     <span className="walk-eyebrow">{title} · <span className="walk-count">{index + 1} of {count}</span></span>
-    <p>{text}</p>
+    <p ref={sentence} className={clipped ? 'clipped' : ''} tabIndex={clipped ? 0 : undefined}>{text}</p>
     <div className="walk-actions">
       <button className="walk-back" aria-label="Previous step" disabled={index === 0} onClick={event => onStep(index - 1, event.timeStamp)}>
         <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M10 3 5 8l5 5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>

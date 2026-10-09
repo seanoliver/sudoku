@@ -413,9 +413,9 @@ export default function SudokuGame() {
   const candidates = useMemo(() => values && exclusions ? getPlayableCandidates({ values, exclusions }) : null,
     [values, exclusions]);
   const walkStep = activeHint?.level === 3 && activeHint.hint.kind === 'step' ? activeHint.hint.step : null;
-  const lessonStep = lesson?.phase === 'watch' ? findStep(lesson.start.values, getPlayableCandidates(lesson.start)) : lesson?.result && !lesson.result.correct ? lesson.result.step : null;
+  const lessonStep = useMemo(() => lesson?.phase === 'watch' ? findStep(lesson.start.values, getPlayableCandidates(lesson.start)) : lesson?.result && !lesson.result.correct ? lesson.result.step : null, [lesson?.phase, lesson?.start, lesson?.result]);
   const shownStep = lesson ? lessonStep : walkStep;
-  const walkthrough = shownStep && values && candidates ? explainStep(shownStep, { values, candidates }) : null;
+  const walkthrough = useMemo(() => shownStep && values && candidates ? explainStep(shownStep, { values, candidates }) : null, [shownStep, values, candidates]);
   const walkIndex = walkthrough ? Math.min((lesson ? lesson.line : activeHint?.line) ?? 0, walkthrough.length - 1) : 0;
   const walkLine = walkthrough?.[walkIndex] ?? null;
   const stepWalkthrough = (line: number, at?: number) => {

@@ -131,32 +131,35 @@ test.describe('marks line up with the notes they point at', () => {
   });
 });
 
-test('every link ends on the note digit it joins', async ({ page }) => {
+test('every link ends at the edge of the note digit it joins', async ({ page }) => {
   await openWalkthrough(page, gameBefore(step => step.technique === 'coloring'));
   await next(page).click();
   const lines = page.locator('.walk-links line');
   expect(await lines.count()).toBeGreaterThan(0);
-  const ends = await page.evaluate(() => {
-    const wrap = document.querySelector('.board-wrap')!.getBoundingClientRect();
-    const notes = [...document.querySelectorAll('.board .cell[data-chip] .note-digit')].filter(note => getComputedStyle(note).opacity === '1').map(note => { const r = note.getBoundingClientRect(); return { x: r.left + r.width / 2 - wrap.left, y: r.top + r.height / 2 - wrap.top }; });
+  const gaps = await page.evaluate(() => {
+    const wrap = document.querySelector('.board-wrap') as HTMLElement, box = wrap.getBoundingClientRect();
+    const notes = [...document.querySelectorAll('.board .cell[data-chip] .note-digit')].filter(note => getComputedStyle(note).opacity === '1').map(note => { const r = note.getBoundingClientRect(); return { x: r.left + r.width / 2 - box.left - wrap.clientLeft, y: r.top + r.height / 2 - box.top - wrap.clientTop, edge: r.width / 2 + 1 }; });
     return [...document.querySelectorAll('.walk-links line')].flatMap(line => [[+line.getAttribute('x1')!, +line.getAttribute('y1')!], [+line.getAttribute('x2')!, +line.getAttribute('y2')!]])
-      .map(([x, y]) => Math.min(...notes.map(note => Math.hypot(note.x - x, note.y - y))));
+      .map(([x, y]) => Math.min(...notes.map(note => Math.abs(Math.hypot(note.x - x, note.y - y) - note.edge))));
   });
-  for (const distance of ends) expect(distance).toBeLessThan(8);
+  for (const gap of gaps) expect(gap).toBeLessThan(1);
 });
 
-for (const viewport of [{ width: 375, height: 553 }, { width: 320, height: 568 }]) test.describe(`at ${viewport.width} × ${viewport.height}`, () => {
+const SIZES = [{ width: 390, height: 844, strict: true }, { width: 1280, height: 800, strict: true }, { width: 375, height: 553, strict: false }, { width: 320, height: 568, strict: false }];
+for (const { strict, ...viewport } of SIZES) test.describe(`at ${viewport.width} × ${viewport.height}`, () => {
   test.use({ viewport });
 
-  for (const technique of ['coloring', 'swordfish'] as const) test(`every ${technique} step keeps its buttons on screen without scrolling`, async ({ page }) => {
+  for (const technique of ['coloring', 'swordfish', 'x-wing'] as const) test(`every ${technique} step shows its whole sentence and keeps its buttons on screen`, async ({ page }) => {
     await openWalkthrough(page, gameBefore(step => step.technique === technique));
     for (;;) {
       const fit = await page.evaluate(() => {
-        const action = document.querySelector('.walk-actions')!.getBoundingClientRect();
-        return { bottom: action.bottom, height: innerHeight, scroll: document.scrollingElement!.scrollHeight };
+        const action = document.querySelector('.walk-actions')!.getBoundingClientRect(), sentence = document.querySelector('.walk-panel p') as HTMLElement;
+        return { bottom: action.bottom, height: innerHeight, scroll: document.scrollingElement!.scrollHeight, hidden: sentence.scrollHeight - sentence.clientHeight, cue: sentence.classList.contains('clipped') && sentence.tabIndex === 0 };
       });
       expect(fit.bottom).toBeLessThanOrEqual(fit.height);
       expect(fit.scroll).toBeLessThanOrEqual(fit.height);
+      if (strict) expect(fit.hidden).toBeLessThanOrEqual(1);
+      else expect(fit.hidden <= 1 || fit.cue).toBe(true);
       if (!await next(page).count() || !await next(page).isEnabled()) break;
       await next(page).click();
     }
