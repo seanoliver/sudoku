@@ -64,8 +64,9 @@ export async function openGame(page: Page) {
   await page.locator('.board .cell').first().waitFor();
 }
 
-/** Presses Next until the walkthrough's last step, where Next is disabled or replaced by Learn. */
+/** Presses Next until the walkthrough's last step, where Next is disabled or replaced by Learn, then waits out the 350 ms double-tap guard on Learn. */
 export async function stepToEnd(page: Page) {
   const next = page.getByRole('button', { name: 'Next step' });
   while (await next.count() && await next.isEnabled()) await next.click();
+  await page.waitForTimeout(400);
 }

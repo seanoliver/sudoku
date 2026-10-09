@@ -144,3 +144,30 @@ test('every link ends on the note digit it joins', async ({ page }) => {
   });
   for (const distance of ends) expect(distance).toBeLessThan(8);
 });
+
+for (const viewport of [{ width: 375, height: 553 }, { width: 320, height: 568 }]) test.describe(`at ${viewport.width} × ${viewport.height}`, () => {
+  test.use({ viewport });
+
+  for (const technique of ['coloring', 'swordfish'] as const) test(`every ${technique} step keeps its buttons on screen without scrolling`, async ({ page }) => {
+    await openWalkthrough(page, gameBefore(step => step.technique === technique));
+    for (;;) {
+      const fit = await page.evaluate(() => {
+        const action = document.querySelector('.walk-actions')!.getBoundingClientRect();
+        return { bottom: action.bottom, height: innerHeight, scroll: document.scrollingElement!.scrollHeight };
+      });
+      expect(fit.bottom).toBeLessThanOrEqual(fit.height);
+      expect(fit.scroll).toBeLessThanOrEqual(fit.height);
+      if (!await next(page).count() || !await next(page).isEnabled()) break;
+      await next(page).click();
+    }
+  });
+});
+
+test('a double tap on Next before the last step does not open the lesson', async ({ page }) => {
+  await openWalkthrough(page, gameBefore(step => step.technique === 'locked-candidates'));
+  await expect(counter(page)).toHaveText('1 of 2');
+  await next(page).dblclick();
+  await expect(counter(page)).toHaveText('2 of 2');
+  await page.waitForTimeout(400);
+  await expect(page.locator('.lesson-bar')).toHaveCount(0);
+});
