@@ -7,6 +7,10 @@ import { candidateCells, excludedCells, getPlayableCandidates } from '@/lib/cand
 import { useNoteSelection } from './use-note-selection';
 import { activeMode, beginBatch, selectMode, toggleMode, INITIAL_ENTRY_MODE, type EntryMode, type EntryModeState } from '@/lib/entry-mode';
 import { CellNotes } from './cell-notes';
+import * as m from 'motion/react-m';
+import { Pressable } from './pressable';
+import { SPRINGS } from '@/lib/motion';
+import { selectionEdges } from '@/lib/selection-edges';
 import { announce, describeAction, type Recovery } from '@/lib/undo-description';
 import { AppMark, Icon } from './icons';
 import { Clock, CLOCK_KEY } from './clock';
@@ -62,6 +66,7 @@ const LevelBars = ({ level }: { level: Difficulty }) => <span className="level-m
 const REJECTION_MS = 800;
 const CELEBRATION_STEP_MS = 45;
 const CELEBRATION_MS = 520;
+const buzz = () => { try { navigator.vibrate?.(8); } catch { /* Haptics are optional. */ } };
 /** Manhattan distance between two cells on the 9x9 grid. */
 const distance = (a: number, b: number) => Math.abs(Math.floor(a / 9) - Math.floor(b / 9)) + Math.abs(a % 9 - b % 9);
 
@@ -107,6 +112,8 @@ export default function SudokuGame() {
   const lessonTappedAt = useRef(-Infinity);
   const [celebration, setCelebration] = useState<{ id: number; origin: number; cells: number[]; label: string } | null>(null);
   const celebrationId = useRef(0);
+  const [placed, setPlaced] = useState<{ index: number; id: number } | null>(null);
+  const placedId = useRef(0);
   const complete = game ? isComplete(game) : false;
   const activeHint = hintState && hintState.game === game && !paused && !sheet && !busy && !complete ? hintState : null;
   const hintDisplay = activeHint ? hintView(activeHint.hint, activeHint.level) : null;
@@ -343,11 +350,14 @@ export default function SudokuGame() {
       const next = excluding ? toggleExclusions(game, { ...batch, blockIncorrectAnswers: preferences.blockIncorrectAnswers }) : toggleNotes(game, batch);
       if (next === game) return;
       setGame(next);
+      buzz();
       clearSelection();
     } else {
       const next = enter(game, { index: selected, value, pencil, exclude: excluding, blockIncorrectAnswers: preferences.blockIncorrectAnswers, filterNumberKeys: preferences.filterNumberKeys });
       if (next === game) return;
       setGame(next);
+      if (value) buzz();
+      if (value && !pencil && !excluding) setPlaced({ index: selected, id: ++placedId.current });
       // An active focus follows the number just placed, so its other placements are easy to scan.
       if (focusedDigit !== null && value && !pencil && !excluding) setFocusedDigit(value);
       if (!pencil && !excluding && value) {
@@ -365,7 +375,7 @@ export default function SudokuGame() {
     if (!game || paused || busy || lessonLocked || complete) return;
     const next = direction === 'undo' ? undo(game) : redo(game);
     if (next === game) return;
-    resetSelection(); setBlockedEntry(null); setCelebration(null);
+    resetSelection(); setBlockedEntry(null); setCelebration(null); setPlaced(null);
     setGame(next);
     // Described in the order it was played, so undoing an exclusion is still an exclusion.
     const action = direction === 'undo' ? describeAction(next, game) : describeAction(game, next);
@@ -391,6 +401,7 @@ export default function SudokuGame() {
   };
   const badCells = useMemo(() => game && preferences.blockIncorrectAnswers ? new Set(game.values.flatMap((value, i) => value && value !== game.solution[i] ? [i] : [])) : new Set<number>(), [game, preferences.blockIncorrectAnswers]);
   const related = useMemo(() => new Set(peers(selected)), [selected]);
+  const outlineEdges = useMemo(() => selectionEdges(selection.indices), [selection.indices]);
   const selectedCellValue = game?.values[selected] ?? 0;
   const selectedValue = focusedDigit ?? selectedCellValue;
   const values = game?.values;
@@ -654,15 +665,16 @@ export default function SudokuGame() {
               const selectedCell = (batchSelection ? selection.indices.includes(i) : selected === i) && !complete;
               const same = value > 0 && selectedValue === value;
               const classes = ['cell', given ? 'given' : 'entered', selectedCell ? 'selected' : '', !selectedCell && related.has(i) && preferences.highlightPeers && !complete ? 'related' : '', same && !selectedCell && !complete ? 'matching' : '', possible.has(i) ? 'possible' : '', excludedPossible.has(i) ? 'excluded-possible' : '', badCells.has(i) ? 'conflict' : '', rejection?.cells.includes(i) ? 'rejecting' : '', ...(walkLine ? walkClasses(walkLine, i) : [...(hintDisplay?.cells.get(i) ?? [])].map(role => `hint-${role}`))].filter(Boolean).join(' ');
+              const sides = selectedCell && !walkLine ? batchSelection ? outlineEdges.get(i) : null : undefined;
               return <div role="gridcell" aria-selected={selectedCell} aria-readonly={given} aria-rowindex={row+1} aria-colindex={col+1} key={i} className="cell-slot"><button className={classes} data-index={i} data-given={given} tabIndex={selected === i ? 0 : -1} aria-label={`Row ${row+1}, column ${col+1}, ${value ? `${value}${given ? ', given' : ''}` : notes.length ? `${generated ? 'generated notes' : 'notes'} ${notes.join(', ')}` : 'empty'}${!value && ruledOut.length ? `, ruled out ${ruledOut.join(', ')}` : ''}${possible.has(i) ? `, possible placement for ${selectedValue}` : ''}${excludedPossible.has(i) ? `, excluded placement for ${selectedValue}` : ''}${badCells.has(i) ? ', incorrect answer' : ''}`} aria-disabled={complete} onClick={event => selection.clickCell(event, i)}>
                 {celebrating && celebratedCells.has(i) && <span key={`celebrate-${celebrating.id}`} className="unit-celebration" style={{ animationDelay: `${distance(i, celebrating.origin) * CELEBRATION_STEP_MS}ms` }} aria-hidden="true"/>}
-                {value ? <span className="cell-number">{value}</span> : null}
+                {value ? placed?.index === i && !given ? <span key={placed.id} className="cell-number placed" onAnimationEnd={() => setPlaced(null)}>{value}</span> : <span className="cell-number">{value}</span> : null}
                 {walkLine?.ghost?.cell === i && <span className="walk-ghost" aria-hidden="true">{walkLine.ghost.digit}</span>}
                 <CellNotes key={game?.id} focusedDigit={complete || walkLine ? null : focusedDigit} filled={Boolean(value)} manual={generated ? EMPTY_NOTES : notes} automatic={generated ? notes : EMPTY_NOTES} excluded={ruledOut} boardKey={boardKey}/>
                 {rejection?.cells.includes(i) && <span key={`rejected-${rejection.id}`} className="rejected-digit" aria-hidden="true">{rejection.value}</span>}
                 {rejection?.sources.includes(i) && <span key={`source-${rejection.id}`} className="rejection-source" aria-hidden="true"/>}
                 {badCells.has(i) && <span className="conflict-dot"/>}
-              </button></div>;
+              </button>{sides === null ? <m.span layoutId="selection-outline" className="selection-outline" transition={SPRINGS.snappy} aria-hidden="true"/> : sides && <span className={`selection-outline group ${sides.map(side => `edge-${side}`).join(' ')}`} aria-hidden="true"/>}</div>;
             })}
           </div>)}
         </div>
@@ -684,20 +696,20 @@ export default function SudokuGame() {
           <div className="note-controls" aria-label="Puzzle tools" inert={Boolean(walkLine) || lesson?.phase === 'done' || Boolean(lesson?.result?.correct)}>
             <div className="mode-switch" role="group" aria-label="Entry mode">
               <span className={`mode-indicator mode-indicator-${mode}`} aria-hidden="true"/>
-              {(['value', 'note', 'exclude'] as const).map(option => <button key={option} className={`mode-option mode-${option}`} aria-pressed={mode === option} disabled={paused || busy} onClick={() => chooseMode(option)} title={{ value: 'Numbers', note: 'Notes (N)', exclude: 'Exclude (X)' }[option]}>
+              {(['value', 'note', 'exclude'] as const).map(option => <Pressable key={option} className={`mode-option mode-${option}`} aria-pressed={mode === option} disabled={paused || busy} onClick={() => chooseMode(option)} title={{ value: 'Numbers', note: 'Notes (N)', exclude: 'Exclude (X)' }[option]}>
                 <Icon name={({ value: 'numbers', note: 'pencil', exclude: 'exclude' } as const)[option]} size={16}/><span>{{ value: 'Numbers', note: 'Notes', exclude: 'Exclude' }[option]}</span>
-              </button>)}
+              </Pressable>)}
             </div>
             <div className="edit-actions">
-              <button className="history-control" disabled={!game?.history.length || paused || busy || lessonLocked} onClick={() => { doUndo(); focusSelectedCell(); }} aria-label="Undo" title="Undo (⌘Z / Ctrl+Z)"><Icon name="undo" size={19}/></button>
-              <button className="erase-control" disabled={!canErase} onClick={() => { input(0); focusSelectedCell(); }} aria-label="Erase" title="Erase (Backspace)"><Icon name="erase" size={20}/></button>
-              <button className="history-control" disabled={!game?.redoHistory.length || paused || busy || lessonLocked} onClick={() => { doRedo(); focusSelectedCell(); }} aria-label="Redo" title="Redo (⌘⇧Z / Ctrl+Shift+Z)"><Icon name="undo" size={19} style={{ transform: 'scaleX(-1)' }}/></button>
+              <Pressable className="history-control" disabled={!game?.history.length || paused || busy || lessonLocked} onClick={() => { doUndo(); focusSelectedCell(); }} aria-label="Undo" title="Undo (⌘Z / Ctrl+Z)"><Icon name="undo" size={19}/></Pressable>
+              <Pressable className="erase-control" disabled={!canErase} onClick={() => { input(0); focusSelectedCell(); }} aria-label="Erase" title="Erase (Backspace)"><Icon name="erase" size={20}/></Pressable>
+              <Pressable className="history-control" disabled={!game?.redoHistory.length || paused || busy || lessonLocked} onClick={() => { doRedo(); focusSelectedCell(); }} aria-label="Redo" title="Redo (⌘⇧Z / Ctrl+Shift+Z)"><Icon name="undo" size={19} style={{ transform: 'scaleX(-1)' }}/></Pressable>
             </div>
           </div>
         <div className={`number-pad mode-${mode}`} aria-label="Number pad" inert={Boolean(walkLine) || lesson?.phase === 'done' || Boolean(lesson?.result?.correct)}>
           {DIGITS.map(n => {
             const { remaining, filtered, focusOnly } = keyState(n);
-            return <button key={n} className={`number-key ${!remaining ? 'digit-finished' : ''} ${filtered ? 'digit-filtered' : ''}`} aria-label={(numberFocus || focusOnly ? `Focus on ${n}` : batchSelection ? (game && batchHasMark(game, { indices: selection.indices, value: n, marks: excluding ? 'exclusions' : 'notes' }) ? `Remove ${excluding ? 'exclusion' : 'note'} ${n} from ${selection.indices.length} selected cells` : `${excluding ? 'Exclude' : 'Add note'} ${n} ${excluding ? 'from' : 'to'} ${selection.indices.length} selected cells`) : `${excluding ? 'Rule out' : 'Enter'} ${n}${pencil ? ' as a note' : ''}`) + (filtered ? ', unavailable: already in this row, column, or box' : '') + (remaining ? '' : ', all placed')} disabled={!game || busy || paused || complete} onClick={() => input(n)}><span style={{ gridRow: Math.ceil(n / 3), gridColumn: (n - 1) % 3 + 1 }}>{n}</span></button>;
+            return <Pressable key={n} className={`number-key ${!remaining ? 'digit-finished' : ''} ${filtered ? 'digit-filtered' : ''}`} aria-label={(numberFocus || focusOnly ? `Focus on ${n}` : batchSelection ? (game && batchHasMark(game, { indices: selection.indices, value: n, marks: excluding ? 'exclusions' : 'notes' }) ? `Remove ${excluding ? 'exclusion' : 'note'} ${n} from ${selection.indices.length} selected cells` : `${excluding ? 'Exclude' : 'Add note'} ${n} ${excluding ? 'from' : 'to'} ${selection.indices.length} selected cells`) : `${excluding ? 'Rule out' : 'Enter'} ${n}${pencil ? ' as a note' : ''}`) + (filtered ? ', unavailable: already in this row, column, or box' : '') + (remaining ? '' : ', all placed')} disabled={!game || busy || paused || complete} onClick={() => input(n)}><span style={{ gridRow: Math.ceil(n / 3), gridColumn: (n - 1) % 3 + 1 }}>{n}</span></Pressable>;
           })}
         </div>
         <p className="sr-only" role="status">{undoAnnouncement.text && `${undoAnnouncement.text}${undoAnnouncement.id % 2 ? '\u00a0' : ''}`}</p>
