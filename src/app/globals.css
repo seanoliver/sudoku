@@ -175,12 +175,11 @@ h1,h2,h3,p { margin: 0; }
 @media (hover: hover) { .focus-button:not(:disabled):hover,.clear-focus-button:hover { background: var(--peer); } }
 .notes .note-digit.note-focused { background: var(--blue-soft); color: var(--blue-strong); border-radius: 3px; font-weight: 750; box-shadow: inset 0 0 0 1px var(--blue); }
 
-.puzzle-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 24px; }
+.puzzle-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 24px 0; }
 .puzzle-actions > :last-child:nth-child(odd) { grid-column: 1 / -1; }
 .puzzle-action { display: flex; align-items: center; justify-content: center; gap: 9px; padding: 12px 8px; min-height: 64px; border: 1px solid var(--line); border-radius: 10px; background: color-mix(in srgb, var(--ink) 5%, var(--surface)); font-size: 13px; font-weight: 550; color: var(--ink); }
 .puzzle-action.new-puzzle-action { background: var(--blue-soft); color: var(--blue-strong); }
 .puzzle-action:disabled { opacity: .45; }
-.puzzle-actions-hint { color: var(--secondary); font-size: 11px; text-align: center; line-height: 1.5; margin: 12px 0 26px; }
 .setting-copy { flex: 1; min-width: 0; }
 .setting-row > svg { color: var(--secondary); }
 @media (max-width: 380px) { .puzzle-action { gap: 6px; font-size: 12px; }.setting-row { gap: 10px; } }
