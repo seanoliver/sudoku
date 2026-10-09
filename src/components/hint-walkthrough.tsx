@@ -45,10 +45,14 @@ export function WalkthroughPanel({ title, index, count, text, onStep, learn }: {
     const fit = () => {
       if (!panel.current || !sentence.current) return;
       const footer = document.querySelector('.lesson-footer')?.getBoundingClientRect().top;
-      const limit = (footer ?? innerHeight) - 12 - panel.current.getBoundingClientRect().top;
+      const app = document.querySelector('.app');
+      const bottom = footer !== undefined ? footer - 12 : innerHeight - Math.max(12, app ? parseFloat(getComputedStyle(app).paddingBottom) : 0);
+      const limit = bottom - panel.current.getBoundingClientRect().top;
       panel.current.style.maxHeight = `${Math.max(limit, panel.current.parentElement?.clientHeight ?? 0)}px`;
       const overflows = () => sentence.current!.scrollHeight > sentence.current!.clientHeight + 1;
       delete panel.current.dataset.fit;
+      sentence.current.scrollTop = 0;
+      sentence.current.removeAttribute('data-end');
       if (overflows()) panel.current.dataset.fit = 'compact';
       setClipped(overflows());
     };
@@ -59,7 +63,7 @@ export function WalkthroughPanel({ title, index, count, text, onStep, learn }: {
   return <div className="walk-panel" ref={panel}>
     <div className="walk-progress" aria-hidden="true">{Array.from({ length: count }, (_, k) => <i key={k} className={k <= index ? 'done' : ''}/>)}</div>
     <span className="walk-eyebrow">{title} · <span className="walk-count">{index + 1} of {count}</span></span>
-    <p ref={sentence} className={clipped ? 'clipped' : ''} tabIndex={clipped ? 0 : undefined}>{text}</p>
+    <p ref={sentence} className={clipped ? 'clipped' : ''} tabIndex={clipped ? 0 : undefined} onScroll={event => { const p = event.currentTarget; p.toggleAttribute('data-end', p.scrollTop + p.clientHeight >= p.scrollHeight - 1); }}>{text}</p>
     <div className="walk-actions">
       <button className="walk-back" aria-label="Previous step" disabled={index === 0} onClick={event => onStep(index - 1, event.timeStamp)}>
         <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M10 3 5 8l5 5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>

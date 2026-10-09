@@ -485,4 +485,4 @@ h1,h2,h3,p { margin: 0; }
 .walk-panel[data-fit='compact'] { gap: 6px; padding: 10px 14px; }.walk-panel[data-fit='compact'] p { font-size: 15px; line-height: 1.35; font-weight: 500; }.walk-panel[data-fit='compact'] .walk-eyebrow { display: none; }.walk-panel[data-fit='compact'] :is(.walk-back, .walk-next, .walk-learn) { height: 40px; }.walk-panel[data-fit='compact'] .walk-back { width: 40px; }
 @media (max-width: 360px), (max-height: 760px) { .walk-panel { gap: 8px; padding-top: 12px; }.walk-panel p { font-size: 16px; } }
 @media (max-width: 360px) { .walk-ghost { font-size: 23px; } }
-.walk-panel p.clipped { mask-image: linear-gradient(#000 calc(100% - 22px), transparent); }
+.walk-panel p.clipped:not([data-end]) { mask-image: linear-gradient(#000 calc(100% - 22px), transparent); }

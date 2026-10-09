@@ -195,3 +195,18 @@ test('stepping on from a scrolled sentence to one that fits keeps focus in the a
   await expect(sentence).not.toHaveAttribute('tabindex', '0');
   expect((await focusState(page)).inApp).toBe(true);
 });
+
+test('a scrolled sentence fades at the bottom until it is scrolled to its end, and starts faded again on the next step', async ({ page }) => {
+  await openWalkthrough(page, xyWing);
+  await page.addStyleTag({ content: '.walk-panel p { font-size: 120px !important; }' });
+  await page.setViewportSize({ width: 390, height: 845 });
+  const sentence = page.locator('.walk-panel p');
+  await expect(sentence).toHaveClass(/clipped/);
+  const mask = () => sentence.evaluate(element => getComputedStyle(element).maskImage || getComputedStyle(element).webkitMaskImage);
+  expect(await mask()).not.toBe('none');
+  await sentence.evaluate(element => { element.scrollTop = element.scrollHeight; element.dispatchEvent(new Event('scroll')); });
+  await expect.poll(mask).toBe('none');
+  await next(page).click();
+  await expect(counter(page)).toHaveText('2 of 4');
+  await expect.poll(mask).not.toBe('none');
+});
