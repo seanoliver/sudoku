@@ -486,7 +486,6 @@ h1,h2,h3,p { margin: 0; }
 @media (max-width: 360px) { .walk-ghost { font-size: 23px; } }
 .walk-panel p.clipped:not([data-end]) { mask-image: linear-gradient(#000 calc(100% - 22px), transparent); }
 
-/* Sheets rise over the game, which shrinks behind them on a phone; Restart is a centered alert. */
 .sheet { --ease-sheet: cubic-bezier(.32, .72, 0, 1); }
 .sheet[open] { animation: sheet-rise 420ms var(--ease-sheet); }
 .sheet[data-closing] { animation: sheet-drop 260ms cubic-bezier(.4, 0, 1, 1) forwards; }

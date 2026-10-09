@@ -282,7 +282,6 @@ export default function SudokuGame() {
     try { localStorage.setItem(PREFS_KEY, JSON.stringify(next)); } catch { setStorageError(true); }
   };
   const openSheet = (next: Sheet) => { resetSelection(); setBlockedEntry(null); setCelebration(null); setSheet(next); dialog.current?.showModal(); };
-  /** Plays the sheet's exit, then closes it; `immediate` closes at once, as a second Escape or leaving the screen does. */
   const closeSheet = useCallback(({ immediate = false }: { immediate?: boolean } = {}) => {
     const sheet = dialog.current;
     if (!sheet?.open) return;
