@@ -31,18 +31,15 @@ Reference capture: `docs/screenshots/smart-highlighting-phone-centered.png`.
 
 ## Clips
 
-Playwright's `recordVideo` records frames at CSS-pixel size and ignores `deviceScaleFactor`. If `recordVideo.size` is larger than the viewport, for example 780 × 1688 to get a 2x clip, the page fills only the top-left 390 × 844, and the rest of the frame is gray (`#808080`). That is how the first PR #65 clip broke.
+Playwright's `recordVideo` records frames at CSS-pixel size and ignores `deviceScaleFactor`. If `recordVideo.size` differs from the viewport, Playwright scales the page to fit and pads the rest of the frame with gray. A 780 × 1688 size on a 390 × 844 viewport leaves the app in the top-left corner. A viewport raised to 860 tall leaves a gray strip on the right.
 
-1. Set `recordVideo.size` equal to the viewport (`{ width: 390, height: 844 }`).
-2. Upscale afterward if you need a larger file: `ffmpeg -i raw.webm -vf "scale=780:1688:flags=lanczos,format=yuv420p" -c:v libx264 -crf 16 -movflags +faststart -an out.mp4`.
-3. Trim dead frames at the start (page load) with `-ss`.
-4. **Gate:** extract frames at the start, middle, and end, and open each one with Read. Then confirm that the bottom-right corner is not filler:
-   ```bash
-   ffmpeg -v error -ss 1 -i out.mp4 -frames:v 1 -vf "crop=40:40:iw-40:ih-40" -f rawvideo -pix_fmt gray - \
-     | od -An -v -tu1 | tr -s ' ' '\n' | grep -v '^$' | sort -u
-   ```
-   Output that is only `128`, or only `0`, means filler. Do not ship that clip.
-5. Report the duration, dimensions, and the frames you inspected.
+1. Set `recordVideo: { dir, size }` with `size` equal to the viewport. If step 5 raises the viewport height, change `size` to match.
+2. Remove `reducedMotion: 'reduce'` from the template's context. The app honors it, so a clip of a motion feature would show no motion.
+3. After `context.close()`, read the file from `await page.video().path()`.
+4. Trim and upscale in one encode: `ffmpeg -ss <load time> -i raw.webm -vf "scale=780:1688:flags=lanczos,format=yuv420p" -c:v libx264 -crf 16 -movflags +faststart -an docs/screenshots/<feature>-post.mp4`. Scale by exactly 2 from the viewport so both sides stay even.
+5. **Gate:** run `check-clip.sh <clip>` (next to this file). It samples the right and bottom edges at 10%, 50%, and 90% of the clip and exits 1 on gray padding, black bars, or a frame it cannot decode. Do not ship a clip that fails.
+6. Extract frames at the start, middle, and end and open each one with Read.
+7. Report the duration, dimensions, the gate output, and the frames you inspected.
 
 ## Output
 

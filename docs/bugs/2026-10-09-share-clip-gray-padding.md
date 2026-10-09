@@ -12,13 +12,13 @@ Record a 390 × 844 page with `recordVideo: { size: { width: 780, height: 1688 }
 ## Fix
 Cropped the existing clip to the content and upscaled it:
 `ffmpeg -i orig.mp4 -vf "crop=390:844:0:0,scale=780:1688:flags=lanczos,format=yuv420p" -c:v libx264 -crf 16 -movflags +faststart -an out.mp4`.
-Uploaded it to Typefully draft 11165730, which replaced the clip on the X and Threads posts. Text and the Substack still did not change.
+Uploaded it to Typefully draft 11165730, which replaced the clip on the X and Threads posts. The post text and the Substack Note's still were unchanged.
 
 ## Verification
 - Extracted frames at 0.5s and 5.5s and inspected them. The app fills the frame.
-- The corner gate returned only `128` on the old clip and real pixel values (242–245) on the new one.
+- `check-clip.sh` fails the old clip on all six edge samples and passes the new one. It also fails Playwright test clips with a 2x video size and with an 860px viewport (a thin right strip), and passes the dark canvas.
 - Re-fetched the draft. The post text was identical, and X and Threads had the new media ID.
 
 ## Recurrence guardrail
-- `.claude/skills/capturing-share-screenshots/SKILL.md`, "Clips": set `recordVideo.size` equal to the viewport, upscale with ffmpeg, and run the corner gate plus a frame inspection.
+- `.claude/skills/capturing-share-screenshots/SKILL.md`, "Clips": set `recordVideo.size` equal to the viewport, drop reduced motion, upscale with ffmpeg, and run `check-clip.sh` plus a frame inspection.
 - The global `typefully` skill: inspect every image and video frame before `media:upload`.
