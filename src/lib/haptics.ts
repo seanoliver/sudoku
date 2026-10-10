@@ -11,7 +11,7 @@ export function haptic(kind: Haptic) {
     return;
   }
   native.then(async ({ Haptics, ImpactStyle, NotificationType }) => {
-    if (kind === 'select') { selection ??= Haptics.selectionStart(); await selection; await Haptics.selectionChanged(); }
+    if (kind === 'select') { selection ??= Haptics.selectionStart().catch(error => { selection = null; throw error; }); await selection; await Haptics.selectionChanged(); }
     else if (kind === 'tap') await Haptics.impact({ style: ImpactStyle.Light });
     else if (kind === 'unit') await Haptics.impact({ style: ImpactStyle.Medium });
     else await Haptics.notification({ type: kind === 'success' ? NotificationType.Success : NotificationType.Error });

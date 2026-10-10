@@ -155,8 +155,11 @@ export default function SudokuGame() {
       if (seconds !== null) localStorage.setItem(SOLVES_KEY, serializeSolves(recordSolve(readSolves(localStorage.getItem(SOLVES_KEY)), { id: solvedId, difficulty: solvedDifficulty, seconds, day: dayKey(new Date()), givens: solvedGivens })));
     } catch { /* History is optional. */ }
   }, [solvedId, solvedDifficulty, solvedGivens]);
+  // The cell the last selection tick was for, so repeated pointer samples on one cell stay silent.
+  const lastTicked = useRef(0);
+  useEffect(() => { lastTicked.current = selected; }, [selected]);
   const selectCell = (index: number) => {
-    if (index !== selected || selection.indices.length) haptic('select');
+    if (index !== lastTicked.current) { lastTicked.current = index; haptic('select'); }
     setSelected(index); setBlockedEntry(null);
     if (focusedDigit !== null && game?.values[index]) setFocusedDigit(game.values[index]);
   };
@@ -179,7 +182,7 @@ export default function SudokuGame() {
   const startSwipe = useRef(() => {});
   useEffect(() => { startSwipe.current = () => { refreshHome(held ? held.game : game); setLearned(readLearnedNow()); }; });
   useEffect(() => installNativeBack(active => {
-    if (active) { startSwipe.current(); setSwiping(swipeDestination.current); } else flushSync(() => setSwiping(null));
+    if (active) { startSwipe.current(); flushSync(() => setSwiping(swipeDestination.current)); } else flushSync(() => setSwiping(null));
   }), []);
   const batchSelection = selection.indices.length > 0;
   const mode = activeMode(entry, { batch: batchSelection });
