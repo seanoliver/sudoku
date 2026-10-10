@@ -8,6 +8,7 @@ import { candidateCells, excludedCells, getPlayableCandidates } from '@/lib/cand
 import { useNoteSelection } from './use-note-selection';
 import { useSheetDrag } from './use-sheet-drag';
 import { haptic as playHaptic, type Haptic } from '@/lib/haptics';
+import { setStatusBarText } from '@/lib/status-bar';
 import { PrivacyPolicy } from './privacy-policy';
 import { installNativeBack } from '@/lib/native-back';
 import { activeMode, beginBatch, selectMode, toggleMode, INITIAL_ENTRY_MODE, type EntryMode, type EntryModeState } from '@/lib/entry-mode';
@@ -89,7 +90,6 @@ export default function SudokuGame() {
   const [game, setGame] = useState<GameState | null>(null);
   const [selected, setSelected] = useState(0);
   const boardWrap = useRef<HTMLDivElement>(null);
-  const selectionTick = useRef({ selected: 0, count: 0 });
   const [focusedDigit, setFocusedDigit] = useState<number | null>(null);
   const [focusHoldLearned, setFocusHoldLearned] = useState(false);
   const [entry, setEntry] = useState<EntryModeState>(INITIAL_ENTRY_MODE);
@@ -156,6 +156,7 @@ export default function SudokuGame() {
     } catch { /* History is optional. */ }
   }, [solvedId, solvedDifficulty, solvedGivens]);
   const selectCell = (index: number) => {
+    if (index !== selected || selection.indices.length) haptic('select');
     setSelected(index); setBlockedEntry(null);
     if (focusedDigit !== null && game?.values[index]) setFocusedDigit(game.values[index]);
   };
@@ -176,17 +177,10 @@ export default function SudokuGame() {
   const [gameCopy, setGameCopy] = useState<HTMLElement | null>(null);
   const copyGameScreen = () => { if (process.env.NEXT_PUBLIC_BUILD_TARGET === 'ios') setGameCopy(document.querySelector<HTMLElement>('.app:not(.swipe-under)')?.cloneNode(true) as HTMLElement ?? null); };
   const startSwipe = useRef(() => {});
-  useEffect(() => { startSwipe.current = () => refreshHome(held ? held.game : game); });
+  useEffect(() => { startSwipe.current = () => { refreshHome(held ? held.game : game); setLearned(readLearnedNow()); }; });
   useEffect(() => installNativeBack(active => {
     if (active) { startSwipe.current(); setSwiping(swipeDestination.current); } else flushSync(() => setSwiping(null));
   }), []);
-  const inPlay = useRef(false);
-  useEffect(() => { inPlay.current = view === 'game' || Boolean(lesson); }, [view, lesson]);
-  useEffect(() => {
-    const last = selectionTick.current;
-    selectionTick.current = { selected, count: selection.indices.length };
-    if (inPlay.current && (selected !== last.selected || selection.indices.length > last.count)) haptic('select');
-  }, [selected, selection.indices.length, haptic]);
   const batchSelection = selection.indices.length > 0;
   const mode = activeMode(entry, { batch: batchSelection });
   const notesActive = mode !== 'value';
@@ -290,10 +284,12 @@ export default function SudokuGame() {
     const syncChrome = () => {
       const dark = preferences.theme === 'dark' || (preferences.theme === 'system' && media.matches);
       document.querySelectorAll('meta[name="theme-color"]').forEach(meta => meta.setAttribute('content', dark ? THEME_COLOR.dark : THEME_COLOR.light));
+      const blackedOut = Boolean(sheet && sheet !== 'restart') && window.matchMedia('(max-width: 600px) and (prefers-reduced-motion: no-preference)').matches;
+      setStatusBarText(dark || blackedOut);
     };
     syncChrome(); media.addEventListener('change', syncChrome);
     return () => media.removeEventListener('change', syncChrome);
-  }, [preferences.theme]);
+  }, [preferences.theme, sheet]);
 
   useEffect(() => {
     if (!blockedEntry) return;
@@ -358,7 +354,7 @@ export default function SudokuGame() {
     // A closing sheet restores focus to its opener when it closes, so the target waits until it has.
     if (focusAfterRender.current === null || dialog.current?.open) return;
     // An unrelated render can commit before the one that shows the target, so the target stays pending until it exists.
-    const target = document.querySelector<HTMLElement>(focusAfterRender.current);
+    const target = [...document.querySelectorAll<HTMLElement>(focusAfterRender.current)].find(element => !element.closest('.swipe-under'));
     if (!target) return;
     target.focus();
     focusAfterRender.current = null;
