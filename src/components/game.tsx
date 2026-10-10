@@ -170,12 +170,16 @@ export default function SudokuGame() {
       try { localStorage.setItem(FOCUS_HINT_KEY, 'true'); } catch { /* The shortcut works without storage. */ }
     },
   });
-  const [swiping, setSwiping] = useState(false);
+  // iOS swipe-back: where the swipe returns, fixed when it starts so the underlay cannot change as the screen does.
+  const [swiping, setSwiping] = useState<'home' | 'learn' | 'game' | null>(null);
+  const swipeDestination = useRef<'home' | 'learn' | 'game' | null>(null);
   const [gameCopy, setGameCopy] = useState<HTMLElement | null>(null);
   const copyGameScreen = () => { if (process.env.NEXT_PUBLIC_BUILD_TARGET === 'ios') setGameCopy(document.querySelector<HTMLElement>('.app:not(.swipe-under)')?.cloneNode(true) as HTMLElement ?? null); };
   const startSwipe = useRef(() => {});
   useEffect(() => { startSwipe.current = () => refreshHome(held ? held.game : game); });
-  useEffect(() => installNativeBack(active => { if (active) startSwipe.current(); setSwiping(active); }), []);
+  useEffect(() => installNativeBack(active => {
+    if (active) { startSwipe.current(); setSwiping(swipeDestination.current); } else flushSync(() => setSwiping(null));
+  }), []);
   const inPlay = useRef(false);
   useEffect(() => { inPlay.current = view === 'game' || Boolean(lesson); }, [view, lesson]);
   useEffect(() => {
@@ -665,11 +669,12 @@ export default function SudokuGame() {
   const homeScreen = <Home state={homeState(homeGame)} game={homeGame} seconds={preferences.hideTimer ? null : homeData.seconds} learned={LESSON_BANDS.flatMap(band => band.lessons).filter(id => homeData.learned[id]).length}
       next={nextLesson(homeData.learned)} solved={homeData.solved} greeting={homeData.greeting} onContinue={continueGame} onPlay={playLevel} onLesson={id => openLesson(id, 'home')} onLearn={openLearn} onSettings={() => openSheet('settings')} onHistory={openHistory} onReplay={homeState(homeGame) === 'done' && replayOf(homeGame?.id) ? () => openReplay('home') : undefined} onInstall={installed || process.env.NEXT_PUBLIC_BUILD_TARGET === 'ios' ? undefined : () => openSheet('install')}
       notice={<>{error && <div className="notice" role="alert"><span>{error}</span><button onClick={() => setError('')} aria-label="Dismiss message"><Icon name="close" size={16}/></button></div>}{storageError && <p className="storage-warning" role="status">Saving is unavailable in this browser. Keep this tab open to continue your puzzle.</p>}</>}/>;
-  const swipeTarget = replayView ? replayView.from : historyData || learnOpen ? 'home' : lesson ? { hint: 'game', list: 'learn', home: 'home' }[lesson.from] : view === 'game' ? 'home' : null;
+  const swipeTarget = replayView ? replayView.from : historyData || learnOpen ? 'home' : lesson ? ({ hint: 'game', list: 'learn', home: 'home' } as const)[lesson.from] : view === 'game' ? 'home' : null;
+  useEffect(() => { swipeDestination.current = swipeTarget; });
   const swipeUnder = !swiping ? null
-    : swipeTarget === 'home' ? <div className="app swipe-under" inert aria-hidden="true">{homeScreen}</div>
-    : swipeTarget === 'learn' ? <div className="app swipe-under" inert aria-hidden="true"><LearnPage learned={learned} onOpen={() => {}} onExit={() => {}}/></div>
-    : swipeTarget === 'game' && gameCopy ? <SwipeCopy screen={gameCopy}/> : null;
+    : swiping === 'home' ? <div className="app swipe-under" inert aria-hidden="true">{homeScreen}</div>
+    : swiping === 'learn' ? <div className="app swipe-under" inert aria-hidden="true"><LearnPage learned={learned} onOpen={() => {}} onExit={() => {}}/></div>
+    : swiping === 'game' && gameCopy ? <SwipeCopy screen={gameCopy}/> : null;
   if (replayView && replaying && game) return <>{swipeUnder}<div className="app"><ReplayPage replay={replaying} givens={game.givens} solution={game.solution} level={game.difficulty} seconds={replayView.seconds} onExit={exitReplay}/></div></>;
   if (historyData) return <>{swipeUnder}<div className="app"><HistoryPage hideTimer={preferences.hideTimer} solves={historyData.solves} total={homeData.solved} today={historyData.today} onExit={exitHistory}/></div></>;
   if (learnOpen) return <>{swipeUnder}<div className="app"><LearnPage learned={learned} onOpen={id => openLesson(id, 'list')} onExit={exitLearn}/></div></>;

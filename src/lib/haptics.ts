@@ -7,7 +7,7 @@ let selection: Promise<void> | null = null;
 
 export function haptic(kind: Haptic) {
   if (!native) {
-    if (kind === 'tap') try { navigator.vibrate?.(8); } catch { /* Haptics are optional. */ }
+    if (kind === 'tap' || kind === 'unit' || kind === 'success') try { navigator.vibrate?.(8); } catch { /* Haptics are optional. */ }
     return;
   }
   native.then(async ({ Haptics, ImpactStyle, NotificationType }) => {

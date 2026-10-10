@@ -46,7 +46,7 @@ export function installNativeBack(onSwiping: (active: boolean) => void) {
     const finish = phase === 'end' && finishesSwipe({ offset, width: innerWidth, speed });
     place(finish ? innerWidth : 0, SETTLE);
     setTimeout(() => {
-      const end = () => { reset(); onSwiping(false); state = 'idle'; };
+      const end = () => { onSwiping(false); reset(); state = 'idle'; };
       if (finish) pressBack(end); else end();
     }, SETTLE_MS);
   };

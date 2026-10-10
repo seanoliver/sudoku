@@ -526,7 +526,7 @@ h1,h2,h3,p { margin: 0; }
 .group-row > span { flex: 1; text-align: left; }
 .group-row > svg:last-child { transform: rotate(-90deg); color: var(--secondary); }
 .privacy-policy p { font-size: 14px; line-height: 1.6; color: var(--secondary); margin: 6px 0 14px; }
-.privacy-policy h3 { font-size: 14px; font-weight: 600; color: var(--ink); margin-top: 18px; }
+.privacy-policy :is(h2, h3) { font-size: 14px; font-weight: 600; color: var(--ink); margin-top: 18px; }
 .privacy-policy a { color: var(--blue); }
 .privacy-policy .privacy-updated { font-size: 12px; }
 .privacy-page { max-width: 560px; margin: 0 auto; padding-top: calc(var(--safe-top) + 20px); }
