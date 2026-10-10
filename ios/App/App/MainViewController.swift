@@ -106,15 +106,18 @@ final class ProgressStore: NSObject, WKScriptMessageHandler {
         let backgrounded = UIApplication.shared.applicationState != .active
         queue.async {
             self.pending.updateValue(value, forKey: key)
-            if backgrounded { self.flush(); return }
+            guard !backgrounded else { return }
             guard !self.flushScheduled else { return }
             self.flushScheduled = true
-            self.queue.asyncAfter(deadline: .now() + 1) { self.flush() }
+            self.queue.asyncAfter(deadline: .now() + 15) { self.flush() }
         }
+        if backgrounded { flushNow() }
     }
 
     @objc private func flushNow() {
+        let task = UIApplication.shared.beginBackgroundTask(withName: "Save progress")
         queue.sync { flush() }
+        if task != .invalid { UIApplication.shared.endBackgroundTask(task) }
     }
 
     private func flush() {
