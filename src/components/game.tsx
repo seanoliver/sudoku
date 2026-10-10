@@ -74,7 +74,6 @@ const REJECTION_MS = 800;
 const CELEBRATION_STEP_MS = 45;
 const CELEBRATION_MS = 520;
 /** Manhattan distance between two cells on the 9x9 grid. */
-/** A copy of an earlier screen, drawn under the swipe that returns to it. */
 function SwipeCopy({ screen }: { screen: HTMLElement }) {
   const host = useRef<HTMLDivElement>(null);
   useLayoutEffect(() => {
@@ -172,7 +171,6 @@ export default function SudokuGame() {
     },
   });
   const [swiping, setSwiping] = useState(false);
-  // iOS swipe-back: a copy of the game screen as it was when a lesson or replay covered it, shown under the swipe that returns to it.
   const [gameCopy, setGameCopy] = useState<HTMLElement | null>(null);
   const copyGameScreen = () => { if (process.env.NEXT_PUBLIC_BUILD_TARGET === 'ios') setGameCopy(document.querySelector<HTMLElement>('.app:not(.swipe-under)')?.cloneNode(true) as HTMLElement ?? null); };
   useEffect(() => installNativeBack(setSwiping), []);
@@ -306,7 +304,6 @@ export default function SudokuGame() {
     try { localStorage.setItem(PREFS_KEY, JSON.stringify(next)); } catch { setStorageError(true); }
   };
   const openSheet = (next: Sheet) => { resetSelection(); setBlockedEntry(null); setCelebration(null); setSheet(next); dialog.current?.showModal(); };
-  /** Swaps the open sheet to another page, from its top, with focus on its close button. */
   const showSheetPage = (next: 'help' | 'privacy') => { setSheet(next); requestAnimationFrame(() => { dialog.current?.querySelector('.sheet-content')?.scrollTo?.(0, 0); dialog.current?.querySelector<HTMLButtonElement>('.sheet-close')?.focus(); }); };
   const closeSheet = useCallback(({ immediate = false }: { immediate?: boolean } = {}) => {
     const sheet = dialog.current;
@@ -660,7 +657,6 @@ export default function SudokuGame() {
   const homeScreen = <Home state={homeState(game)} game={game} seconds={preferences.hideTimer ? null : homeData.seconds} learned={LESSON_BANDS.flatMap(band => band.lessons).filter(id => homeData.learned[id]).length}
       next={nextLesson(homeData.learned)} solved={homeData.solved} greeting={homeData.greeting} onContinue={continueGame} onPlay={playLevel} onLesson={id => openLesson(id, 'home')} onLearn={openLearn} onSettings={() => openSheet('settings')} onHistory={openHistory} onReplay={homeState(game) === 'done' && replayOf(game?.id) ? () => openReplay('home') : undefined} onInstall={installed || process.env.NEXT_PUBLIC_BUILD_TARGET === 'ios' ? undefined : () => openSheet('install')}
       notice={<>{error && <div className="notice" role="alert"><span>{error}</span><button onClick={() => setError('')} aria-label="Dismiss message"><Icon name="close" size={16}/></button></div>}{storageError && <p className="storage-warning" role="status">Saving is unavailable in this browser. Keep this tab open to continue your puzzle.</p>}</>}/>;
-  // iOS swipe-back: a live, inert Home under the screen being swiped away, when Home is where it returns.
   const swipeTarget = replayView ? replayView.from : historyData || learnOpen ? 'home' : lesson ? { hint: 'game', list: 'learn', home: 'home' }[lesson.from] : view === 'game' ? 'home' : null;
   const swipeUnder = !swiping ? null
     : swipeTarget === 'home' ? <div className="app swipe-under" inert aria-hidden="true">{homeScreen}</div>

@@ -515,11 +515,9 @@ h1,h2,h3,p { margin: 0; }
 @keyframes alert-in { from { opacity: 0; transform: scale(.88); } }
 @keyframes alert-out { to { opacity: 0; transform: scale(.95); } }
 @keyframes cover-out { to { opacity: 0; } }
-/* iOS swipe-back: the screen being swiped away rides over a live, inert Home. */
 .swipe-under { position: fixed; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; }
 .swipe-under::after { content: ''; position: fixed; inset: 0; background: #000; opacity: var(--swipe-dim, .12); pointer-events: none; }
 .app.swiping { position: relative; z-index: 1; background: var(--canvas); box-shadow: -10px 0 30px #00000026; will-change: transform; }
-/* Settings ends in grouped rows, as in iOS Settings. */
 .setting-group { margin-top: 20px; border-radius: 14px; background: color-mix(in srgb, var(--ink) 4%, var(--surface)); padding: 0 14px; }
 .setting-group .setting-row { border-top: 0; padding: 14px 0; }
 .group-row { display: flex; align-items: center; gap: 14px; width: 100%; min-height: 50px; font-size: 14px; font-weight: 550; color: var(--ink); }

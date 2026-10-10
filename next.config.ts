@@ -1,6 +1,5 @@
 import type { NextConfig } from "next";
 
-// `BUILD_TARGET=ios` builds a static export for the Capacitor app; the default build is the Vercel site.
 const ios = process.env.BUILD_TARGET === "ios";
 
 const config: NextConfig = {

@@ -1,7 +1,6 @@
 import UIKit
 import Capacitor
 
-/// The app's web view controller. A swipe in from the left edge drives the web app's swipe-back, which follows the finger.
 class MainViewController: CAPBridgeViewController {
     override func capacitorDidLoad() {
         let edgeSwipe = UIScreenEdgePanGestureRecognizer(target: self, action: #selector(swipedBack(_:)))
