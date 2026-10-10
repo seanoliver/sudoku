@@ -24,7 +24,7 @@ Research date: 2026-10-09. Capacitor docs read at version v8 (current `latest` o
 3. **The plugin covers most of UIKit, but not all.** It exposes impact Light, Medium, and Heavy, all three notification types, and selection. It does not expose impact `.soft` or `.rigid`, or the `intensity` parameter. A small local Swift plugin can add those.
 4. **The service worker will not run inside the bundled app, and it does not need to.** WKWebView does not support service workers on custom schemes, and Capacitor serves bundled files from `capacitor://localhost`. The files are already on the device, so the app is offline by construction.
 5. **App Review is the main risk, not the tech.** Guideline 4.2 asks for more than "a repackaged website". Guideline 4.3(b) warns about categories that are already widely available. Sudoku is a crowded category. The guidelines do not list features that guarantee approval.
-6. **120Hz is not available to WKWebView content today.** A WebKit feature request for 120Hz in WKWebView is open and unresolved. JavaScript-driven animation (`motion`, `requestAnimationFrame`) will likely run near 60fps in the app.
+6. **120Hz is likely unavailable to WKWebView content.** Users report a cap near 60fps and there is no public switch; the WebKit feature request (bug 294338) is open with no ruling. JavaScript-driven animation (`motion`, `requestAnimationFrame`) will likely run near 60fps in the app. CSS transitions are untested.
 7. **Cost:** Apple Developer Program, $99 per year. TestFlight builds last 90 days.
 
 ## How it works
@@ -146,7 +146,7 @@ Capacitor core source read: `ios/Capacitor/Capacitor/CAPBridgeViewController.swi
 **ProMotion and 120Hz.**
 
 - Apple: `CADisableMinimumFrameDurationOnPhone` "allows your app to access frame rates higher than the system's default". Source: https://developer.apple.com/documentation/bundleresources/information-property-list/cadisableminimumframedurationonphone
-- WebKit bug 294338, "Feature Request: Allow WKWebView to Support 120Hz Refresh Rate on ProMotion Devices", status NEW, unresolved, last modified 2026-09-17. Commenters report WKWebView stays near 60fps even with that Info.plist key set, and that the only switch is an internal WebKit preference, `PreferPageRenderingUpdatesNear60FPSEnabled`, with no public API. Source: https://bugs.webkit.org/show_bug.cgi?id=294338 . These are user reports, not a WebKit statement.
+- WebKit bug 294338, "Feature Request: Allow WKWebView to Support 120Hz Refresh Rate on ProMotion Devices", status NEW, unresolved, last modified 2026-09-17. One commenter reports WKWebView stays near 60fps even with that Info.plist key set, and that the only switch is an internal WebKit preference, `PreferPageRenderingUpdatesNear60FPSEnabled`, with no public API. Source: https://bugs.webkit.org/show_bug.cgi?id=294338 . These are user reports, not a WebKit statement.
 - Native scrolling of the outer view is a UIKit scroll view, so it is not bound by the page's frame rate. Whether compositor-driven CSS transitions (transform, opacity) run at 120Hz inside WKWebView is UNVERIFIED. `motion` springs that run on `requestAnimationFrame` will likely run near 60fps.
 - Do not use private WebKit API to unlock 120Hz. Guideline 2.5.1 says "Apps may only use public APIs and must run on the currently shipping OS." It can also break on any iOS update.
 
@@ -165,7 +165,7 @@ Capacitor core source read: `ios/Capacitor/Capacitor/CAPBridgeViewController.swi
 
 - The v8 config docs: `server.url`, "Load an external URL in the Web View. This is intended for use with live-reload servers." and "This is not intended for use in production." Source: https://capacitorjs.com/docs/config .
 - Review: it is the closest match to "Websites served in an iOS app" (App Review page) and to "repackaged website" (4.2).
-- Offline: a service worker on the remote https origin in WKWebView needs App-Bound Domains (`WKAppBoundDomains`, up to 10 domains). WebKit's post says that with App-Bound Domains, outside those domains "JavaScript injection, custom style sheets, cookie manipulation, and message handler use is denied". Source: https://webkit.org/blog/10882/app-bound-domains/ (2020-06-26). That post does not mention service workers. The claim that App-Bound Domains enable service workers in WKWebView comes from a user comment in https://github.com/ionic-team/capacitor/issues/1270 , so treat it as UNVERIFIED. Capacitor's plugin bridge depends on message handlers, so this path is fragile.
+- Offline: a service worker on the remote https origin in WKWebView reportedly needs App-Bound Domains (UNVERIFIED, see below) (`WKAppBoundDomains`, up to 10 domains). WebKit's post says that with App-Bound Domains, outside those domains "JavaScript injection, custom style sheets, cookie manipulation, and message handler use is denied". Source: https://webkit.org/blog/10882/app-bound-domains/ (2020-06-26). That post does not mention service workers. The claim that App-Bound Domains enable service workers in WKWebView comes from a user comment in https://github.com/ionic-team/capacitor/issues/1270 , so treat it as UNVERIFIED. Capacitor's plugin bridge depends on message handlers, so this path is fragile.
 - Updates would be instant, which is the only advantage. It is not worth the review and offline risk for this app.
 
 **Storage.** Progress lives in `localStorage`. Safari's 7-day cap on script-writable storage is described for Safari, with home screen web apps on their own counter. Source: https://webkit.org/blog/10218/full-third-party-cookie-blocking-and-more/ (2020-03-24). That post does not mention WKWebView apps. Whether WKWebView storage in an app can be evicted under storage pressure is UNVERIFIED. If the owner wants stronger guarantees, `@capacitor/preferences` (native UserDefaults) is an option to evaluate later.
@@ -225,7 +225,7 @@ What this app uses, checked against that list:
 - The install card and `display-mode: standalone` logic (`game.tsx:225`, `globals.css:144`) assume a browser. Whether `display-mode: standalone` matches inside WKWebView is UNVERIFIED. Use a `native` class or `Capacitor.isNativePlatform()` instead.
 - `@vercel/analytics` would try to load `/_vercel/insights/script.js` from the bundle. Skip it on native, and answer App Privacy questions to match.
 - `Haptics.selectionChanged()` does nothing unless `selectionStart()` ran first.
-- The haptics plugin's web methods reject without `navigator.vibrate`. Call them only in the native build, or attach `.catch()`.
+- On the web without `navigator.vibrate`, the haptics plugin's `impact`, `notification`, `vibrate`, and `selectionChanged` reject (`selectionStart` and `selectionEnd` resolve). Call them only in the native build, or attach `.catch()`.
 - Swipe-back: WKWebView's built-in back gesture does not suit this app; see the device results below for the gesture that works.
 - Saved progress does not carry over. The app runs at `capacitor://localhost`, a different origin from sudoku.seanoliver.dev, so games, history, learned lessons, and preferences saved in the website's `localStorage` start fresh in the app unless an export and import, or a sync, is built.
 - Capacitor 8's iOS template sets `window?.rootViewController = CAPBridgeViewController()` in `SceneDelegate.swift`, so a custom controller named only in `Main.storyboard` never loads. Change that line too.
@@ -243,7 +243,7 @@ What this app uses, checked against that list:
   - The exported layout chunk still references `_vercel/insights/script.js`.
 - Read the Capacitor haptics Swift and web source and the `CAPBridgeViewController.swift` source directly on GitHub.
 - Checked npm dist-tags for `@capacitor/core` and `@capacitor/haptics` on 2026-10-09.
-- Not verified on a device by the research itself (the worker, safe areas, haptics, and swipe-back were later checked on a phone; see Device spike results): haptic latency, swipe-back with `pushState`, Web Worker under `capacitor://`, safe areas, callouts, 120Hz for CSS transitions, `display-mode` in WKWebView, WKWebView storage eviction.
+- Not verified on a device by the research itself (the worker, safe areas, haptics, and swipe-back were later checked on a phone; see Device spike results): haptic latency, swipe-back with `pushState`, Web Worker under `capacitor://`, safe areas, callouts, 120Hz for CSS transitions, `display-mode` in WKWebView (moot: the native build uses its own flag), WKWebView storage eviction.
 
 ## Device spike results (October 9)
 
