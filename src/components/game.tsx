@@ -89,7 +89,7 @@ export default function SudokuGame() {
   const [game, setGame] = useState<GameState | null>(null);
   const [selected, setSelected] = useState(0);
   const boardWrap = useRef<HTMLDivElement>(null);
-  const selectionTick = useRef(false);
+  const selectionTick = useRef({ selected: 0, count: 0 });
   const [focusedDigit, setFocusedDigit] = useState<number | null>(null);
   const [focusHoldLearned, setFocusHoldLearned] = useState(false);
   const [entry, setEntry] = useState<EntryModeState>(INITIAL_ENTRY_MODE);
@@ -173,8 +173,16 @@ export default function SudokuGame() {
   const [swiping, setSwiping] = useState(false);
   const [gameCopy, setGameCopy] = useState<HTMLElement | null>(null);
   const copyGameScreen = () => { if (process.env.NEXT_PUBLIC_BUILD_TARGET === 'ios') setGameCopy(document.querySelector<HTMLElement>('.app:not(.swipe-under)')?.cloneNode(true) as HTMLElement ?? null); };
-  useEffect(() => installNativeBack(setSwiping), []);
-  useEffect(() => { if (!selectionTick.current) { selectionTick.current = true; return; } if (view === 'game') haptic('select'); }, [selected, selection.indices.length, view, haptic]);
+  const startSwipe = useRef(() => {});
+  useEffect(() => { startSwipe.current = () => refreshHome(held ? held.game : game); });
+  useEffect(() => installNativeBack(active => { if (active) startSwipe.current(); setSwiping(active); }), []);
+  const inPlay = useRef(false);
+  useEffect(() => { inPlay.current = view === 'game' || Boolean(lesson); }, [view, lesson]);
+  useEffect(() => {
+    const last = selectionTick.current;
+    selectionTick.current = { selected, count: selection.indices.length };
+    if (inPlay.current && (selected !== last.selected || selection.indices.length > last.count)) haptic('select');
+  }, [selected, selection.indices.length, haptic]);
   const batchSelection = selection.indices.length > 0;
   const mode = activeMode(entry, { batch: batchSelection });
   const notesActive = mode !== 'value';
@@ -390,7 +398,6 @@ export default function SudokuGame() {
       const next = enter(game, { index: selected, value, pencil, exclude: excluding, blockIncorrectAnswers: preferences.blockIncorrectAnswers, filterNumberKeys: preferences.filterNumberKeys });
       if (next === game) return;
       setGame(next);
-      if (value) haptic('tap');
       if (value && !pencil && !excluding) setPlaced({ index: selected, id: ++placedId.current });
       // An active focus follows the number just placed, so its other placements are easy to scan.
       if (focusedDigit !== null && value && !pencil && !excluding) setFocusedDigit(value);
@@ -401,9 +408,9 @@ export default function SudokuGame() {
           const label = finished ? 'Puzzle complete' : celebrationLabel(units);
           const cells = finished ? [...Array(81).keys()] : [...new Set(units.flatMap(unit => unit.cells))];
           setCelebration({ id: ++celebrationId.current, origin: selected, cells, label });
-          haptic(finished ? 'success' : 'unit');
         }
-      }
+        haptic(finished ? 'success' : units.length ? 'unit' : 'tap');
+      } else if (value) haptic('tap');
     }
   };
   const step = (direction: Recovery['direction']) => {
@@ -578,7 +585,7 @@ export default function SudokuGame() {
   const openLesson = (id: LessonId, from: LessonState['from'] = 'hint') => {
     if (busy) return;
     // Returning from a hint's lesson shows the game without the hint, so the copy is taken after the hint closes.
-    if (from === 'hint') { flushSync(() => setHintState(null)); copyGameScreen(); }
+    if (from === 'hint' && process.env.NEXT_PUBLIC_BUILD_TARGET === 'ios') { flushSync(() => setHintState(null)); copyGameScreen(); }
     const start = practiceGame(LESSON_BANK[id][0], 0);
     hold(); setLearnOpen(false);
     setLesson({ id, from, phase: 'watch', board: 0, start, result: null, line: 0 });
@@ -654,8 +661,9 @@ export default function SudokuGame() {
   const lessonDone = lesson ? lesson.phase === 'done' ? lessonBoards.length - 1 : lesson.phase === 'practice' ? lesson.board - 1 + (lesson.result?.correct ? 1 : 0) : 0 : 0;
   const clockId = held ? held.game?.id : game?.id;
   const replaying = replayView && game ? replayOf(replayView.id) : undefined;
-  const homeScreen = <Home state={homeState(game)} game={game} seconds={preferences.hideTimer ? null : homeData.seconds} learned={LESSON_BANDS.flatMap(band => band.lessons).filter(id => homeData.learned[id]).length}
-      next={nextLesson(homeData.learned)} solved={homeData.solved} greeting={homeData.greeting} onContinue={continueGame} onPlay={playLevel} onLesson={id => openLesson(id, 'home')} onLearn={openLearn} onSettings={() => openSheet('settings')} onHistory={openHistory} onReplay={homeState(game) === 'done' && replayOf(game?.id) ? () => openReplay('home') : undefined} onInstall={installed || process.env.NEXT_PUBLIC_BUILD_TARGET === 'ios' ? undefined : () => openSheet('install')}
+  const homeGame = held ? held.game : game;
+  const homeScreen = <Home state={homeState(homeGame)} game={homeGame} seconds={preferences.hideTimer ? null : homeData.seconds} learned={LESSON_BANDS.flatMap(band => band.lessons).filter(id => homeData.learned[id]).length}
+      next={nextLesson(homeData.learned)} solved={homeData.solved} greeting={homeData.greeting} onContinue={continueGame} onPlay={playLevel} onLesson={id => openLesson(id, 'home')} onLearn={openLearn} onSettings={() => openSheet('settings')} onHistory={openHistory} onReplay={homeState(homeGame) === 'done' && replayOf(homeGame?.id) ? () => openReplay('home') : undefined} onInstall={installed || process.env.NEXT_PUBLIC_BUILD_TARGET === 'ios' ? undefined : () => openSheet('install')}
       notice={<>{error && <div className="notice" role="alert"><span>{error}</span><button onClick={() => setError('')} aria-label="Dismiss message"><Icon name="close" size={16}/></button></div>}{storageError && <p className="storage-warning" role="status">Saving is unavailable in this browser. Keep this tab open to continue your puzzle.</p>}</>}/>;
   const swipeTarget = replayView ? replayView.from : historyData || learnOpen ? 'home' : lesson ? { hint: 'game', list: 'learn', home: 'home' }[lesson.from] : view === 'game' ? 'home' : null;
   const swipeUnder = !swiping ? null
