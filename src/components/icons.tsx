@@ -1,6 +1,8 @@
 import type { CSSProperties } from 'react';
-export type IconName = 'clock' | 'filter' | 'restart' | 'shield' | 'sparkles' | 'focus' | 'fill' | 'undo' | 'erase' | 'pencil' | 'pause' | 'play' | 'plus' | 'chevron' | 'settings' | 'download' | 'check' | 'close' | 'help' | 'sun' | 'moon' | 'numbers' | 'exclude' | 'bulb' | 'learn' | 'home';
+export type IconName = 'haptics' | 'lock' | 'clock' | 'filter' | 'restart' | 'shield' | 'sparkles' | 'focus' | 'fill' | 'undo' | 'erase' | 'pencil' | 'pause' | 'play' | 'plus' | 'chevron' | 'settings' | 'download' | 'check' | 'close' | 'help' | 'sun' | 'moon' | 'numbers' | 'exclude' | 'bulb' | 'learn' | 'home';
 const paths: Record<IconName, React.ReactNode> = {
+  haptics: <><rect x="8" y="3" width="8" height="18" rx="2"/><path d="M4 9v6M20 9v6"/></>,
+  lock: <><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></>,
   clock: <><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></>,
   filter: <path d="M3 4h18l-7 8v8l-4-2v-6L3 4Z"/>,
   restart: <><path d="M3 10a9 9 0 1 1 2 8M3 4v6h6"/></>,

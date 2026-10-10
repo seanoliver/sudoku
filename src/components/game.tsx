@@ -1,11 +1,15 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, type KeyboardEvent } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore, type KeyboardEvent } from 'react';
+import { flushSync } from 'react-dom';
 import { createGame, restartGame, enter, toggleNotes, toggleExclusions, incorrectExclusions, batchHasMark, fillNotes, undo, redo, restore, isComplete, rejectEntry, SAVE_KEY, type GameState, type Rejection } from '@/lib/game';
 import { peers, getEntryDigits, completedUnits, celebrationLabel, type Difficulty, type Puzzle } from '@/lib/sudoku';
 import { candidateCells, excludedCells, getPlayableCandidates } from '@/lib/candidates';
 import { useNoteSelection } from './use-note-selection';
 import { useSheetDrag } from './use-sheet-drag';
+import { haptic as playHaptic, type Haptic } from '@/lib/haptics';
+import { PrivacyPolicy } from './privacy-policy';
+import { installNativeBack } from '@/lib/native-back';
 import { activeMode, beginBatch, selectMode, toggleMode, INITIAL_ENTRY_MODE, type EntryMode, type EntryModeState } from '@/lib/entry-mode';
 import { CellNotes } from './cell-notes';
 import * as m from 'motion/react-m';
@@ -35,7 +39,7 @@ import { THEME_COLOR } from '@/lib/theme-color';
 import { LessonBar, LessonDone, LessonFooter, LessonPrompt } from './lesson';
 import { GameBar } from './game-bar';
 
-type Sheet = 'restart' | 'new' | 'settings' | 'help' | 'install' | null;
+type Sheet = 'restart' | 'new' | 'settings' | 'help' | 'privacy' | 'install' | null;
 // The game gets its own history entry above Home, so the browser's back button returns Home.
 const GAME_ENTRY = 'sudokuGame';
 // A replay gets its own entry above whatever opened it, so Back closes it.
@@ -69,14 +73,24 @@ const LevelBars = ({ level }: { level: Difficulty }) => <span className="level-m
 const REJECTION_MS = 800;
 const CELEBRATION_STEP_MS = 45;
 const CELEBRATION_MS = 520;
-const buzz = () => { try { navigator.vibrate?.(8); } catch { /* Haptics are optional. */ } };
 /** Manhattan distance between two cells on the 9x9 grid. */
+/** A copy of an earlier screen, drawn under the swipe that returns to it. */
+function SwipeCopy({ screen }: { screen: HTMLElement }) {
+  const host = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    const copy = screen.cloneNode(true) as HTMLElement;
+    copy.querySelectorAll('[id]').forEach(element => element.removeAttribute('id'));
+    host.current?.replaceChildren(...copy.childNodes);
+  }, [screen]);
+  return <div ref={host} className="app swipe-under" inert aria-hidden="true"/>;
+}
 const distance = (a: number, b: number) => Math.abs(Math.floor(a / 9) - Math.floor(b / 9)) + Math.abs(a % 9 - b % 9);
 
 export default function SudokuGame() {
   const [game, setGame] = useState<GameState | null>(null);
   const [selected, setSelected] = useState(0);
   const boardWrap = useRef<HTMLDivElement>(null);
+  const selectionTick = useRef(false);
   const [focusedDigit, setFocusedDigit] = useState<number | null>(null);
   const [focusHoldLearned, setFocusHoldLearned] = useState(false);
   const [entry, setEntry] = useState<EntryModeState>(INITIAL_ENTRY_MODE);
@@ -90,6 +104,10 @@ export default function SudokuGame() {
   const [undoAnnouncement, setUndoAnnouncement] = useState({ id: 0, text: '' });
   const [difficulty, setDifficulty] = useState<Difficulty>('easy');
   const [preferences, setPreferences] = useState(DEFAULT_PREFS);
+  // Read through a ref so effects that play a cue do not rerun when the setting changes.
+  const hapticsOn = useRef(DEFAULT_PREFS.haptics);
+  useEffect(() => { hapticsOn.current = preferences.haptics; }, [preferences.haptics]);
+  const haptic = useCallback((kind: Haptic) => { if (hapticsOn.current) playHaptic(kind); }, []);
   const [offlineReady, setOfflineReady] = useState(false);
   const [installed, setInstalled] = useState(false);
   const [installEvent, setInstallEvent] = useState<InstallEvent | null>(null);
@@ -153,6 +171,12 @@ export default function SudokuGame() {
       try { localStorage.setItem(FOCUS_HINT_KEY, 'true'); } catch { /* The shortcut works without storage. */ }
     },
   });
+  const [swiping, setSwiping] = useState(false);
+  // iOS swipe-back: a copy of the game screen as it was when a lesson or replay covered it, shown under the swipe that returns to it.
+  const [gameCopy, setGameCopy] = useState<HTMLElement | null>(null);
+  const copyGameScreen = () => { if (process.env.NEXT_PUBLIC_BUILD_TARGET === 'ios') setGameCopy(document.querySelector<HTMLElement>('.app:not(.swipe-under)')?.cloneNode(true) as HTMLElement ?? null); };
+  useEffect(() => installNativeBack(setSwiping), []);
+  useEffect(() => { if (!selectionTick.current) { selectionTick.current = true; return; } if (view === 'game') haptic('select'); }, [selected, selection.indices.length, view, haptic]);
   const batchSelection = selection.indices.length > 0;
   const mode = activeMode(entry, { batch: batchSelection });
   const notesActive = mode !== 'value';
@@ -245,7 +269,7 @@ export default function SudokuGame() {
     window.addEventListener('beforeinstallprompt', onPrompt);
     window.addEventListener('appinstalled', onInstalled);
     let active = true;
-    if (process.env.NODE_ENV === 'production' && 'serviceWorker' in navigator) {
+    if (process.env.NODE_ENV === 'production' && process.env.NEXT_PUBLIC_BUILD_TARGET !== 'ios' && 'serviceWorker' in navigator) {
       navigator.serviceWorker.register('/sw.js').then(() => navigator.serviceWorker.ready).then(() => { if (active) setOfflineReady(true); }).catch(() => { /* Retry on the next visit; gameplay remains available. */ });
     }
     return () => { active = false; window.removeEventListener('beforeinstallprompt', onPrompt); window.removeEventListener('appinstalled', onInstalled); };
@@ -282,6 +306,8 @@ export default function SudokuGame() {
     try { localStorage.setItem(PREFS_KEY, JSON.stringify(next)); } catch { setStorageError(true); }
   };
   const openSheet = (next: Sheet) => { resetSelection(); setBlockedEntry(null); setCelebration(null); setSheet(next); dialog.current?.showModal(); };
+  /** Swaps the open sheet to another page, from its top, with focus on its close button. */
+  const showSheetPage = (next: 'help' | 'privacy') => { setSheet(next); requestAnimationFrame(() => { dialog.current?.querySelector('.sheet-content')?.scrollTo?.(0, 0); dialog.current?.querySelector<HTMLButtonElement>('.sheet-close')?.focus(); }); };
   const closeSheet = useCallback(({ immediate = false }: { immediate?: boolean } = {}) => {
     const sheet = dialog.current;
     if (!sheet?.open) return;
@@ -353,7 +379,7 @@ export default function SudokuGame() {
     const refusedCells = batchSelection && excluding && preferences.blockIncorrectAnswers ? incorrectExclusions(game, { indices: selection.indices, value }) : [];
     const refused = batchSelection ? refusedCells.length ? { kind: 'answer' as const, sources: [], unit: null } : null
       : rejectEntry(game, { index: selected, value, pencil, exclude: excluding, blockIncorrectAnswers: preferences.blockIncorrectAnswers, filterNumberKeys: filtering });
-    if (refused) { setBlockedEntry({ ...refused, cells: batchSelection ? selection.indices : [selected], value, exclusion: excluding, id: ++rejectionId.current }); return; }
+    if (refused) { haptic('error'); setBlockedEntry({ ...refused, cells: batchSelection ? selection.indices : [selected], value, exclusion: excluding, id: ++rejectionId.current }); return; }
     setBlockedEntry(null);
     if (batchSelection) {
       if (!value) { clearSelection(); return; }
@@ -361,13 +387,13 @@ export default function SudokuGame() {
       const next = excluding ? toggleExclusions(game, { ...batch, blockIncorrectAnswers: preferences.blockIncorrectAnswers }) : toggleNotes(game, batch);
       if (next === game) return;
       setGame(next);
-      buzz();
+      haptic('tap');
       clearSelection();
     } else {
       const next = enter(game, { index: selected, value, pencil, exclude: excluding, blockIncorrectAnswers: preferences.blockIncorrectAnswers, filterNumberKeys: preferences.filterNumberKeys });
       if (next === game) return;
       setGame(next);
-      if (value) buzz();
+      if (value) haptic('tap');
       if (value && !pencil && !excluding) setPlaced({ index: selected, id: ++placedId.current });
       // An active focus follows the number just placed, so its other placements are easy to scan.
       if (focusedDigit !== null && value && !pencil && !excluding) setFocusedDigit(value);
@@ -378,6 +404,7 @@ export default function SudokuGame() {
           const label = finished ? 'Puzzle complete' : celebrationLabel(units);
           const cells = finished ? [...Array(81).keys()] : [...new Set(units.flatMap(unit => unit.cells))];
           setCelebration({ id: ++celebrationId.current, origin: selected, cells, label });
+          haptic(finished ? 'success' : 'unit');
         }
       }
     }
@@ -505,6 +532,7 @@ export default function SudokuGame() {
     if (!game) return;
     let seconds: number | null = null;
     try { seconds = preferences.hideTimer ? null : savedSeconds(localStorage.getItem(CLOCK_KEY), game.id); } catch { /* The time is optional. */ }
+    if (from === 'game') copyGameScreen();
     setReplayView({ id: game.id, from, seconds });
     window.history.pushState({ [REPLAY_ENTRY]: PAGE_LOAD, ...(inGameEntry() ? { [GAME_ENTRY]: PAGE_LOAD } : {}) }, '');
     focusAfterRender.current = '.replay-play';
@@ -552,6 +580,8 @@ export default function SudokuGame() {
   }, [learnOpen]);
   const openLesson = (id: LessonId, from: LessonState['from'] = 'hint') => {
     if (busy) return;
+    // Returning from a hint's lesson shows the game without the hint, so the copy is taken after the hint closes.
+    if (from === 'hint') { flushSync(() => setHintState(null)); copyGameScreen(); }
     const start = practiceGame(LESSON_BANK[id][0], 0);
     hold(); setLearnOpen(false);
     setLesson({ id, from, phase: 'watch', board: 0, start, result: null, line: 0 });
@@ -627,18 +657,25 @@ export default function SudokuGame() {
   const lessonDone = lesson ? lesson.phase === 'done' ? lessonBoards.length - 1 : lesson.phase === 'practice' ? lesson.board - 1 + (lesson.result?.correct ? 1 : 0) : 0 : 0;
   const clockId = held ? held.game?.id : game?.id;
   const replaying = replayView && game ? replayOf(replayView.id) : undefined;
-  if (replayView && replaying && game) return <div className="app"><ReplayPage replay={replaying} givens={game.givens} solution={game.solution} level={game.difficulty} seconds={replayView.seconds} onExit={exitReplay}/></div>;
-  if (historyData) return <div className="app"><HistoryPage hideTimer={preferences.hideTimer} solves={historyData.solves} total={homeData.solved} today={historyData.today} onExit={exitHistory}/></div>;
-  if (learnOpen) return <div className="app"><LearnPage learned={learned} onOpen={id => openLesson(id, 'list')} onExit={exitLearn}/></div>;
+  const homeScreen = <Home state={homeState(game)} game={game} seconds={preferences.hideTimer ? null : homeData.seconds} learned={LESSON_BANDS.flatMap(band => band.lessons).filter(id => homeData.learned[id]).length}
+      next={nextLesson(homeData.learned)} solved={homeData.solved} greeting={homeData.greeting} onContinue={continueGame} onPlay={playLevel} onLesson={id => openLesson(id, 'home')} onLearn={openLearn} onSettings={() => openSheet('settings')} onHistory={openHistory} onReplay={homeState(game) === 'done' && replayOf(game?.id) ? () => openReplay('home') : undefined} onInstall={installed || process.env.NEXT_PUBLIC_BUILD_TARGET === 'ios' ? undefined : () => openSheet('install')}
+      notice={<>{error && <div className="notice" role="alert"><span>{error}</span><button onClick={() => setError('')} aria-label="Dismiss message"><Icon name="close" size={16}/></button></div>}{storageError && <p className="storage-warning" role="status">Saving is unavailable in this browser. Keep this tab open to continue your puzzle.</p>}</>}/>;
+  // iOS swipe-back: a live, inert Home under the screen being swiped away, when Home is where it returns.
+  const swipeTarget = replayView ? replayView.from : historyData || learnOpen ? 'home' : lesson ? { hint: 'game', list: 'learn', home: 'home' }[lesson.from] : view === 'game' ? 'home' : null;
+  const swipeUnder = !swiping ? null
+    : swipeTarget === 'home' ? <div className="app swipe-under" inert aria-hidden="true">{homeScreen}</div>
+    : swipeTarget === 'learn' ? <div className="app swipe-under" inert aria-hidden="true"><LearnPage learned={learned} onOpen={() => {}} onExit={() => {}}/></div>
+    : swipeTarget === 'game' && gameCopy ? <SwipeCopy screen={gameCopy}/> : null;
+  if (replayView && replaying && game) return <>{swipeUnder}<div className="app"><ReplayPage replay={replaying} givens={game.givens} solution={game.solution} level={game.difficulty} seconds={replayView.seconds} onExit={exitReplay}/></div></>;
+  if (historyData) return <>{swipeUnder}<div className="app"><HistoryPage hideTimer={preferences.hideTimer} solves={historyData.solves} total={homeData.solved} today={historyData.today} onExit={exitHistory}/></div></>;
+  if (learnOpen) return <>{swipeUnder}<div className="app"><LearnPage learned={learned} onOpen={id => openLesson(id, 'list')} onExit={exitLearn}/></div></>;
   const gameMeta = <>
     <button className="difficulty-button" disabled={busy} onClick={() => { setDifficulty(game?.difficulty ?? 'easy'); openSheet('new'); }} aria-label={`Difficulty: ${game?.difficulty ?? 'easy'}. Start a new puzzle`}><LevelBars level={game?.difficulty ?? 'easy'}/><span className="capitalize">{game?.difficulty ?? 'easy'}</span><Icon name="chevron" size={14}/></button>
     <div className="time-controls">{clockId ? <Clock key={clockId} id={clockId} resetRevision={clockResetRevision} hidden={preferences.hideTimer} running={!paused && !sheet && !busy && !complete && !away}/> : <span className="clock">00:00</span>}<button className="pause-button" aria-label={paused ? 'Resume game' : 'Pause game'} disabled={busy || complete || !game} onClick={() => { resetSelection(); setBlockedEntry(null); setCelebration(null); setPaused(value => !value); }}><Icon name={paused ? 'play' : 'pause'} size={15}/></button></div>
   </>;
   const onHome = view === 'home' && !lesson;
-  return <div className="app" onKeyDown={onHome ? undefined : handleKey}>
-    {onHome ? busy && !game ? <header className="app-bar"><h1 className="brand"><AppMark small/><span>Sudoku</span></h1></header> : <Home state={homeState(game)} game={game} seconds={preferences.hideTimer ? null : homeData.seconds} learned={LESSON_BANDS.flatMap(band => band.lessons).filter(id => homeData.learned[id]).length}
-      next={nextLesson(homeData.learned)} solved={homeData.solved} greeting={homeData.greeting} onContinue={continueGame} onPlay={playLevel} onLesson={id => openLesson(id, 'home')} onLearn={openLearn} onSettings={() => openSheet('settings')} onHistory={openHistory} onReplay={homeState(game) === 'done' && replayOf(game?.id) ? () => openReplay('home') : undefined} onInstall={installed ? undefined : () => openSheet('install')}
-      notice={<>{error && <div className="notice" role="alert"><span>{error}</span><button onClick={() => setError('')} aria-label="Dismiss message"><Icon name="close" size={16}/></button></div>}{storageError && <p className="storage-warning" role="status">Saving is unavailable in this browser. Keep this tab open to continue your puzzle.</p>}</>}/> : <>
+  return <>{swipeUnder}<div className="app" onKeyDown={onHome ? undefined : handleKey}>
+    {onHome ? busy && !game ? <header className="app-bar"><h1 className="brand"><AppMark small/><span>Sudoku</span></h1></header> : homeScreen : <>
     {lesson && <LessonBar name={lessonName(lesson.id)} done={lessonDone} current={lesson.phase === 'practice' ? lesson.board - 1 : null} count={lessonBoards.length - 1} back={{ hint: 'Your game', list: 'Learn', home: 'Home' }[lesson.from]} onExit={exitLesson}/>}
     {/* Lessons hide the bar but keep it mounted, so the clock is never remounted. */}
     <GameBar meta={gameMeta} hidden={Boolean(lesson)} onHome={leaveGame} homeDisabled={busy} onHint={() => { focusAfterRender.current = HINT_STRIP_FOCUS; showHint(); }} hintDisabled={!game || complete || paused || busy} onSettings={() => openSheet('settings')}/>
@@ -747,10 +784,11 @@ export default function SudokuGame() {
             <button className="puzzle-action" disabled={!game || busy} onClick={() => openSheet('restart')}><Icon name="restart" size={23}/><span>Restart puzzle</span></button>
             <button className="puzzle-action secondary-puzzle-action" disabled={!game || paused || busy || complete} onClick={() => { setGame(current => current ? fillNotes(current) : current); closeSheet(); }}><Icon name="fill" size={20}/><span>Fill notes</span></button>
           </div>
-<div className="setting-section"><h3>Appearance</h3><div className="segmented">{(['system','light','dark'] as Theme[]).map(theme => <button key={theme} aria-pressed={preferences.theme === theme} className={preferences.theme === theme ? 'active' : ''} onClick={() => updatePreferences({ theme })}><span className="capitalize">{theme}</span></button>)}</div></div><div className="setting-row"><Icon name="shield" size={21}/><div className="setting-copy"><strong>Block incorrect answers</strong><p>Refuse wrong numbers, and crossing out right ones</p></div><button className="switch" role="switch" aria-checked={preferences.blockIncorrectAnswers} aria-label="Block incorrect answers" onClick={() => updatePreferences({ blockIncorrectAnswers: !preferences.blockIncorrectAnswers })}><span/></button></div><div className="setting-row"><Icon name="fill" size={21}/><div className="setting-copy"><strong>Highlight related cells</strong><p>Follow the row, column, and box</p></div><button className="switch" role="switch" aria-checked={preferences.highlightPeers} aria-label="Highlight related cells" onClick={() => updatePreferences({ highlightPeers: !preferences.highlightPeers })}><span/></button></div><div className="setting-row"><Icon name="sparkles" size={21}/><div className="setting-copy"><strong>Smart highlighting</strong><p>Select a filled cell to see where its number could go</p></div><button className="switch" role="switch" aria-checked={preferences.smartHighlighting} aria-label="Smart highlighting" onClick={() => updatePreferences({ smartHighlighting: !preferences.smartHighlighting })}><span/></button></div><div className="setting-row"><Icon name="filter" size={21}/><div className="setting-copy"><strong>Filter number keys</strong><p id="filter-setting-description">Dim numbers already in this row, column, or box.</p></div><button className="switch" role="switch" aria-checked={preferences.filterNumberKeys} aria-label="Filter number keys" aria-describedby="filter-setting-description" onClick={() => { setBlockedEntry(null); updatePreferences({ filterNumberKeys: !preferences.filterNumberKeys }); }}><span/></button></div><div className="setting-row"><Icon name="clock" size={21}/><div className="setting-copy"><strong>Hide timer</strong><p id="hide-timer-description">Keep tracking time without showing it.</p></div><button className="switch" role="switch" aria-checked={preferences.hideTimer} aria-label="Hide timer" aria-describedby="hide-timer-description" onClick={() => updatePreferences({ hideTimer: !preferences.hideTimer })}><span/></button></div><button className="text-button full-width help-action" onClick={() => { setSheet('help'); requestAnimationFrame(() => { dialog.current?.querySelector('.sheet-content')?.scrollTo?.(0, 0); dialog.current?.querySelector<HTMLButtonElement>('.sheet-close')?.focus(); }); }}><Icon name="help" size={16}/><span>How to play</span></button><p className="privacy-note">Your puzzles and preferences stay on this device.</p></>}
+<div className="setting-section"><h3>Appearance</h3><div className="segmented">{(['system','light','dark'] as Theme[]).map(theme => <button key={theme} aria-pressed={preferences.theme === theme} className={preferences.theme === theme ? 'active' : ''} onClick={() => updatePreferences({ theme })}><span className="capitalize">{theme}</span></button>)}</div></div><div className="setting-row"><Icon name="shield" size={21}/><div className="setting-copy"><strong>Block incorrect answers</strong><p>Refuse wrong numbers, and crossing out right ones</p></div><button className="switch" role="switch" aria-checked={preferences.blockIncorrectAnswers} aria-label="Block incorrect answers" onClick={() => updatePreferences({ blockIncorrectAnswers: !preferences.blockIncorrectAnswers })}><span/></button></div><div className="setting-row"><Icon name="fill" size={21}/><div className="setting-copy"><strong>Highlight related cells</strong><p>Follow the row, column, and box</p></div><button className="switch" role="switch" aria-checked={preferences.highlightPeers} aria-label="Highlight related cells" onClick={() => updatePreferences({ highlightPeers: !preferences.highlightPeers })}><span/></button></div><div className="setting-row"><Icon name="sparkles" size={21}/><div className="setting-copy"><strong>Smart highlighting</strong><p>Select a filled cell to see where its number could go</p></div><button className="switch" role="switch" aria-checked={preferences.smartHighlighting} aria-label="Smart highlighting" onClick={() => updatePreferences({ smartHighlighting: !preferences.smartHighlighting })}><span/></button></div><div className="setting-row"><Icon name="filter" size={21}/><div className="setting-copy"><strong>Filter number keys</strong><p id="filter-setting-description">Dim numbers already in this row, column, or box.</p></div><button className="switch" role="switch" aria-checked={preferences.filterNumberKeys} aria-label="Filter number keys" aria-describedby="filter-setting-description" onClick={() => { setBlockedEntry(null); updatePreferences({ filterNumberKeys: !preferences.filterNumberKeys }); }}><span/></button></div><div className="setting-row"><Icon name="clock" size={21}/><div className="setting-copy"><strong>Hide timer</strong><p id="hide-timer-description">Keep tracking time without showing it.</p></div><button className="switch" role="switch" aria-checked={preferences.hideTimer} aria-label="Hide timer" aria-describedby="hide-timer-description" onClick={() => updatePreferences({ hideTimer: !preferences.hideTimer })}><span/></button></div>{process.env.NEXT_PUBLIC_BUILD_TARGET === 'ios' && <div className="setting-group"><div className="setting-row"><Icon name="haptics" size={21}/><div className="setting-copy"><strong>Haptics</strong></div><button className="switch" role="switch" aria-checked={preferences.haptics} aria-label="Haptics" onClick={() => updatePreferences({ haptics: !preferences.haptics })}><span/></button></div></div>}<div className="setting-group" role="group" aria-label="About"><button className="group-row" onClick={() => showSheetPage('help')}><Icon name="help" size={19}/><span>How to play</span><Icon name="chevron" size={14}/></button><button className="group-row" onClick={() => showSheetPage('privacy')}><Icon name="lock" size={19}/><span>Privacy</span><Icon name="chevron" size={14}/></button></div></>}
         {sheet === 'help' && <><div className="sheet-symbol"><Icon name="help" size={28}/></div><h2 id="sheet-title">Nine numbers. One rule.</h2><p className="sheet-subtitle">Fill every row, column, and 3 × 3 box with the numbers 1–9, using each number just once.</p><div className="help-row"><Icon name="pencil"/><div><h3>Room for a possibility</h3><p>Drag from an empty cell to select cells immediately, or hold an empty cell to begin. Drag across other empty cells, or tap them to add or remove them from your selection. A selection uses Notes, or Exclude when Exclude is chosen. Tap a number to apply it to every selected cell. Afterward you stay in Notes or Exclude, or return to Numbers if you started there. Choosing Numbers cancels the selection. If every selected cell already has that note or exclusion, tapping the number removes it from all of them. Tap a filled cell or press Escape to finish selecting. These actions leave your notes unchanged. For repeated note entry in one cell, choose Notes. Entering a number clears that note from related cells.</p></div></div><div className="help-row"><Icon name="bulb"/><div><h3>Stuck? Ask for a hint</h3><p>Tap the bulb for a hint. Each tap shows a little more: the technique, where to look, then a step-by-step walkthrough of why the move works. Apply makes the move for you.</p></div></div><div className="help-row"><Icon name="learn"/><div><h3>Learn every technique</h3><p>All techniques on Home opens a lesson for each one: watch it on a real board, then find it yourself on practice boards.</p></div></div><div className="help-row"><Icon name="undo"/><div><h3>Try things out</h3><p>Undo, beside Erase, takes back your last change, including notes. Redo restores an undone change. Both survive reopening; a new edit clears Redo. Erase clears your number or annotations from the selected cell, and dims when there is nothing to erase. The darker starting numbers stay in place.</p></div></div><div className="help-row"><Icon name="help"/><div><h3>Smart highlighting</h3><p>Enable Smart highlighting in Settings, then select a filled cell. Green cells show where its number is allowed by the current row, column, and box, excluding digits you have ruled out. Cells where you ruled it out turn faded red. These are possible placements, not guaranteed answers. Select an empty cell to clear the highlights when no digit is focused.</p></div></div><div className="help-row"><Icon name="help"/><div><h3>Keep a number in focus</h3><p>With a filled cell selected, tap a number in the number pad to focus that digit. With an empty cell selected, the number pad enters a value. You can also choose Focus on its number or hold a filled cell. Matching numbers and notes stay highlighted while you select empty cells or add notes. With Smart highlighting enabled, possible cells stay green too. Select another filled number to switch. Entering a number also switches focus to it. Clear focus stops focusing. Focus resets for a new puzzle or when you reopen the app.</p></div></div><div className="help-row"><Icon name="pencil"/><div><h3>Fill notes when you want</h3><p>Fill notes in Settings replaces notes in every empty cell with all possibilities allowed by placed numbers. Your crossed-out exclusions stay in place and are left out of the generated notes. Generated notes are blue; notes you edit use the normal text color. Undo restores the previous notes. Entering a number clears matching notes and exclusions from related cells. Notes do not otherwise update automatically.</p></div></div><div className="help-row"><Icon name="pencil"/><div><h3>Record what you rule out</h3><p>Choose Exclude and tap a number to cross it out in a cell. Tap again to clear it. Exclusions also remove that cell from Smart highlighting for that number. They never trigger deductions in other cells.</p></div></div><div className="help-row"><Icon name="filter"/><div><h3>Filter number keys</h3><p>Enable Filter number keys in Settings to dim numbers already in the selected cell’s row, column, or box, in every mode. Tapping or typing a dimmed number, or one with all nine placed, focuses that number instead of entering it. Available numbers are possibilities; Block incorrect answers checks them against the solution separately.</p></div></div><div className="keyboard-help"><h3>Using a keyboard?</h3><p><kbd>↑ ↓ ← →</kbd> Move between cells</p><p><kbd>1–9</kbd> Enter a number <kbd>N</kbd> Notes</p><p><kbd>X</kbd> Exclude. Press the same key again for Numbers.</p><p><kbd>H</kbd> Hint <kbd>Esc</kbd> Close hint</p><p><kbd>⌫</kbd> Erase <kbd>⌘ / Ctrl Z</kbd> Undo</p><p><kbd>⌘ / Ctrl Shift Z</kbd> Redo</p></div><button className="primary-button full-width" onClick={() => closeSheet()}>Got it</button></>}
+        {sheet === 'privacy' && <><div className="sheet-symbol"><Icon name="lock" size={28}/></div><h2 id="sheet-title">Privacy</h2><PrivacyPolicy/></>}
         {sheet === 'install' && <><AppMark/><h2 id="sheet-title">A place on your home screen</h2><p className="sheet-subtitle">Open straight into Sudoku, with more space to play. Once ready, Sudoku works offline too.</p>{installed ? <p className="install-instructions">Sudoku is already installed.</p> : installEvent ? <button className="primary-button full-width" onClick={async () => { try { await installEvent.prompt(); const choice = await installEvent.userChoice; if (choice.outcome === 'accepted') closeSheet(); setInstallEvent(null); } catch { setInstallEvent(null); } }}>Install Sudoku</button> : <div className="install-instructions"><h3>On iPhone or iPad</h3><p>Open in Safari, tap the Share button, then choose <strong>Add to Home Screen</strong>.</p><h3>On Android or desktop</h3><p>Open your browser menu and choose <strong>Install app</strong> or <strong>Add to Home screen</strong>, when available.</p></div>}<p className="privacy-note">{offlineReady ? 'Your app is ready for offline play.' : 'Connect to the internet for the first visit. Offline play becomes available after the app finishes downloading.'}</p><button className="text-button full-width" onClick={() => closeSheet()}>Done</button></>}
       </div>
     </dialog>
-  </div>;
+  </div></>;
 }

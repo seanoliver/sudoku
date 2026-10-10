@@ -140,3 +140,17 @@ test.describe('with motion on, the shrunk game', () => {
     expect(await page.locator('.app').evaluate(element => getComputedStyle(element).backgroundColor)).not.toBe('rgba(0, 0, 0, 0)');
   });
 });
+
+test('Settings ends with How to play and Privacy rows, and each opens in the sheet', async ({ page }) => {
+  await openSettings(page);
+  await expect(page.getByRole('switch', { name: 'Haptics' })).toHaveCount(0);
+  const about = page.getByRole('group', { name: 'About' });
+  await about.getByRole('button', { name: 'Privacy' }).click();
+  await expect(page.locator('#sheet-title')).toHaveText('Privacy');
+  await expect(page.locator('.sheet-close')).toBeFocused();
+  await expect(sheet(page).getByRole('link', { name: "the project's GitHub issues" })).toHaveAttribute('href', 'https://github.com/seanoliver/sudoku/issues');
+  await page.getByRole('button', { name: 'Close dialog' }).click();
+  await openSettings(page);
+  await about.getByRole('button', { name: 'How to play' }).click();
+  await expect(page.locator('#sheet-title')).toHaveText('Nine numbers. One rule.');
+});

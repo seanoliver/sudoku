@@ -209,7 +209,6 @@ h1,h2,h3,p { margin: 0; }
 .number-pad .number-key.digit-finished { background: transparent; }.number-pad .number-key.digit-finished>span { color: var(--secondary); opacity: .35; }
 @media (hover: hover) { .number-pad .number-key.digit-finished:hover { background: transparent; } }
 .number-pad.mode-note .number-key,.number-pad.mode-exclude .number-key { display: grid; grid-template: repeat(3, 1fr) / repeat(3, 1fr); place-items: center; padding: 6px 12px; gap: 0; }.number-pad.mode-note .number-key>span,.number-pad.mode-exclude .number-key>span { font-size: 17px; line-height: 1; font-weight: 600; }.number-pad.mode-exclude .number-key>span::after { height: 1.5px; margin-top: -.75px; }
-.help-action { display: flex; align-items: center; justify-content: center; gap: 6px; }
 .digit-focus-bar.hint-strip { gap: 8px; padding-left: 12px; background: var(--hint-soft); }
 .hint-copy { display: flex; flex: 1; min-width: 0; align-items: center; gap: 8px; font-size: 13px; font-weight: 650; color: var(--ink); white-space: nowrap; }.hint-copy>span { overflow: hidden; text-overflow: ellipsis; }.hint-copy>svg { flex-shrink: 0; color: var(--hint); }
 .hint-action { flex-shrink: 0; min-height: 30px; padding: 0 12px; border-radius: 8px; background: var(--hint-strong); color: var(--surface); font-size: 13px; font-weight: 650; }
@@ -516,3 +515,22 @@ h1,h2,h3,p { margin: 0; }
 @keyframes alert-in { from { opacity: 0; transform: scale(.88); } }
 @keyframes alert-out { to { opacity: 0; transform: scale(.95); } }
 @keyframes cover-out { to { opacity: 0; } }
+/* iOS swipe-back: the screen being swiped away rides over a live, inert Home. */
+.swipe-under { position: fixed; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; }
+.swipe-under::after { content: ''; position: fixed; inset: 0; background: #000; opacity: var(--swipe-dim, .12); pointer-events: none; }
+.app.swiping { position: relative; z-index: 1; background: var(--canvas); box-shadow: -10px 0 30px #00000026; will-change: transform; }
+/* Settings ends in grouped rows, as in iOS Settings. */
+.setting-group { margin-top: 20px; border-radius: 14px; background: color-mix(in srgb, var(--ink) 4%, var(--surface)); padding: 0 14px; }
+.setting-group .setting-row { border-top: 0; padding: 14px 0; }
+.group-row { display: flex; align-items: center; gap: 14px; width: 100%; min-height: 50px; font-size: 14px; font-weight: 550; color: var(--ink); }
+.group-row + .group-row { border-top: 1px solid var(--line); }
+.group-row > svg:first-child { color: var(--secondary); }
+.group-row > span { flex: 1; text-align: left; }
+.group-row > svg:last-child { transform: rotate(-90deg); color: var(--secondary); }
+.privacy-policy p { font-size: 14px; line-height: 1.6; color: var(--secondary); margin: 6px 0 14px; }
+.privacy-policy h3 { font-size: 14px; font-weight: 600; color: var(--ink); margin-top: 18px; }
+.privacy-policy a { color: var(--blue); }
+.privacy-policy .privacy-updated { font-size: 12px; }
+.privacy-page { max-width: 560px; margin: 0 auto; padding-top: calc(var(--safe-top) + 20px); }
+.privacy-page .lesson-back { text-decoration: none; }
+.privacy-page h1 { font-size: 30px; letter-spacing: -.6px; margin: 18px 0 10px; }

@@ -19,10 +19,10 @@ test('filtering starts on for new players, and a saved preference from before it
   assert.equal(DEFAULT_PREFS.filterNumberKeys, true);
   const legacy = { theme: 'dark', blockIncorrectAnswers: false, highlightPeers: false, smartHighlighting: true };
   for (const flag of [undefined, null, 1, 'true']) {
-    assert.deepEqual(restorePreferences(JSON.stringify({ ...legacy, filterNumberKeys: flag })), { ...legacy, filterNumberKeys: false, hideTimer: false });
+    assert.deepEqual(restorePreferences(JSON.stringify({ ...legacy, filterNumberKeys: flag })), { ...legacy, filterNumberKeys: false, hideTimer: false, haptics: true });
   }
   for (const enabled of [true, false]) {
-    const prefs = { ...legacy, filterNumberKeys: enabled, hideTimer: false };
+    const prefs = { ...legacy, filterNumberKeys: enabled, hideTimer: false, haptics: true };
     assert.deepEqual(restorePreferences(JSON.stringify(prefs)), prefs);
   }
 });

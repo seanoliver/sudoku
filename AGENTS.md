@@ -22,6 +22,13 @@ Repository workflows live in `.claude/skills/`. Read the matching `SKILL.md` bef
 - `recording-playtest-notes`: Sean's playtest feedback into `docs/playtests/` and the roadmap.
 - `syncing-docs`: bring README, ROADMAP, AGENTS.md, and skills in line with the app.
 
+## iOS app
+
+- The iPhone app is a Capacitor wrapper around a static export of the same code. `pnpm build` builds the website; `pnpm build:ios` exports to `out/` and syncs it into `ios/`. Open `ios/App/App.xcodeproj` in Xcode to run it on a device.
+- Code that should exist only in the app checks `process.env.NEXT_PUBLIC_BUILD_TARGET === 'ios'`, so the website's bundle leaves it out.
+- Capacitor 8's `SceneDelegate` creates the root view controller in code. Native changes go in `MainViewController`, which `SceneDelegate` uses.
+- Background: `docs/investigations/2026-10-09-ios-wrapper.md`.
+
 ## Deployment
 
 - Production URL: `https://sudoku.seanoliver.dev`.
