@@ -55,6 +55,7 @@ final class ProgressStore: NSObject, WKScriptMessageHandler {
         guard (try? fileManager.createDirectory(at: folder, withIntermediateDirectories: true)) != nil else { return nil }
         super.init()
         NotificationCenter.default.addObserver(self, selector: #selector(flushNow), name: UIApplication.didEnterBackgroundNotification, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(flushNow), name: UIScene.didEnterBackgroundNotification, object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(flushNow), name: UIApplication.willTerminateNotification, object: nil)
     }
 
@@ -71,7 +72,6 @@ final class ProgressStore: NSObject, WKScriptMessageHandler {
         return values
     }
 
-    /// Runs before the page's own scripts: refills any key the web view lost, sends keys this copy is missing, then mirrors every later write.
     func restoreScript() -> String {
         let json = (try? JSONSerialization.data(withJSONObject: saved())).flatMap { String(data: $0, encoding: .utf8) } ?? "{}"
         return """
@@ -79,15 +79,23 @@ final class ProgressStore: NSObject, WKScriptMessageHandler {
           var ours = function (key) { return typeof key === 'string' && key.indexOf('sudoku.') === 0; };
           var post = function (key, value) { try { webkit.messageHandlers.\(ProgressStore.handlerName).postMessage({ key: key, value: value }); } catch (e) {} };
           try {
-            Object.keys(saved).forEach(function (key) { if (localStorage.getItem(key) === null) localStorage.setItem(key, saved[key]); });
+            var wiped = true;
+            for (var j = 0; j < localStorage.length; j++) if (ours(localStorage.key(j))) wiped = false;
+            if (wiped) Object.keys(saved).forEach(function (key) { localStorage.setItem(key, saved[key]); });
             for (var i = 0; i < localStorage.length; i++) {
               var key = localStorage.key(i), value = localStorage.getItem(key);
               if (ours(key) && saved[key] !== value) post(key, value);
             }
           } catch (e) {}
-          var setItem = Storage.prototype.setItem, removeItem = Storage.prototype.removeItem;
+          var setItem = Storage.prototype.setItem, removeItem = Storage.prototype.removeItem, clear = Storage.prototype.clear;
           Storage.prototype.setItem = function (key, value) { setItem.call(this, key, value); if (this === window.localStorage && ours(key)) post(key, String(value)); };
           Storage.prototype.removeItem = function (key) { removeItem.call(this, key); if (this === window.localStorage && ours(key)) post(key, null); };
+          Storage.prototype.clear = function () {
+            var keys = [];
+            if (this === window.localStorage) for (var k = 0; k < this.length; k++) if (ours(this.key(k))) keys.push(this.key(k));
+            clear.call(this);
+            keys.forEach(function (key) { post(key, null); });
+          };
         })(\(json));
         """
     }
@@ -95,8 +103,10 @@ final class ProgressStore: NSObject, WKScriptMessageHandler {
     func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
         guard let body = message.body as? [String: Any], let key = body["key"] as? String, ProgressStore.isProgressKey(key) else { return }
         let value = body["value"] as? String
+        let backgrounded = UIApplication.shared.applicationState != .active
         queue.async {
             self.pending.updateValue(value, forKey: key)
+            if backgrounded { self.flush(); return }
             guard !self.flushScheduled else { return }
             self.flushScheduled = true
             self.queue.asyncAfter(deadline: .now() + 1) { self.flush() }
