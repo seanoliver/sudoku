@@ -44,8 +44,8 @@ export function WalkthroughPanel({ title, index, count, text, onStep, learn }: {
   useLayoutEffect(() => {
     const fit = () => {
       if (!panel.current || !sentence.current) return;
-      const footer = document.querySelector('.lesson-footer')?.getBoundingClientRect().top;
-      const app = document.querySelector('.app');
+      const footer = document.querySelector('.app:not(.swipe-under) .lesson-footer')?.getBoundingClientRect().top;
+      const app = document.querySelector('.app:not(.swipe-under)');
       const bottom = footer !== undefined ? footer - 12 : innerHeight - Math.max(12, app ? parseFloat(getComputedStyle(app).paddingBottom) : 0);
       const limit = bottom - panel.current.getBoundingClientRect().top;
       panel.current.style.maxHeight = `${Math.max(limit, panel.current.parentElement?.clientHeight ?? 0)}px`;

@@ -81,7 +81,7 @@ test('corrupt preferences fall back without throwing or preventing game restorat
     assert.deepEqual(restorePreferences(raw), DEFAULT_PREFS);
   }
   const prefs = { theme: 'dark', blockIncorrectAnswers: false, highlightPeers: false };
-  assert.deepEqual(restorePreferences(JSON.stringify(prefs)), { ...prefs, smartHighlighting: false, filterNumberKeys: false, hideTimer: false });
+  assert.deepEqual(restorePreferences(JSON.stringify(prefs)), { ...prefs, smartHighlighting: false, filterNumberKeys: false, hideTimer: false, haptics: true });
 });
 
 test('possible cells exclude the active digit’s row, column, box and occupied cells', () => {
@@ -124,10 +124,10 @@ test('smart highlighting starts on for new players and is restored without reset
   const prefs = { theme: 'dark', blockIncorrectAnswers: false, highlightPeers: false };
   for (const smartHighlighting of [true, false]) {
     const saved = { ...prefs, smartHighlighting };
-    assert.deepEqual(restorePreferences(JSON.stringify(saved)), { ...saved, filterNumberKeys: false, hideTimer: false });
+    assert.deepEqual(restorePreferences(JSON.stringify(saved)), { ...saved, filterNumberKeys: false, hideTimer: false, haptics: true });
   }
   for (const smartHighlighting of [undefined, null, 'true', 1]) {
-    assert.deepEqual(restorePreferences(JSON.stringify({ ...prefs, smartHighlighting })), { ...prefs, smartHighlighting: false, filterNumberKeys: false, hideTimer: false });
+    assert.deepEqual(restorePreferences(JSON.stringify({ ...prefs, smartHighlighting })), { ...prefs, smartHighlighting: false, filterNumberKeys: false, hideTimer: false, haptics: true });
   }
 });
 

@@ -9,5 +9,5 @@ export default defineConfig([
     { name: 'motion/react', importNames: ['m', 'motion'], message: "Use import * as m from 'motion/react-m'." },
     { name: 'motion/react-client', message: "Use import * as m from 'motion/react-m'." },
   ] }] } },
-  globalIgnores([".next/**", ".worktrees/**", "public/sw.js", "next-env.d.ts"]),
+  globalIgnores([".next/**", ".worktrees/**", "out/**", "ios/**", "public/sw.js", "next-env.d.ts"]),
 ]);

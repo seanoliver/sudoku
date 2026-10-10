@@ -1,4 +1,6 @@
 import type { MetadataRoute } from 'next';
+
+export const dynamic = 'force-static';
 import { THEME_COLOR } from '@/lib/theme-color';
 export default function manifest(): MetadataRoute.Manifest {
   return {
