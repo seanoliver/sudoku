@@ -27,6 +27,7 @@ Repository workflows live in `.claude/skills/`. Read the matching `SKILL.md` bef
 - The iPhone app is a Capacitor wrapper around a static export of the same code. `pnpm build` builds the website; `pnpm build:ios` exports to `out/` and syncs it into `ios/`. Open `ios/App/App.xcodeproj` in Xcode to run it on a device.
 - Code that should exist only in the app checks `process.env.NEXT_PUBLIC_BUILD_TARGET === 'ios'`, so the website's bundle leaves it out.
 - Capacitor 8's `SceneDelegate` creates the root view controller in code. Native changes go in `MainViewController`, which `SceneDelegate` uses.
+- `ProgressStore` in `MainViewController.swift` copies every `localStorage` key that starts with `sudoku.` to files in Application Support. When the web view has lost every such key, it puts them all back before the page loads. Keep new storage keys under that prefix and to letters, digits, `.`, `-`, and `_`, or the app can lose them when iOS clears web storage.
 - Background: `docs/investigations/2026-10-09-ios-wrapper.md`.
 
 ## Deployment

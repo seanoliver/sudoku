@@ -229,6 +229,7 @@ What this app uses, checked against that list:
 - Swipe-back: WKWebView's built-in back gesture does not suit this app; see the device results below for the gesture that works.
 - Saved progress does not carry over. The app runs at `capacitor://localhost`, a different origin from sudoku.seanoliver.dev, so games, history, learned lessons, and preferences saved in the website's `localStorage` start fresh in the app unless an export and import, or a sync, is built.
 - Capacitor 8's iOS template sets `window?.rootViewController = CAPBridgeViewController()` in `SceneDelegate.swift`, so a custom controller named only in `Main.storyboard` never loads. Change that line too.
+- iOS can clear web view storage when the phone runs low on space (Capacitor's storage guide: https://capacitorjs.com/docs/guides/storage). `ProgressStore` (#74) keeps a native copy. Its script must be added in `webView(with:configuration:)`: `prepareWebView` assigns its own `userContentController` after calling `webViewConfiguration(for:)`, and a script added through `webView.configuration` in `capacitorDidLoad` also never ran. Verified in the simulator: with the web storage folder deleted, a saved dark theme came back on launch; with both copies deleted, it did not.
 - Expect about 60fps for JS-driven animation inside the app. Do not reach for private API.
 - A privacy policy link is required in the app and in App Store Connect (5.1.1(i)).
 - Sudoku is a crowded category. Lead the submission notes and screenshots with what is different: graded techniques, hints that explain, lessons.
