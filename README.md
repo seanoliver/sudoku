@@ -1,12 +1,12 @@
-<a href="https://sudoku.seanoliver.dev"><img src="src/app/opengraph-image.png" alt="Sudoku: a color wrap hint walking through a chain of linked 4s on the board, beside the line “A calm Sudoku that teaches you every technique, one move at a time.”"></a>
+<a href="https://sudoku.seanoliver.dev"><img src="src/app/opengraph-image.png" alt="Sudoclue: a color wrap hint walking through a chain of linked 4s on the board, beside the line “A calm Sudoku that teaches you every technique, one move at a time.”"></a>
 
-**[Play Sudoku →](https://sudoku.seanoliver.dev)**
+**[Play Sudoclue →](https://sudoku.seanoliver.dev)**
 
-A small, free, mobile-friendly Sudoku PWA built with Next.js, React, and TypeScript. It grades every puzzle by the techniques it needs, gives hints that explain themselves one step at a time, and has a lesson for every technique. Things 3 inspired the restrained colors, system typography, controls, and interaction style.
+Sudoclue is a small, free, mobile-friendly Sudoku PWA built with Next.js, React, and TypeScript. It grades every puzzle by the techniques it needs, gives hints that explain themselves one step at a time, and has a lesson for every technique. Things 3 inspired the restrained colors, system typography, controls, and interaction style.
 
 | Home | Smart highlighting | Hints that explain | Learn |
 | :---: | :---: | :---: | :---: |
-| <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/readme-home-dark.png"><img src="docs/screenshots/readme-home.png" width="200" alt="Home screen: the Expert puzzle in progress with a Continue button, four difficulty levels, and the next lesson."></picture> | <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/readme-board-dark.png"><img src="docs/screenshots/readme-board.png" width="200" alt="An Expert board with 3 selected: green cells show where a 3 can still go, and one faded red cell is ruled out."></picture> | <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/readme-hint-dark.png"><img src="docs/screenshots/readme-hint.png" width="200" alt="An XY-wing hint walkthrough on step 4 of 4: the pivot and wings are ringed, the removed candidates are marked in red, with a link to learn XY-wing."></picture> | <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/readme-learn-dark.png"><img src="docs/screenshots/readme-learn.png" width="200" alt="The Learn page: lessons grouped from Easy to Expert, each with a small board diagram, five of them checked as learned."></picture> |
+| <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/readme-home-dark.png"><img src="docs/screenshots/readme-home.png" width="200" alt="Home screen: the Expert puzzle in progress with a Continue button, four difficulty levels, and the next lesson."></picture> | <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/readme-board-dark.png"><img src="docs/screenshots/readme-board.png" width="200" alt="An Expert board focused on 3: green cells show where a 3 can still go."></picture> | <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/readme-hint-dark.png"><img src="docs/screenshots/readme-hint.png" width="200" alt="An XY-wing hint walkthrough on step 4 of 4: the pivot and wings are ringed, the removed candidates are marked in red, with a button to learn XY-wing."></picture> | <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/readme-learn-dark.png"><img src="docs/screenshots/readme-learn.png" width="200" alt="The Learn page: lessons grouped from Easy to Expert, each with a small board diagram, five of them checked as learned."></picture> |
 
 ## Run
 
@@ -98,7 +98,7 @@ pnpm test:e2e
 - `src/components/home.tsx`, `learn-page.tsx`, `lesson.tsx`: Home, the lesson list, and a lesson.
 - `src/components/clock.tsx`: isolated timer updates; no per-second board rerender.
 - `scripts/build-sw.mjs`: versioned, atomic precache from the production output.
-- `scripts/icons.mjs`: regenerate bundled PNG app icons with `node scripts/icons.mjs`.
+- `scripts/icons.mjs`: regenerate the app icon, its PNGs, and the iOS icon and splash images with `node scripts/icons.mjs`.
 - `scripts/build-share-image.mjs`: regenerate the link preview image with `pnpm build:share-image`.
 
 Difficulty is graded by the hardest technique a puzzle needs (`DIFFICULTY_BANDS` in `src/lib/difficulty.ts`): Easy needs only naked singles, Medium hidden singles, Hard locked candidates and pairs, and Expert triples through coloring. Easy and Medium keep clue targets (42/34); Hard removes every removable clue. The generator draws seeded candidates until one rates in the band. Expert comes from the precomputed bank. Uniqueness always takes priority.

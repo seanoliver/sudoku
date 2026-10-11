@@ -174,7 +174,7 @@ test('Home’s secondary text stays readable in dark mode', async ({ page }) => 
 
 test('Home offers to install the app, and the card opens the install sheet', async ({ page }) => {
   await page.goto('/');
-  await page.getByRole('button', { name: /^Add Sudoku to your home screen/ }).focus();
+  await page.getByRole('button', { name: /^Add Sudoclue to Home Screen/ }).focus();
   await page.keyboard.press('Enter');
   await expect(page.getByRole('heading', { name: 'A place on your home screen' })).toBeVisible();
   await page.keyboard.press('Escape');

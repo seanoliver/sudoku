@@ -2,7 +2,7 @@ import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
   appId: 'dev.seanoliver.sudoku',
-  appName: 'Sudoku',
+  appName: 'Sudoclue',
   webDir: 'out',
   ios: { contentInset: 'never' },
 };
