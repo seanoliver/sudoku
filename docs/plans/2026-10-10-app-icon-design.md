@@ -10,5 +10,5 @@ Roadmap item: R9, part of the Sudoclue rebrand before TestFlight. On October 10 
 
 ## Files
 
-- `public/icon.svg` is the source. The PNGs, the maskable icon (glyph at 80% for the safe zone), the iOS app icon, and the iOS splash images are rendered from it.
+- `scripts/icons.mjs` draws the mark and writes `public/icon.svg`, the PNGs, the maskable icon (grid at 80% for the safe zone), the iOS app icon, and the iOS splash images.
 - `.app-mark` in `globals.css` draws the same mark in CSS for the header, the loading state, and the install sheet.

@@ -404,7 +404,8 @@ Captured from Sean on September 24. Long-term scope, modeled on the way Good Sud
 ### R12. Brand and identity
 
 - **Idea:** Rework the brand for the app's new direction: a powerful Sudoku that teaches you how to become an expert. Sean raised this on September 28, after Learn, hints, History, and speed replay shifted the app from a calm casual game toward teaching.
-- **Current identity:** the name "Sudoku", the blue four-square mark, the line "A calm Sudoku that teaches you every technique, one move at a time" (page metadata, link-preview image and its alt text, README), the desktop caption "A simple game. A little space to think.", and Home's greeting and headlines.
+- **Status:** On October 10 the name changed to Sudoclue and the mark to a lit cell on midnight ([naming](investigations/2026-10-09-rebrand.md), [icon design](plans/2026-10-10-app-icon-design.md)). The tagline, colors, type, and copy are unchanged.
+- **Identity before the rename:** the name "Sudoku", the blue four-square mark, the line "A calm Sudoku that teaches you every technique, one move at a time" (page metadata, link-preview image and its alt text, README), the desktop caption "A simple game. A little space to think.", and Home's greeting and headlines.
 - **Research:** Decide what carries the new positioning: the name, the mark and app icon, a tagline, color and type, and the tone of in-app copy. List every surface that shows the brand: the app icon and manifest, the install sheet, Home, the share and link-preview images, README, and the landing copy on seanoliver.dev.
 - **Output:** Three rendered brand directions, each shown on the app icon, Home, and the link-preview image, then a scope proposal.
 - **Moved to R13:** a single top row on the play screen for every phone, combining the app bar and the difficulty and timer row.
