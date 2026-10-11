@@ -176,7 +176,7 @@ test('Home offers to install the app, and the card opens the install sheet', asy
   await page.goto('/');
   await page.getByRole('button', { name: /^Add Sudoclue to Home Screen/ }).focus();
   await page.keyboard.press('Enter');
-  await expect(page.getByRole('heading', { name: 'A place on your home screen' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'A place on your Home Screen', exact: true })).toBeVisible();
   await page.keyboard.press('Escape');
   await expect(page.locator('.home-install')).toBeFocused();
 });
