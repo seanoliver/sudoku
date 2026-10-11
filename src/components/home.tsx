@@ -83,7 +83,7 @@ export function Home({ state, game, seconds, learned, next, solved, greeting, on
       </button>}
       {onInstall && <button className="home-install" onClick={onInstall}>
         <AppMark small/>
-        <span className="home-lesson-copy"><strong>Add Sudoclue to your home screen</strong><small>Opens in one tap and works offline</small></span>
+        <span className="home-lesson-copy"><strong>Add Sudoclue to Home Screen</strong><small>Opens in one tap and works offline</small></span>
         <Icon name="chevron" size={16}/>
       </button>}
     </main>

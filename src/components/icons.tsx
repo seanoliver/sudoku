@@ -34,5 +34,5 @@ export function Icon({ name, size = 22, style }: { name: IconName; size?: number
   return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={style}>{paths[name]}</svg>;
 }
 export function AppMark({ small = false }: { small?: boolean }) {
-  return <span className={`app-mark ${small ? 'small' : ''}`} aria-hidden="true"><i/><i/><i/><i/></span>;
+  return <span className={`app-mark ${small ? 'small' : ''}`} aria-hidden="true"><i/><i/><i/><i/><i/><i/><i/><i/><i/></span>;
 }
