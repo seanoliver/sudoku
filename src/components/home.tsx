@@ -42,7 +42,7 @@ export function Home({ state, game, seconds, learned, next, solved, greeting, on
   const clock = seconds === null ? '' : time(seconds);
   return <>
     <header className="app-bar">
-      <h1 className="brand"><AppMark small/><span>Sudoku</span></h1>
+      <h1 className="brand"><AppMark small/><span>Sudoclue</span></h1>
       <div className="app-actions"><button className="icon-button settings-button" aria-label="Settings" onClick={onSettings}><Icon name="settings"/></button></div>
     </header>
     <main className="game home">
@@ -83,7 +83,7 @@ export function Home({ state, game, seconds, learned, next, solved, greeting, on
       </button>}
       {onInstall && <button className="home-install" onClick={onInstall}>
         <AppMark small/>
-        <span className="home-lesson-copy"><strong>Add Sudoku to your home screen</strong><small>Opens in one tap and works offline</small></span>
+        <span className="home-lesson-copy"><strong>Add Sudoclue to your home screen</strong><small>Opens in one tap and works offline</small></span>
         <Icon name="chevron" size={16}/>
       </button>}
     </main>

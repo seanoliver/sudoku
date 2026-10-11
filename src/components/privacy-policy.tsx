@@ -2,7 +2,7 @@
 export function PrivacyPolicy({ headingLevel = 3 }: { headingLevel?: 2 | 3 } = {}) {
   const H = headingLevel === 2 ? 'h2' : 'h3';
   return <div className="privacy-policy">
-    <p>Sudoku has no accounts, and no server stores your puzzles or settings.</p>
+    <p>Sudoclue has no accounts, and no server stores your puzzles or settings.</p>
     <H>On your device</H>
     <p>Your puzzles, notes, history, lessons, and settings are saved on your device and are not sent anywhere, apart from your device&apos;s own backups. Deleting the app, or clearing the site&apos;s data in your browser, deletes them.</p>
     <H>The app</H>

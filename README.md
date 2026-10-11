@@ -1,8 +1,8 @@
-<a href="https://sudoku.seanoliver.dev"><img src="src/app/opengraph-image.png" alt="Sudoku: a color wrap hint walking through a chain of linked 4s on the board, beside the line “A calm Sudoku that teaches you every technique, one move at a time.”"></a>
+<a href="https://sudoku.seanoliver.dev"><img src="src/app/opengraph-image.png" alt="Sudoclue: a color wrap hint walking through a chain of linked 4s on the board, beside the line “A calm Sudoku that teaches you every technique, one move at a time.”"></a>
 
-**[Play Sudoku →](https://sudoku.seanoliver.dev)**
+**[Play Sudoclue →](https://sudoku.seanoliver.dev)**
 
-A small, free, mobile-friendly Sudoku PWA built with Next.js, React, and TypeScript. It grades every puzzle by the techniques it needs, gives hints that explain themselves one step at a time, and has a lesson for every technique. Things 3 inspired the restrained colors, system typography, controls, and interaction style.
+Sudoclue is a small, free, mobile-friendly Sudoku PWA built with Next.js, React, and TypeScript. It grades every puzzle by the techniques it needs, gives hints that explain themselves one step at a time, and has a lesson for every technique. Things 3 inspired the restrained colors, system typography, controls, and interaction style.
 
 | Home | Smart highlighting | Hints that explain | Learn |
 | :---: | :---: | :---: | :---: |
