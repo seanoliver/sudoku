@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { dayKey, levelStats, monthGrid, readSolves, recordSolve, streak, SOLVES_CAP, type Solve } from '../src/lib/solves.ts';
+import { dayKey, isNewBest, levelStats, monthGrid, readSolves, recordSolve, streak, SOLVES_CAP, type Solve } from '../src/lib/solves.ts';
 
 const givens = '5'.repeat(30) + '0'.repeat(51);
 const solve = (id: string, over: Partial<Solve> = {}): Solve => ({ id, difficulty: 'easy', seconds: 300, day: '2026-09-27', givens, ...over });
@@ -52,4 +52,12 @@ test('a month grid starts on its weekday and lists every day', () => {
 test('day keys use the local calendar date', () => {
   assert.equal(dayKey(new Date(2026, 8, 7, 23, 59)), '2026-09-07');
   assert.equal(dayKey(new Date(2026, 0, 1, 0, 0)), '2026-01-01');
+});
+
+test('only a strictly faster time is a new best', () => {
+  assert.equal(isNewBest(753, 754), true);
+  assert.equal(isNewBest(754, 754), false);
+  assert.equal(isNewBest(755, 754), false);
+  assert.equal(isNewBest(null, 754), false);
+  assert.equal(isNewBest(754, null), false);
 });
