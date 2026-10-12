@@ -46,10 +46,16 @@ export const answer = (board: number) => {
   const game = practiceGame(LESSON_BANK.pointing[board], board);
   return allSteps(game.values, getPlayableCandidates(game), 'locked-candidates').find(step => lessonOf(step) === 'pointing')!.eliminations;
 };
-export const footer = (page: Page) => page.locator('.lesson-footer');
-export const prompt = (page: Page) => page.locator('.lesson-prompt');
-/** A tap after reading the result: the footer ignores a second tap within 350 ms, as a double tap. */
-export const tapFooter = async (page: Page) => { await page.waitForTimeout(400); await footer(page).click(); };
+/** The lesson's one action: on the coach's state line, or in place of Next on a walkthrough's last step. */
+export const footer = (page: Page) => page.locator('.lesson-action');
+export const prompt = (page: Page) => page.locator('.lesson-coach-state [role="status"]');
+/** Steps to the end of any walkthrough, then taps the action after reading the result: the action ignores a second tap within 350 ms, as a double tap. */
+export const tapFooter = async (page: Page) => {
+  const next = page.locator('.lesson-coach .walk-next');
+  while (await next.count()) await next.click();
+  await page.waitForTimeout(400);
+  await footer(page).click();
+};
 export async function crossOut(page: Page, marks: { cell: number; digit: number }[]) {
   for (const { cell, digit } of marks) {
     await page.locator(`.board [data-index="${cell}"]`).click();

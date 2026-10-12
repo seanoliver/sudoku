@@ -65,11 +65,12 @@ h1,h2,h3,p { margin: 0; }
 .app:has(> .game-bar:not(.lesson-hidden)) { display: flex; flex-direction: column; }
 .app:has(> .game-bar:not(.lesson-hidden)) > .game.play { width: 100%; margin-top: auto; margin-bottom: auto; }
 /* --around-board: the height under the bar that is not the board (padding, focus strip, progress line, controls), less the board card's 16px padding. */
-:root { --game-width: 444px; --play-cap: calc(var(--game-width) + 16px); --around-board: 354px; --game-top: 28px; --game-bar-height: 56px; --above-play: var(--game-bar-height); --lesson-footer: 0px; --play-floor: 264px; }
-:root:has(.lesson-bar) { --above-play: calc(var(--bar-height) + var(--game-top)); --lesson-footer: 56px; --play-floor: 184px; }
+:root { --game-width: 444px; --play-cap: calc(var(--game-width) + 16px); --around-board: 354px; --game-top: 28px; --game-bar-height: 56px; --above-play: var(--game-bar-height); --play-floor: 264px; }
+/* --lesson-coach: how much taller a lesson's coach line is than the focus strip it replaces. */
+:root:has(.lesson-bar) { --above-play: calc(var(--bar-height) + var(--game-top)); --play-floor: 184px; --lesson-coach: 10px; }
 .game { max-width: var(--game-width); margin: var(--game-top) auto 0; }
 /* The bar and the card share one width. */
-:root { --play-size: max(var(--play-floor), min(var(--play-cap), calc(100svh - var(--around-board) - var(--above-play) - var(--lesson-footer) - var(--safe-top) - max(0px, var(--safe-bottom) - var(--pad-bottom))))); }
+:root { --play-size: max(var(--play-floor), min(var(--play-cap), calc(100svh - var(--around-board) - var(--lesson-coach, 0px) - var(--above-play) - var(--safe-top) - max(0px, var(--safe-bottom) - var(--pad-bottom))))); }
 .game.play { max-width: var(--play-size); }
 .difficulty-button { display: flex; align-items: center; gap: 8px; color: var(--secondary); font-size: 13px; font-weight: 550; min-height: 30px; }
 .capitalize { text-transform: capitalize; }
@@ -142,7 +143,7 @@ h1,h2,h3,p { margin: 0; }
 @media (max-width: 600px) and (max-height: 760px) {
   :root { --bar-height: 53px; }:root { --game-width: 354px; --around-board: 248px; --game-top: 8px; }.progress-line { margin-top: 7px; }
 }
-@media (max-width: 360px) { .app { padding-left: 12px; padding-right: 12px; }.cell-number,.rejected-digit { font-size: 23px; }.number-key>span { font-size: 23px; }.sheet-content { padding-left: 20px; padding-right: 20px; } }
+@media (max-width: 360px) {.app { padding-left: 12px; padding-right: 12px; }.cell-number,.rejected-digit { font-size: 23px; }.number-key>span { font-size: 23px; }.sheet-content { padding-left: 20px; padding-right: 20px; } }
 @media (max-width: 600px) and (max-height: 640px) { .progress-line { margin-top: 5px; } }
 @media (display-mode: standalone) { :root { --bar-height: 60px; } }
 @media (prefers-reduced-motion: reduce) { *,*::before,*::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; } }
@@ -162,8 +163,6 @@ h1,h2,h3,p { margin: 0; }
 
 .puzzle-panel { padding: 8px; border-radius: var(--radius-card-lg); background: var(--surface); box-shadow: 0 1px 2px #0000000d; }
 .puzzle-panel .board-wrap { box-shadow: none; }
-.puzzle-panel:has(.lesson-prompt) .board-wrap { border-top-left-radius: 0; border-top-right-radius: 0; }
-.puzzle-panel:has(.lesson-prompt) .board-row:first-child .cell-slot .cell { border-top-left-radius: 0; border-top-right-radius: 0; }
 .digit-focus-bar { height: 44px; display: flex; align-items: center; justify-content: space-between; border-radius: var(--radius-board); background: transparent; }
 .digit-focus-bar[inert] > * { visibility: hidden; }
 .focus-button,.digit-focus-label { display: flex; align-items: center; gap: 11px; padding: 0 14px; font-size: 12px; font-weight: 500; color: var(--ink); }.digit-focus-label { flex: 1; min-width: 0; }
@@ -249,13 +248,27 @@ h1,h2,h3,p { margin: 0; }
 .lesson-dots i { width: 7px; height: 7px; border-radius: 50%; background: var(--line); }
 .lesson-dots i.done { background: var(--green); }
 .lesson-dots i.now { background: var(--hint); }
-.lesson-prompt { height: 44px; display: flex; align-items: center; gap: 8px; padding: 0 12px; border: 1px solid var(--box-line); border-bottom: 0; border-radius: var(--radius-board) var(--radius-board) 0 0; background: var(--hint-soft); font-size: 14px; font-weight: 650; color: var(--ink); }
-.lesson-prompt > svg { flex-shrink: 0; color: var(--hint); }
-.lesson-prompt.correct { background: color-mix(in srgb, var(--green) 16%, var(--surface)); }
-.lesson-prompt.correct > svg { color: var(--green); }
-.lesson-prompt.wrong { background: var(--red-soft); }
-.lesson-prompt.wrong > svg { color: var(--red); }
-.lesson-footer { margin-top: 12px; }
+.lesson-coach { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 10px; padding: 2px 4px 4px; }
+.lesson-coach-state { display: flex; align-items: center; gap: 8px; min-height: 36px; font-size: 15px; font-weight: 650; }
+.lesson-coach-state > svg { flex: none; color: var(--hint); }
+/* Two lines still fit the row's 36px, so a narrow card can wrap the state without growing. */
+.lesson-coach-state > span { line-height: 1.2; }
+.controls-area:has(.lesson-coach) { container-type: inline-size; }
+.lesson-coach.correct .lesson-coach-state > svg { color: var(--green); }
+.lesson-coach.wrong .lesson-coach-state > svg { color: var(--red); }
+.lesson-coach-state .lesson-action { position: relative; margin-left: auto; height: 36px; min-height: 0; padding: 0 18px; font-size: 14px; }
+/* The pill is 36px tall; the tap area is 44px. */
+.lesson-coach-state .lesson-action::before { content: ''; position: absolute; inset: -4px 0; }
+.lesson-coach-text { margin: 0; font-size: 17px; line-height: 1.4; font-weight: 550; letter-spacing: -.015em; }
+@media (max-width: 600px) and (max-height: 760px) { .lesson-coach-text { font-size: 15px; line-height: 1.35; font-weight: 500; } }
+.lesson-coach .walk-actions .lesson-action { flex: 1; height: 44px; }
+.lesson-coach .walk-back svg { transform: rotate(90deg); }
+.controls-area:has(.lesson-coach.walking) > :not(.lesson-coach) { display: none; }
+.app:has(.lesson-bar) .progress-line { visibility: hidden; }
+.controls-area:has(.lesson-coach.correct) { background: color-mix(in srgb, var(--green) 10%, var(--surface)); }
+.controls-area:has(.lesson-coach.wrong) { background: color-mix(in srgb, var(--red) 7%, var(--surface)); }
+/* A container query, because on short screens the card is only as wide as the board. */
+@container (max-width: 260px) { .lesson-coach-state { gap: 6px; font-size: 14px; }.lesson-coach-state > svg { display: none; }.lesson-coach-state .lesson-action { padding: 0 10px; } }
 .lesson-done { position: absolute; top: 0; left: 0; right: 0; min-height: 100%; z-index: 5; display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 16px; border-radius: var(--radius-card-lg); background: color-mix(in srgb, var(--green) 12%, var(--surface)); text-align: center; }
 .lesson-done h2 { margin: 0; font-size: 18px; }
 .lesson-done p { margin: 2px 0 0; color: var(--muted); font-size: 14px; }
@@ -398,14 +411,15 @@ h1,h2,h3,p { margin: 0; }
 @media (prefers-reduced-motion: reduce) { .home-hero .home-board { animation: none; } }
 /* Folding phones open, laptops, and iPads in landscape. */
 @media (min-aspect-ratio: 5/4) and (min-height: 500px) and (max-height: 820px) {
-  /* 77px: the board card's padding and focus strip, the progress line, and the bottom padding, less the card's 16px padding. */
-  :root { --board: max(200px, min(576px, calc(100vw - 388px - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px)), calc(100svh - 77px - var(--above-play) - var(--safe-top) - max(0px, var(--safe-bottom) - var(--pad-bottom))))); --side-width: calc(var(--board) + 28px + 320px); }
+  /* 33px: the board card's padding, the progress line, and the bottom padding, less the card's 16px padding. A lesson has no focus strip. */
+  :root { --strip: 44px; --board: max(200px, min(576px, calc(100vw - 388px - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px)), calc(100svh - 33px - var(--strip) - var(--above-play) - var(--safe-top) - max(0px, var(--safe-bottom) - var(--pad-bottom))))); --side-width: calc(var(--board) + 28px + 320px); }
+  :root:has(.lesson-bar) { --strip: 0px; }
   .game-bar { max-width: var(--side-width); }
   .game.play { max-width: var(--side-width); display: grid; grid-template-columns: var(--board) 320px; column-gap: 28px; align-items: start; }
   .game.play > .puzzle-panel { grid-column: 1; grid-row: 1; }
   .game.play > .progress-line { grid-column: 1; grid-row: 2; }
   .game.play > .play-side { grid-column: 2; grid-row: 1 / span 2; align-self: center; display: flex; flex-direction: column; gap: 12px; }
-  .play-side > .controls-area, .play-side > .lesson-footer { margin-top: 0; }
+  .play-side > .controls-area { margin-top: 0; }
   .play-side > .completion { margin-top: 0; }
   .app:has(.game.play) .desktop-caption { display: none; }
 }
@@ -413,15 +427,14 @@ h1,h2,h3,p { margin: 0; }
 @media (max-height: 629px) and (aspect-ratio < 5/4), (min-width: 601px) and (max-height: 760px) and (aspect-ratio < 5/4) {
   /* 228px: everything under the bar but the board, less the card's 16px padding. */
   :root { --game-bar-height: 44px; --play-width: max(260px, min(var(--play-cap), calc(100svh - 228px - var(--game-bar-height) - var(--pad-bottom) - var(--safe-top) - max(0px, var(--safe-bottom) - var(--pad-bottom))))); }
-  /* A lesson keeps its header and adds a footer button. */
-  /* 280px: a lesson's non-board height below its header, less 16px. */
-  :root:has(.lesson-bar) { --play-width: max(var(--play-floor), min(var(--play-cap), calc(100svh - 280px - var(--bar-height) - var(--pad-bottom) - var(--safe-top) - max(0px, var(--safe-bottom) - var(--pad-bottom))))); }
+  /* 256px: a lesson's non-board height below its header, less 16px, with room for a five-line step. */
+  :root:has(.lesson-bar) { --play-width: max(var(--play-floor), min(var(--play-cap), calc(100svh - 256px - var(--bar-height) - var(--pad-bottom) - var(--safe-top) - max(0px, var(--safe-bottom) - var(--pad-bottom))))); }
   .game-bar { max-width: var(--play-width); }
   .app:has(.game.play) .desktop-caption { display: none; }
   .game.play { margin-top: 0; max-width: var(--play-width); }
   .game.play .progress-line { margin-top: 5px; }
-  .game.play :is(.digit-focus-bar, .lesson-prompt) { height: 36px; font-size: 12px; }
-  .lesson-footer { margin-top: 8px; }
+  .game.play .digit-focus-bar { height: 36px; font-size: 12px; }
+  .lesson-coach-text { font-size: 15px; line-height: 1.35; font-weight: 500; }
   .game.play .digit-focus-bar .clear-focus-button { width: 36px; height: 36px; min-height: 0; }
 }
 /* Landscape phones: too short for either layout, so the page scrolls. */
@@ -546,7 +559,7 @@ h1,h2,h3,p { margin: 0; }
 .privacy-page .lesson-back { text-decoration: none; }
 .privacy-page h1 { font-size: 30px; letter-spacing: -.6px; margin: 18px 0 10px; }
 /* While a lesson bar is on the page, the game copy under a swipe still needs the game's sizes. */
-.swipe-under { --above-play: var(--game-bar-height); --lesson-footer: 0px; --play-floor: 264px; --play-size: max(var(--play-floor), min(var(--play-cap), calc(100svh - var(--around-board) - var(--above-play) - var(--lesson-footer) - var(--safe-top) - max(0px, var(--safe-bottom) - var(--pad-bottom))))); }
+.swipe-under { --above-play: var(--game-bar-height); --play-floor: 264px; --play-size: max(var(--play-floor), min(var(--play-cap), calc(100svh - var(--around-board) - var(--above-play) - var(--safe-top) - max(0px, var(--safe-bottom) - var(--pad-bottom))))); }
 @media (max-height: 629px) and (aspect-ratio < 5/4), (min-width: 601px) and (max-height: 760px) and (aspect-ratio < 5/4) {
   .swipe-under { --play-width: max(260px, min(var(--play-cap), calc(100svh - 228px - var(--game-bar-height) - var(--pad-bottom) - var(--safe-top) - max(0px, var(--safe-bottom) - var(--pad-bottom))))); }
 }

@@ -1,7 +1,7 @@
 import { Icon } from './icons';
 import { inSentence } from '@/lib/lessons';
 
-export type LessonPromptState = 'watch' | 'practice' | 'correct' | 'wrong';
+export type CoachState = 'watch' | 'practice' | 'correct' | 'wrong';
 
 /** Replaces the app bar during a lesson: the way back, the technique, and practice progress. */
 export function LessonBar({ name, done, current, count, back, onExit }: { name: string; done: number; current: number | null; count: number; back: string; onExit: () => void }) {
@@ -15,15 +15,27 @@ export function LessonBar({ name, done, current, count, back, onExit }: { name: 
   </header>;
 }
 
-/** Sits where the hint strip does, so the board stays in the same place as in a game. */
-export function LessonPrompt({ name, state }: { name: string; state: LessonPromptState }) {
-  const lower = inSentence(name);
-  const [icon, text] = { watch: ['bulb', name], practice: ['bulb', `Find the ${lower}`], correct: ['check', `That’s the ${lower}`], wrong: ['close', 'Not quite'] }[state] as ['bulb' | 'check' | 'close', string];
-  return <div className={`lesson-prompt ${state}`} role="status"><Icon name={icon} size={18}/><span>{text}</span></div>;
-}
+const STATE: Record<CoachState, ['bulb' | 'check' | 'close', (technique: string) => string]> = {
+  watch: ['bulb', () => 'Watch how it works'], practice: ['bulb', technique => `Find the ${technique}`], correct: ['check', () => 'Found it'], wrong: ['close', () => 'Not quite'],
+};
+export type LessonAction = { label: string; disabled?: boolean; onClick: (at: number) => void };
+export type LessonWalk = { index: number; count: number; text: string; onStep: (index: number, at: number) => void };
 
-export function LessonFooter({ label, disabled = false, onClick }: { label: string; disabled?: boolean; onClick: (at: number) => void }) {
-  return <button className="primary-button full-width lesson-footer" disabled={disabled} onClick={event => onClick(event.timeStamp)}>{label}</button>;
+/** Under the board: what the lesson says and its one action. */
+export function LessonCoach({ name, state, walk, action }: { name: string; state: CoachState; walk: LessonWalk | null; action: LessonAction | null }) {
+  const [icon, text] = STATE[state];
+  const button = action && <button className="primary-button lesson-action" disabled={action.disabled} onClick={event => action.onClick(event.timeStamp)}>{action.label}</button>;
+  return <div className={`lesson-coach ${state} ${walk ? 'walking' : ''}`}>
+    <div className="lesson-coach-state"><Icon name={icon} size={17}/><span role="status">{text(inSentence(name))}</span>{!walk && button}</div>
+    {walk && <>
+      <div className="walk-progress" aria-hidden="true">{Array.from({ length: walk.count }, (_, k) => <i key={k} className={k <= walk.index ? 'done' : ''}/>)}</div>
+      <p className="lesson-coach-text">{walk.text}</p>
+      <div className="walk-actions">
+        <button className="walk-back" aria-label="Previous step" disabled={walk.index === 0} onClick={event => walk.onStep(walk.index - 1, event.timeStamp)}><Icon name="chevron" size={16}/></button>
+        {walk.index >= walk.count - 1 && button ? button : <button className="walk-next" aria-label="Next step" disabled={walk.index >= walk.count - 1} onClick={event => walk.onStep(walk.index + 1, event.timeStamp)}>Next</button>}
+      </div>
+    </>}
+  </div>;
 }
 
 /** Fills the controls area once every practice board is done. */

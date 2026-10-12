@@ -38,7 +38,7 @@ import { greeting, homeState, nextLesson, readSolved, solvedCount, savedSeconds,
 import { LESSON_BANK } from '@/lib/lesson-bank';
 import { findStep } from '@/lib/steps';
 import { THEME_COLOR } from '@/lib/theme-color';
-import { LessonBar, LessonDone, LessonFooter, LessonPrompt } from './lesson';
+import { LessonBar, LessonCoach, LessonDone } from './lesson';
 import { GameBar } from './game-bar';
 import { BOARD_SHARE, SCREEN_ENTER, SCREEN_EXIT, type Move } from './screen-motion';
 
@@ -60,7 +60,7 @@ const EMPTY_NOTES: number[] = [];
 const FOCUS_HINT_KEY = 'sudoku.focus-hold-learned.v1';
 const HINT_STRIP_FOCUS = '.hint-strip .hint-action, .hint-strip .clear-focus-button';
 const WALK_NEXT_FOCUS = '.walk-next';
-const LESSON_FOOTER_FOCUS = '.lesson-footer';
+const LESSON_ACTION_FOCUS = '.lesson-action';
 /** The player's game and its view, set aside untouched while they're on the Learn page or in a lesson. */
 type Held = { game: GameState | null; selected: number; focus: number | null; entry: EntryModeState; paused: boolean };
 /** A lesson in progress. `from` is where leaving it returns to. */
@@ -516,7 +516,7 @@ export default function SudokuGame() {
     if (!walkthrough || (!activeHint && !lesson)) return;
     // Keep focus inside the app's key handler: Safari leaves it on <body> after a click, a disabled stepper button drops it, and leaving the last step removes Apply.
     const focused = document.activeElement, lost = !focused || focused === document.body || focused.matches('.walk-panel p');
-    if (lost || focused.closest('.walk-panel, .hint-strip')) focusAfterRender.current = line >= walkthrough.length - 1 ? lesson ? LESSON_FOOTER_FOCUS : HINT_STRIP_FOCUS : line === 0 || lost || focused.closest('.hint-strip') ? WALK_NEXT_FOCUS : null;
+    if (lost || focused.closest('.walk-panel, .hint-strip, .lesson-coach')) focusAfterRender.current = line >= walkthrough.length - 1 ? lesson ? LESSON_ACTION_FOCUS : HINT_STRIP_FOCUS : line === 0 || lost || focused.closest('.hint-strip') ? WALK_NEXT_FOCUS : null;
     if (at !== undefined) hintAdvancedAt.current = at;
     if (lesson) setLesson({ ...lesson, line }); else if (activeHint) setHintState({ ...activeHint, line });
   };
@@ -679,7 +679,7 @@ export default function SudokuGame() {
     const result = grade(lesson.id, lesson.start, game);
     if (!result.correct) showBoard(lesson.start);
     setLesson({ ...lesson, result, line: 0 });
-    focusAfterRender.current = result.correct ? LESSON_FOOTER_FOCUS : WALK_NEXT_FOCUS;
+    focusAfterRender.current = result.correct ? LESSON_ACTION_FOCUS : WALK_NEXT_FOCUS;
   };
   const finishLesson = () => {
     if (!lesson) return;
@@ -701,14 +701,16 @@ export default function SudokuGame() {
     setLesson({ ...lesson, result: null }); showBoard(lesson.start);
     focusAfterRender.current = `.board [data-index="${Math.max(0, lesson.start.values.indexOf(0))}"]`;
   };
-  const lessonFooter = !lesson || lesson.phase === 'done' ? null
+  const lessonState = !lesson ? null : lesson.phase === 'watch' ? 'watch' as const : lesson.result?.correct || lesson.phase === 'done' ? 'correct' as const : lesson.result ? 'wrong' as const : 'practice' as const;
+  const lessonAction = !lesson || lesson.phase === 'done' ? null
     : lesson.phase === 'watch' ? { label: 'Start practice' }
     : !lesson.result ? { label: 'Check', disabled: !game || sameBoard(game, lesson.start) }
     : !lesson.result.correct ? { label: 'Try again' }
     : { label: lesson.board < lessonBoards.length - 1 ? 'Next board' : 'Finish' };
-  const onLessonFooter = (at: number) => {
-    // The footer's action changes in place, so a double tap would skip the feedback the first tap revealed. Input in between resets this.
-    if (!lesson || at - lessonTappedAt.current < 350) return;
+  const lessonJustActed = (at: number) => lesson !== null && at >= lessonTappedAt.current && at - lessonTappedAt.current < 350;
+  const onLessonAction = (at: number) => {
+    // The action changes in place, so a double tap would skip the feedback the first tap revealed. Input in between resets this.
+    if (!lesson || lessonJustActed(at)) return;
     lessonTappedAt.current = at;
     if (lesson.phase === 'watch') practiceBoard(1);
     else if (!lesson.result) checkPractice();
@@ -777,7 +779,6 @@ export default function SudokuGame() {
 
     <main className="game play">
       <div className="puzzle-panel">
-      {lesson && <LessonPrompt name={lessonName(lesson.id)} state={lesson.phase === 'watch' ? 'watch' : lesson.result?.correct || lesson.phase === 'done' ? 'correct' : lesson.result ? 'wrong' : 'practice'}/>}
       <div className={`digit-focus-bar ${hintDisplay ? 'hint-strip' : ''} ${lesson || paused || complete ? 'lesson-hidden' : ''}`} role="group" aria-label={hintDisplay ? 'Hint' : 'Digit focus'} inert={paused || busy || complete || !game}>
         {hintDisplay ? <>
           <span className="hint-copy" aria-hidden="true"><Icon name="bulb" size={18}/><span>{hintDisplay.text}</span></span>
@@ -833,8 +834,11 @@ export default function SudokuGame() {
       <div className="progress-line" role="progressbar" aria-label="Cells filled" aria-valuemin={0} aria-valuemax={total} aria-valuenow={filled}><span style={{ transform: `scaleX(${filled/total})` }}/></div>
       <div className="play-side">
       {complete ? shownFinish && game && <FinishCard level={game.difficulty} seconds={finishSeconds} best={finishSeconds === null ? null : shownFinish.best} newBest={newBest} counts={finishCounts} onReplay={finishReplay ? () => openReplay('game') : undefined} onPlayAgain={() => openSheet('new')}/> : <>
-        <div className="controls-area">
-          {walkLine && walkthrough && <WalkthroughPanel title={lesson ? lessonName(lesson.id) : hintDisplay?.text ?? ''} index={walkIndex} count={walkthrough.length} text={walkLine.text} onStep={stepWalkthrough} learn={!lesson && walkStep && walkIndex === walkthrough.length - 1 && hasLesson(lessonOf(walkStep)) ? { name: lessonName(lessonOf(walkStep)), onOpen: at => { if (at - hintAdvancedAt.current > 350) openLesson(lessonOf(walkStep)); } } : undefined}/>}
+        {/* A lesson action reveals the keypad under the finger, so a quick second tap must not land on it. */}
+        <div className="controls-area" onMouseDownCapture={event => { if (lessonJustActed(event.timeStamp)) event.preventDefault(); }} onClickCapture={event => { if (lessonJustActed(event.timeStamp)) { event.preventDefault(); event.stopPropagation(); } }}>
+          {lesson && lessonState && lesson.phase !== 'done' && <LessonCoach name={lessonName(lesson.id)} state={lessonState} action={lessonAction && { ...lessonAction, onClick: onLessonAction }}
+            walk={walkLine && walkthrough ? { index: walkIndex, count: walkthrough.length, text: walkLine.text, onStep: (line, at) => { if (line >= walkthrough.length - 1) lessonTappedAt.current = at; stepWalkthrough(line, at); } } : null}/>}
+          {!lesson && walkLine && walkthrough && <WalkthroughPanel title={hintDisplay?.text ?? ''} index={walkIndex} count={walkthrough.length} text={walkLine.text} onStep={stepWalkthrough} learn={walkStep && walkIndex === walkthrough.length - 1 && hasLesson(lessonOf(walkStep)) ? { name: lessonName(lessonOf(walkStep)), onOpen: at => { if (at - hintAdvancedAt.current > 350) openLesson(lessonOf(walkStep)); } } : undefined}/>}
           {lesson?.phase === 'done' && <LessonDone name={lessonName(lesson.id)} back={{ hint: 'Back to your game', list: 'Back to Learn', home: 'Back home' }[lesson.from]} onExit={exitLesson}/>}
           <div className="note-controls" aria-label="Puzzle tools" inert={Boolean(walkLine) || lesson?.phase === 'done' || Boolean(lesson?.result?.correct)}>
             <div className="mode-switch" role="group" aria-label="Entry mode">
@@ -859,7 +863,6 @@ export default function SudokuGame() {
         <p className="sr-only" role="status">{batchSelection ? `${selection.indices.length} ${selection.indices.length === 1 ? 'cell' : 'cells'} selected` : ''}</p>
         <p className="sr-only" role="status">{rejection ? `${rejection.value} rejected, ${rejection.kind === 'constraint' ? `already in this ${rejection.unit}` : rejection.exclusion ? `it is the answer for ${rejection.cells.length === 1 ? 'this cell' : 'a selected cell'}` : 'incorrect for this cell'}${rejection.id % 2 ? '\u00a0' : ''}` : ''}</p>
         </div>
-        {lessonFooter && <LessonFooter label={lessonFooter.label} disabled={lessonFooter.disabled} onClick={onLessonFooter}/>}
       </>}
 
       {error && <div className="notice" role="alert"><span>{error}</span><button onClick={() => setError('')} aria-label="Dismiss message"><Icon name="close" size={16}/></button></div>}

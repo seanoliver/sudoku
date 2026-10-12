@@ -50,9 +50,11 @@ test('finishing a lesson from the list returns to the list with it checked', asy
   for (let board = 1; board < LESSON_BANK.pointing.length; board++) {
     await crossOut(page, answer(board));
     await tapFooter(page);
-    await expect(prompt(page)).toHaveText('That’s the pointing pair');
+    await expect(prompt(page)).toHaveText('Found it');
     await tapFooter(page);
   }
+  // The done card replaces Finish under the finger, so a tap within 350 ms is ignored as a double tap.
+  await page.waitForTimeout(400);
   await page.getByRole('button', { name: 'Back to Learn' }).click();
   await expect(page.getByRole('button', { name: 'Pointing pair, learned' })).toBeVisible();
   await expect(page.locator('.screen-large p')).toHaveText(`1 of ${lessonCount} learned`);
