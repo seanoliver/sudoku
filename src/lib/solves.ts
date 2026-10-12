@@ -39,6 +39,8 @@ export function levelStats(solves: readonly Solve[]): LevelStats {
   return stats;
 }
 
+export const isNewBest = (seconds: number | null, best: number | null) => seconds !== null && best !== null && seconds < best;
+
 const addDays = (day: string, days: number) => {
   const [y, m, d] = day.split('-').map(Number);
   return dayKey(new Date(y, m - 1, d + days));
