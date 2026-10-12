@@ -198,3 +198,23 @@ test('a pushed screen opens at its top, and Home comes back where it was left', 
   await navigate(page, () => page.locator('.lesson-back').click());
   expect(await page.evaluate(() => scrollY)).toBe(homeScroll);
 });
+
+test('the screen on top of a push or pop is opaque, so the screen under it does not show through', async ({ page }) => {
+  await start(page);
+  const topBackground = (animationName: 'screen-in' | 'screen-out', control: string) => page.evaluate(([animationName, control]) => new Promise<string>(resolve => {
+    const start = document.startViewTransition.bind(document);
+    document.startViewTransition = (...args: Parameters<typeof start>) => {
+      const transition = start(...args);
+      document.startViewTransition = start;
+      transition.ready.then(() => {
+        const top = document.getAnimations().find(animation => (animation as CSSAnimation).animationName === animationName)!;
+        resolve(getComputedStyle(document.documentElement, (top.effect as KeyframeEffect).pseudoElement).backgroundColor);
+      });
+      return transition;
+    };
+    document.querySelector<HTMLElement>(control)!.click();
+  }), [animationName, control] as const);
+  expect(await topBackground('screen-in', '.home-solved-count')).not.toMatch(/^(transparent|rgba\(0, 0, 0, 0\))$/);
+  await page.waitForFunction(() => { const w = window as unknown as Watch; return w.finished === w.started; });
+  expect(await topBackground('screen-out', '.lesson-back')).not.toMatch(/^(transparent|rgba\(0, 0, 0, 0\))$/);
+});

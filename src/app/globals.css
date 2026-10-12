@@ -556,11 +556,11 @@ h1,h2,h3,p { margin: 0; }
 ::view-transition { pointer-events: none; }
 ::view-transition-group(*) { animation-duration: var(--screen-ms); animation-timing-function: var(--screen-ease); }
 ::view-transition-old(.push-out) { animation: var(--screen-ms) var(--screen-ease) both screen-under-out; }
-::view-transition-new(.push-in) { animation: var(--screen-ms) var(--screen-ease) both screen-in; box-shadow: -10px 0 30px #00000026; }
+::view-transition-new(.push-in) { animation: var(--screen-ms) var(--screen-ease) both screen-in; box-shadow: -10px 0 30px #00000026; background: var(--canvas); }
 ::view-transition-group(.pop-out) { z-index: 1; }
 /* The board travels above both screens; otherwise Home's card covers it on the way back. */
 ::view-transition-group(.board) { z-index: 2; }
-::view-transition-old(.pop-out) { animation: var(--screen-ms) var(--screen-ease) both screen-out; box-shadow: -10px 0 30px #00000026; }
+::view-transition-old(.pop-out) { animation: var(--screen-ms) var(--screen-ease) both screen-out; box-shadow: -10px 0 30px #00000026; background: var(--canvas); }
 ::view-transition-new(.pop-in) { animation: var(--screen-ms) var(--screen-ease) both screen-under-in; }
 ::view-transition-old(.fade) { animation: 220ms ease both screen-fade-out; }
 ::view-transition-new(.fade) { animation: 300ms ease 60ms both screen-fade-in; }
