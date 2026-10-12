@@ -27,7 +27,7 @@ Motion shows where something came from or went to. It never decorates.
 
 - **Library:** Motion (formerly Framer Motion), package `motion` (pinned at 13.4.6), with `m` components imported from `motion/react-m` and providers from `motion/react`, loaded with `LazyMotion` to keep the first load small.
 - **Springs:** three presets used everywhere. Snappy (about 150ms) for presses, toggles, and selection; smooth (about 350ms, slight settle) for sheets, cards, and screen changes; gentle (slower, no bounce) for the finish and progress.
-- **Screens:** Continue grows Home's mini-board into the game board through a shared `layoutId`; back reverses it. Learn, History, and Replay push in from the right.
+- **Screens:** Continue grows Home's mini-board into the game board; back reverses it. Learn, History, and Replay push in from the right. Step 7 built these with React's `<ViewTransition>` instead of Motion; see `2026-10-11-navigation.md`.
 - **Sheets:** spring up, drag down to dismiss; the screen behind scales down slightly.
 - **Board:** the selection outline gets rounded corners and a more playful feel, and glides between cells; a placed number scales in from 90%; notes fade. Rejections and unit celebrations move onto the same springs.
 - **Presses:** one press-in response on every button, key, and card. Haptics where the browser supports them.
@@ -42,7 +42,7 @@ Motion shows where something came from or went to. It never decorates.
 - `<ScreenHeader>`: large collapsing title with an optional back button.
 - `<Sheet>`: keeps the native `<dialog>` for focus trapping, Escape, and screen readers; Motion animates the panel and backdrop and adds drag-to-dismiss. All five sheets move onto it.
 - `<Pressable>`: the shared press response through `whileTap`.
-- Screen transitions: History, Learn, and Replay are separate early returns in `game.tsx`; they become one keyed tree inside `AnimatePresence`, with the leaving screen inert and focus scoped to the entering one.
+- Screen transitions: History, Learn, and Replay were separate early returns in `game.tsx`; step 7 made them one keyed tree inside React's `<ViewTransition>`, which keeps only one screen in the DOM, so no screen needs `inert`.
 - Each shared component ships in the PR of the first screen that uses it. The foundation PR is the one exception: its provider, springs, and tokens have no user until step 3, so later PRs build on a reviewed base.
 - Scope guard: only the sheets and the screen switch leave `game.tsx`. A broader breakup is a separate task.
 

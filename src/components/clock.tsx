@@ -1,9 +1,14 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
+import { savedSeconds } from '@/lib/home';
 export const CLOCK_KEY = 'sudoku.clock.v1';
 const KEY = CLOCK_KEY;
 export function Clock({ id, running, hidden = false, resetRevision = 0 }: { id: string; running: boolean; hidden?: boolean; resetRevision?: number }) {
-  const [seconds, setSeconds] = useState(0);
+  // Read during render, not in the effect: React holds effects until a screen transition ends, so Continue would show 00:00.
+  const [seconds, setSeconds] = useState(() => {
+    if (typeof window === 'undefined') return 0;
+    try { return savedSeconds(localStorage.getItem(KEY), id) ?? 0; } catch { return 0; }
+  });
   const lastReset = useRef(resetRevision);
   useEffect(() => {
     const resetting = lastReset.current !== resetRevision;

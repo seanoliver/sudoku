@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore, type KeyboardEvent } from 'react';
+import { addTransitionType, startTransition, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore, ViewTransition, type KeyboardEvent } from 'react';
 import { flushSync } from 'react-dom';
 import { createGame, restartGame, enter, toggleNotes, toggleExclusions, incorrectExclusions, batchHasMark, fillNotes, undo, redo, restore, isComplete, rejectEntry, SAVE_KEY, type GameState, type Rejection } from '@/lib/game';
 import { peers, getEntryDigits, completedUnits, celebrationLabel, type Difficulty, type Puzzle } from '@/lib/sudoku';
@@ -40,7 +40,9 @@ import { findStep } from '@/lib/steps';
 import { THEME_COLOR } from '@/lib/theme-color';
 import { LessonBar, LessonDone, LessonFooter, LessonPrompt } from './lesson';
 import { GameBar } from './game-bar';
+import { BOARD_SHARE, SCREEN_ENTER, SCREEN_EXIT, type Move } from './screen-motion';
 
+type Screen = 'home' | 'game' | 'learn' | 'history' | 'replay';
 type Sheet = 'restart' | 'new' | 'settings' | 'help' | 'privacy' | 'install' | null;
 // The game gets its own history entry above Home, so the browser's back button returns Home.
 const GAME_ENTRY = 'sudokuGame';
@@ -229,7 +231,8 @@ export default function SudokuGame() {
   const [gameCopy, setGameCopy] = useState<HTMLElement | null>(null);
   const copyGameScreen = () => { if (process.env.NEXT_PUBLIC_BUILD_TARGET === 'ios') setGameCopy(document.querySelector<HTMLElement>('.app:not(.swipe-under)')?.cloneNode(true) as HTMLElement ?? null); };
   const startSwipe = useRef(() => {});
-  useEffect(() => { startSwipe.current = () => { refreshHome(held ? held.game : game); setLearned(readLearnedNow()); }; });
+  // Layout effects: React holds plain effects until a screen transition ends, and a swipe can start before that.
+  useLayoutEffect(() => { startSwipe.current = () => { refreshHome(held ? held.game : game); setLearned(readLearnedNow()); }; });
   useEffect(() => installNativeBack(active => {
     if (active) { startSwipe.current(); flushSync(() => setSwiping(swipeDestination.current)); } else flushSync(() => setSwiping(null));
   }), []);
@@ -524,9 +527,16 @@ export default function SudokuGame() {
     try { setHomeData({ seconds: current ? savedSeconds(localStorage.getItem(CLOCK_KEY), current.id) : null, learned: readLearned(localStorage.getItem(LEARNED_KEY)), solved: solvedCount(readSolved(localStorage.getItem(SOLVED_KEY)), readHistory(localStorage.getItem(HISTORY_KEY)).completed), greeting: greeting(new Date().getHours()) }); }
     catch { /* Home still works without its numbers. */ }
   }
+  // A finished iOS swipe has already moved the screen, and under reduced motion a transition only loses taps, so both change at once.
+  const move = (type: Move, change: () => void) => {
+    if (document.querySelector('.app.swiping') || matchMedia('(prefers-reduced-motion: reduce)').matches) { change(); return; }
+    startTransition(() => { addTransitionType(type); change(); });
+  };
+  const pendingMove = useRef<Move | null>(null);
   const showHome = (focus: string) => { setView('home'); refreshHome(held ? held.game : game); focusAfterRender.current = focus; };
   const goHome = () => { setHintState(null); resetSelection(); setBlockedEntry(null); showHome(homeState(game) === 'playing' ? '.home-continue-button' : '.home-level'); };
-  const continueGame = () => { setView('game'); enterGameEntry(); focusAfterRender.current = paused ? '.board-cover button' : `.board [data-index="${selected}"]`; };
+  const continueGame = () => move('grow', continueNow);
+  const continueNow = () => { setView('game'); enterGameEntry(); focusAfterRender.current = paused ? '.board-cover button' : `.board [data-index="${selected}"]`; };
   const playLevel = (level: Difficulty) => {
     if (homeState(game) === 'playing') { setDifficulty(level); openSheet('new'); return; }
     setDifficulty(level); requestPuzzle(level);
@@ -540,16 +550,24 @@ export default function SudokuGame() {
     resetSelection(); setBlockedEntry(null); setCelebration(null); setEntry(held.entry); setFocusedDigit(held.focus);
     focusAfterRender.current = `.board [data-index="${held.selected}"]`;
   };
-  const openLearn = () => {
+  const openLearn = () => move('push', openLearnNow);
+  const openLearnNow = () => {
     if (busy) return;
     hold(); setHintState(null); setLearned(readLearnedNow()); setLearnOpen(true);
     focusAfterRender.current = '.lesson-back';
   };
   /** The Home button steps back through the game's history entry, so it and the back button stay in step. */
-  const leaveGame = () => { if (inGameEntry()) window.history.back(); else goHome(); };
+  const leaveGame = () => { if (inGameEntry()) { pendingMove.current = 'shrink'; window.history.back(); } else move('shrink', goHome); };
   // Set while undoing a forward step, so the back event that undo causes is not read as the player pressing Back.
   const undoingForward = useRef(false);
   const onHistory = () => {
+    const pending = pendingMove.current;
+    pendingMove.current = null;
+    // React renders updates from a popstate event at once, which skips the view transition, so the animated change waits for the next task.
+    if (pending) { setTimeout(() => move(pending, onHistoryNow)); return; }
+    onHistoryNow();
+  };
+  const onHistoryNow = () => {
     if (undoingForward.current) { undoingForward.current = false; return; }
     if (staleEntry()) { window.history.back(); return; }
     if (replayView && !inReplayEntry()) { closeReplay(); return; }
@@ -557,7 +575,7 @@ export default function SudokuGame() {
     if (inGameEntry()) {
       if (view !== 'home') return;
       // Forward can only reopen the game from Home itself; elsewhere it is undone so the browser stays on Home's entry.
-      if (game && !lesson && !learnOpen && !historyData && !replayView) continueGame(); else { undoingForward.current = true; window.history.back(); }
+      if (game && !lesson && !learnOpen && !historyData && !replayView) continueNow(); else { undoingForward.current = true; window.history.back(); }
       return;
     }
     // Generation has no Home to return to until it finishes, so back is undone.
@@ -571,20 +589,25 @@ export default function SudokuGame() {
     if (view === 'game') { closeSheet({ immediate: true }); goHome(); }
   };
   const onHistoryRef = useRef(onHistory);
-  useEffect(() => { onHistoryRef.current = onHistory; });
+  // Layout effects, like the swipe refs: Back or Escape during a screen transition must run this screen's handler.
+  useLayoutEffect(() => { onHistoryRef.current = onHistory; });
   useEffect(() => {
     const onPop = () => onHistoryRef.current();
     window.addEventListener('popstate', onPop);
     return () => window.removeEventListener('popstate', onPop);
   }, []);
-  const openHistory = () => {
+  const openHistory = () => move('push', openHistoryNow);
+  const openHistoryNow = () => {
     let solves: Solve[] = [];
     try { solves = readSolves(localStorage.getItem(SOLVES_KEY)); } catch { /* An empty history still shows the count. */ }
     setHistoryData({ solves, today: dayKey(new Date()) });
     focusAfterRender.current = '.lesson-back';
   };
   const replayOf = (id: string | undefined) => replays.find(r => r.id === id && r.steps.length > 0);
-  const openReplay = (from: 'game' | 'home') => {
+  const openReplay = (from: 'game' | 'home') => move('push', () => openReplayNow(from));
+  const openReplayNow = (from: 'game' | 'home') => {
+    // A second tap before the screen changes would push a second replay entry, which Done cannot close.
+    if (inReplayEntry()) return;
     if (!game) return;
     let seconds: number | null = null;
     try { seconds = preferences.hideTimer ? null : savedSeconds(localStorage.getItem(CLOCK_KEY), game.id); } catch { /* The time is optional. */ }
@@ -597,7 +620,7 @@ export default function SudokuGame() {
   const closingReplay = useRef(false);
   const exitReplay = () => {
     if (closingReplay.current) return;
-    if (inReplayEntry()) { closingReplay.current = true; window.history.back(); } else closeReplay();
+    if (inReplayEntry()) { closingReplay.current = true; pendingMove.current = 'pop'; window.history.back(); } else move('pop', closeReplay);
   };
   const closeReplay = () => {
     closingReplay.current = false;
@@ -606,28 +629,28 @@ export default function SudokuGame() {
     if (from === 'home') showHome('.home-replay'); else focusAfterRender.current = '.replay-button';
   };
   const exitReplayRef = useRef(exitReplay);
-  useEffect(() => { exitReplayRef.current = exitReplay; });
+  useLayoutEffect(() => { exitReplayRef.current = exitReplay; });
   const replayOpen = replayView !== null;
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!replayOpen) return;
     const onKey = (event: globalThis.KeyboardEvent) => { if (event.key === 'Escape') exitReplayRef.current(); };
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
   }, [replayOpen]);
-  const exitHistory = () => { setHistoryData(null); showHome('.home-solved-count'); };
+  const exitHistory = () => move('pop', () => { setHistoryData(null); showHome('.home-solved-count'); });
   const exitHistoryRef = useRef(exitHistory);
-  useEffect(() => { exitHistoryRef.current = exitHistory; });
+  useLayoutEffect(() => { exitHistoryRef.current = exitHistory; });
   const historyOpen = historyData !== null;
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!historyOpen) return;
     const onKey = (event: globalThis.KeyboardEvent) => { if (event.key === 'Escape') exitHistoryRef.current(); };
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
   }, [historyOpen]);
-  const exitLearn = () => { setLearnOpen(false); restoreGame(); showHome('.home-all'); };
+  const exitLearn = () => move('pop', () => { setLearnOpen(false); restoreGame(); showHome('.home-all'); });
   const exitLearnRef = useRef(exitLearn);
-  useEffect(() => { exitLearnRef.current = exitLearn; });
-  useEffect(() => {
+  useLayoutEffect(() => { exitLearnRef.current = exitLearn; });
+  useLayoutEffect(() => {
     if (!learnOpen) return;
     // On the document, so Escape works even when focus has left the page's buttons.
     const onKey = (event: globalThis.KeyboardEvent) => { if (event.key === 'Escape') exitLearnRef.current(); };
@@ -718,21 +741,36 @@ export default function SudokuGame() {
       next={nextLesson(homeData.learned)} solved={homeData.solved} greeting={homeData.greeting} onContinue={continueGame} onPlay={playLevel} onLesson={id => openLesson(id, 'home')} onLearn={openLearn} onSettings={() => openSheet('settings')} onHistory={openHistory} onReplay={homeState(homeGame) === 'done' && replayOf(homeGame?.id) ? () => openReplay('home') : undefined} onInstall={installed || process.env.NEXT_PUBLIC_BUILD_TARGET === 'ios' ? undefined : () => openSheet('install')}
       notice={<>{error && <div className="notice" role="alert"><span>{error}</span><button onClick={() => setError('')} aria-label="Dismiss message"><Icon name="close" size={16}/></button></div>}{storageError && <p className="storage-warning" role="status">Saving is unavailable in this browser. Keep this tab open to continue your puzzle.</p>}</>}/>;
   const swipeTarget = replayView ? replayView.from : historyData || learnOpen ? 'home' : lesson ? ({ hint: 'game', list: 'learn', home: 'home' } as const)[lesson.from] : view === 'game' ? 'home' : null;
-  useEffect(() => { swipeDestination.current = swipeTarget; });
+  // A layout effect for the same reason as `startSwipe`: a swipe can start during a screen transition.
+  useLayoutEffect(() => { swipeDestination.current = swipeTarget; });
   const swipeUnder = !swiping ? null
     : swiping === 'home' ? <div className="app swipe-under" inert aria-hidden="true">{homeScreen}</div>
     : swiping === 'learn' ? <div className="app swipe-under" inert aria-hidden="true"><LearnPage learned={learned} onOpen={() => {}} onExit={() => {}}/></div>
     : swiping === 'game' && gameCopy ? <SwipeCopy screen={gameCopy}/> : null;
-  if (replayView && replaying && game) return <>{swipeUnder}<div className="app"><ReplayPage replay={replaying} givens={game.givens} solution={game.solution} level={game.difficulty} seconds={replayView.seconds} onExit={exitReplay}/></div></>;
-  if (historyData) return <>{swipeUnder}<div className="app"><HistoryPage hideTimer={preferences.hideTimer} solves={historyData.solves} total={homeData.solved} today={historyData.today} onExit={exitHistory}/></div></>;
-  if (learnOpen) return <>{swipeUnder}<div className="app"><LearnPage learned={learned} onOpen={id => openLesson(id, 'list')} onExit={exitLearn}/></div></>;
   const gameMeta = <>
     <button className="difficulty-button" disabled={busy} onClick={() => { setDifficulty(game?.difficulty ?? 'easy'); openSheet('new'); }} aria-label={`Difficulty: ${game?.difficulty ?? 'easy'}. Start a new puzzle`}><LevelBars level={game?.difficulty ?? 'easy'}/><span className="capitalize">{game?.difficulty ?? 'easy'}</span><Icon name="chevron" size={14}/></button>
     <div className="time-controls">{clockId ? <Clock key={clockId} id={clockId} resetRevision={clockResetRevision} hidden={preferences.hideTimer} running={!paused && !sheet && !busy && !complete && !away}/> : <span className="clock">00:00</span>}<button className="pause-button" aria-label={paused ? 'Resume game' : 'Pause game'} disabled={busy || complete || !game} onClick={() => { resetSelection(); setBlockedEntry(null); setCelebration(null); setPaused(value => !value); }}><Icon name={paused ? 'play' : 'pause'} size={15}/></button></div>
   </>;
   const onHome = view === 'home' && !lesson;
-  return <>{swipeUnder}<div className="app" onKeyDown={onHome ? undefined : handleKey}>
-    {onHome ? busy && !game ? <header className="app-bar"><h1 className="brand"><AppMark small/><span>Sudoclue</span></h1></header> : homeScreen : <>
+  const screen: Screen = replayView && replaying && game ? 'replay' : historyData ? 'history' : learnOpen ? 'learn' : onHome ? 'home' : 'game';
+  // Pushed screens open at their top. A layout effect, so a view transition's new snapshot is taken after the scroll.
+  const shownScreen = useRef(screen);
+  const scrollPositions = useRef<Partial<Record<Screen, number>>>({});
+  useEffect(() => {
+    const record = () => { scrollPositions.current[shownScreen.current] = scrollY; };
+    addEventListener('scroll', record, { passive: true });
+    return () => removeEventListener('scroll', record);
+  }, []);
+  useLayoutEffect(() => {
+    if (shownScreen.current === screen) return;
+    shownScreen.current = screen;
+    scrollTo(0, screen === 'home' || screen === 'game' ? scrollPositions.current[screen] ?? 0 : 0);
+  }, [screen]);
+  return <>{swipeUnder}<ViewTransition key={screen} enter={SCREEN_ENTER} exit={SCREEN_EXIT} default="none"><div className="app" onKeyDown={screen === 'game' ? handleKey : undefined}>
+    {screen === 'replay' && replaying && game ? <ReplayPage replay={replaying} givens={game.givens} solution={game.solution} level={game.difficulty} seconds={replayView?.seconds ?? null} back={replayView?.from === 'game' ? 'Your game' : 'Home'} onExit={exitReplay}/>
+    : screen === 'history' && historyData ? <HistoryPage hideTimer={preferences.hideTimer} solves={historyData.solves} total={homeData.solved} today={historyData.today} onExit={exitHistory}/>
+    : screen === 'learn' ? <LearnPage learned={learned} onOpen={id => openLesson(id, 'list')} onExit={exitLearn}/>
+    : <>{onHome ? busy && !game ? <header className="app-bar"><h1 className="brand"><AppMark small/><span>Sudoclue</span></h1></header> : homeScreen : <>
     {lesson && <LessonBar name={lessonName(lesson.id)} done={lessonDone} current={lesson.phase === 'practice' ? lesson.board - 1 : null} count={lessonBoards.length - 1} back={{ hint: 'Your game', list: 'Learn', home: 'Home' }[lesson.from]} onExit={exitLesson}/>}
     {/* Lessons hide the bar but keep it mounted, so the clock is never remounted. */}
     <GameBar meta={gameMeta} hidden={Boolean(lesson)} onHome={leaveGame} homeDisabled={busy} onHint={() => { focusAfterRender.current = HINT_STRIP_FOCUS; showHint(); }} hintDisabled={!game || complete || paused || busy} onSettings={() => openSheet('settings')}/>
@@ -757,7 +795,7 @@ export default function SudokuGame() {
       </div>
 
       <p className="sr-only" role="status">{walkLine && walkthrough ? `${lesson ? lessonName(lesson.id) : hintDisplay?.text}. Step ${walkIndex + 1} of ${walkthrough.length}. ${walkLine.text}` : hintDisplay?.label ?? ''}</p>
-      <div ref={boardWrap} className={`board-wrap ${complete ? 'is-complete' : ''} ${walkLine ? 'walkthrough' : ''}`}>
+      <ViewTransition name="board" share={BOARD_SHARE} default="none"><div ref={boardWrap} className={`board-wrap ${complete ? 'is-complete' : ''} ${walkLine ? 'walkthrough' : ''}`}>
         <div className="board" role="grid" aria-label="Sudoku puzzle" aria-rowcount={9} aria-colcount={9} ref={board} {...selection.pointerHandlers} aria-multiselectable={batchSelection} aria-busy={busy} inert={paused || busy}>
           {Array.from({ length: 9 }, (_, row) => <div role="row" className="board-row" key={row}>
             {Array.from({ length: 9 }, (_, col) => {
@@ -787,7 +825,7 @@ export default function SudokuGame() {
         {(paused || busy || !game) && <div className="board-cover">
           {busy ? <><span className="spinner"/><h2>Getting your puzzle ready</h2></> : paused ? <><span className="pause-emblem"><Icon name="pause" size={28}/></span><h2>Take a break</h2><p>Your puzzle will be right here.</p><button className="primary-button" onClick={() => setPaused(false)}><Icon name="play" size={17}/>Resume puzzle</button></> : <><h2>Let’s try that again</h2><button className="primary-button" onClick={() => requestPuzzle(difficulty)}>Create puzzle</button></>}
         </div>}
-      </div>
+      </div></ViewTransition>
       <p className="sr-only" role="status">{shownFinish && game ? finishSummary(game.difficulty, finishSeconds, newBest) : celebrating?.label ?? ''}</p>
 
       </div>
@@ -829,7 +867,8 @@ export default function SudokuGame() {
       </div>
     </main>
     </>}
-    <div className="desktop-caption">A simple game. A little space to think.</div>
+    <div className="desktop-caption">A simple game. A little space to think.</div></>}
+  </div></ViewTransition>
 
     <dialog className="sheet" data-kind={sheet ?? undefined} ref={dialog} onPointerDown={sheetDrag.onPointerDown} onPointerMove={sheetDrag.onPointerMove} onPointerUp={sheetDrag.onPointerUp} onPointerCancel={sheetDrag.onPointerCancel} onClose={event => { const sheetElement = event.currentTarget; sheetDrag.reset(sheetElement); delete sheetElement.dataset.closing; sheetElement.style.translate = ''; setSheet(null); }} onCancel={event => { if (!('closing' in event.currentTarget.dataset)) { event.preventDefault(); closeSheet(); } }} onAnimationEnd={event => { if (event.target === dialog.current && 'closing' in dialog.current.dataset) dialog.current.close(); }} onClick={event => { if (event.target === dialog.current) { const rect = dialog.current.getBoundingClientRect(); if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) closeSheet(); } }} aria-labelledby="sheet-title">
       <div className="sheet-content"><div className="sheet-handle"/><button className="sheet-close icon-button" onClick={() => closeSheet()} aria-label="Close dialog"><Icon name="close" size={19}/></button>
@@ -847,5 +886,5 @@ export default function SudokuGame() {
         {sheet === 'install' && <><AppMark/><h2 id="sheet-title">A place on your Home Screen</h2><p className="sheet-subtitle">Open straight into Sudoclue, with more space to play. Once ready, Sudoclue works offline too.</p>{installed ? <p className="install-instructions">Sudoclue is already installed.</p> : installEvent ? <button className="primary-button full-width" onClick={async () => { try { await installEvent.prompt(); const choice = await installEvent.userChoice; if (choice.outcome === 'accepted') closeSheet(); setInstallEvent(null); } catch { setInstallEvent(null); } }}>Install Sudoclue</button> : <div className="install-instructions"><h3>On iPhone or iPad</h3><p>Open in Safari, tap the Share button, then choose <strong>Add to Home Screen</strong>.</p><h3>On Android or desktop</h3><p>Open your browser menu and choose <strong>Install app</strong> or <strong>Add to Home screen</strong>, when available.</p></div>}<p className="privacy-note">{offlineReady ? 'Your app is ready for offline play.' : 'Connect to the internet for the first visit. Offline play becomes available after the app finishes downloading.'}</p><button className="text-button full-width" onClick={() => closeSheet()}>Done</button></>}
       </div>
     </dialog>
-  </div></>;
+  </>;
 }

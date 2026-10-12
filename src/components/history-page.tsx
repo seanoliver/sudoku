@@ -4,6 +4,7 @@ import { dayKey, levelStats, monthGrid, streak, type Solve } from '@/lib/solves'
 import type { Difficulty } from '@/lib/sudoku';
 import { LevelTiles } from './home';
 import { Icon } from './icons';
+import { ScreenHeader } from './screen-header';
 
 const LEVELS: Difficulty[] = ['easy', 'medium', 'hard', 'expert'];
 const PAGE = 30;
@@ -56,11 +57,7 @@ export function HistoryPage({ solves, total: counted, today: opened, hideTimer, 
   const listed = selected ? byDay.get(selected) ?? [] : solves;
   const earlier = total - solves.length;
   return <>
-    <header className="app-bar lesson-bar">
-      <button className="lesson-back" onClick={onExit}><Icon name="chevron" size={16}/><span>Home</span></button>
-      <div className="lesson-title"><h1 className="learn-heading">History</h1><span className="learn-count">{total} solved</span></div>
-      <span/>
-    </header>
+    <ScreenHeader title="History" subtitle={`${total} solved`} back="Home" size="large" onExit={onExit}/>
     <main className="game history">
       {days >= 2 && <p className="history-streak"><Icon name="sparkles" size={16}/><b>{days} days</b> in a row</p>}
       <section className="history-calendar" aria-labelledby="history-month">

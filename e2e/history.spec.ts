@@ -157,7 +157,7 @@ test('the header never counts fewer solves than History lists', async ({ page })
   await page.addInitScript(key => localStorage.setItem(key, JSON.stringify({ ids: ['a'] })), SOLVED_KEY);
   await page.goto('/');
   await page.locator('.home-solved-count').click();
-  await expect(page.locator('.learn-count')).toHaveText('3 solved');
+  await expect(page.locator('.screen-large p')).toHaveText('3 solved');
   await expect(page.locator('.history-earlier')).toHaveCount(0);
 });
 
@@ -180,4 +180,39 @@ test('History left open past midnight moves Today to the new day', async ({ page
   await page.clock.fastForward('01:00');
   const next = new Date(late); next.setDate(next.getDate() + 1);
   await expect(page.locator('.history-day.today')).toHaveAttribute('data-day', dayKey(next));
+});
+
+test('the large title hands over to the header row once History scrolls under it', async ({ page }) => {
+  await seed(page, Array.from({ length: 12 }, (_, k) => solve(`s${k}`, 'easy', 300 + k, k)));
+  await page.goto('/');
+  await page.locator('.home-solved-count').click();
+  const header = page.locator('.screen-nav');
+  const compact = page.locator('.screen-compact-title');
+  await expect(header).toHaveAttribute('data-collapsed', 'false');
+  await expect(compact).toHaveCSS('opacity', '0');
+  await expect(page.getByRole('heading', { name: 'History' })).toHaveCount(1);
+  await expect(compact).toHaveAttribute('aria-hidden', 'true');
+  await page.mouse.wheel(0, 400);
+  await expect(header).toHaveAttribute('data-collapsed', 'true');
+  await expect(compact).toHaveCSS('opacity', '1');
+  await expect(page.locator('.screen-back')).toBeInViewport();
+  await page.mouse.wheel(0, -400);
+  await expect(header).toHaveAttribute('data-collapsed', 'false');
+  await expect(compact).toHaveCSS('opacity', '0');
+});
+
+test('History opens at its top from a scrolled Home, and Home comes back where it was left', async ({ page }) => {
+  await page.setViewportSize({ width: 844, height: 390 });
+  await seed(page, [solve('a', 'easy', 300, 0)]);
+  await page.goto('/');
+  await expect(page.locator('.home-solved-count')).toHaveText('1 solved');
+  await page.evaluate(() => scrollTo(0, document.scrollingElement!.scrollHeight));
+  const homeScroll = await page.evaluate(() => scrollY);
+  expect(homeScroll).toBeGreaterThan(100);
+  await page.locator('.home-solved-count').click();
+  await expect(page.getByRole('heading', { name: 'History', level: 1 })).toBeInViewport();
+  expect(await page.evaluate(() => scrollY)).toBe(0);
+  await page.getByRole('button', { name: 'Home' }).click();
+  await expect(page.locator('.home-solved-count')).toBeVisible();
+  expect(await page.evaluate(() => scrollY)).toBe(homeScroll);
 });
