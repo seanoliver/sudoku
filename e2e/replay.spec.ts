@@ -38,7 +38,8 @@ test('a finished puzzle replays from the starting board, with its numbers, notes
   await start(page);
   await solveWithNoteAndFix(page);
   await page.getByRole('button', { name: 'Replay' }).click();
-  await expect(page.getByRole('heading', { name: 'Your easy solve' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Easy solve' })).toBeVisible();
+  await expect(page.locator('.screen-compact-title')).toHaveCSS('opacity', '1');
   await expect(page.locator('.replay-numbers b')).toHaveText(String(open.length + 1));
   await expect(page.locator('.replay-notes b')).toHaveText('1');
   await expect(page.locator('.replay-fixes b')).toHaveText('1');
@@ -49,7 +50,7 @@ test('a finished puzzle replays from the starting board, with its numbers, notes
   await expect(page.locator('.replay-count')).toHaveText(`${stepCount + 1} of ${stepCount + 1}`, { timeout: 10_000 });
   await expect(page.locator('.replay-board .cell-number')).toHaveCount(81);
   await expect(page.getByRole('button', { name: 'Play' })).toBeVisible();
-  await page.getByRole('button', { name: 'Done' }).click();
+  await page.getByRole('button', { name: 'Your game' }).click();
   await expect(page.locator('.completion')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Replay' })).toBeFocused();
 });
@@ -78,8 +79,8 @@ test('Home’s solved card opens the replay and returns to Home', async ({ page 
   await solveWithNoteAndFix(page);
   await page.getByRole('button', { name: 'Home' }).click();
   await page.getByRole('button', { name: 'Replay' }).click();
-  await expect(page.getByRole('heading', { name: 'Your easy solve' })).toBeVisible();
-  await page.getByRole('button', { name: 'Done' }).click();
+  await expect(page.getByRole('heading', { name: 'Easy solve' })).toBeVisible();
+  await page.getByRole('button', { name: 'Home' }).click();
   await expect(page.getByRole('button', { name: 'Replay' })).toBeFocused();
   await expect(page.getByRole('heading', { name: /^Nicely solved/ })).toBeVisible();
 });
@@ -119,17 +120,17 @@ test('opening a replay puts focus on Play, so Space plays it', async ({ page }) 
   await expect(page.getByRole('button', { name: 'Play' })).toBeFocused();
   await page.keyboard.press(' ');
   await expect(page.getByRole('button', { name: 'Pause' })).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'Your easy solve' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Easy solve' })).toBeVisible();
   await page.keyboard.press(' ');
   await page.keyboard.press('ArrowRight');
-  await expect(page.getByRole('heading', { name: 'Your easy solve' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Easy solve' })).toBeVisible();
 });
 
 test('back from a replay opened on the completion card returns to the card', async ({ page }) => {
   await start(page);
   await solveWithNoteAndFix(page);
   await page.getByRole('button', { name: 'Replay' }).click();
-  await expect(page.getByRole('heading', { name: 'Your easy solve' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Easy solve' })).toBeVisible();
   await page.goBack();
   await expect(page.locator('.completion')).toBeVisible();
 });
@@ -170,18 +171,18 @@ test('Back and Forward move between Home and a replay opened there', async ({ pa
   await solveWithNoteAndFix(page);
   await page.getByRole('button', { name: 'Home' }).click();
   await page.getByRole('button', { name: 'Replay' }).click();
-  await expect(page.getByRole('heading', { name: 'Your easy solve' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Easy solve' })).toBeVisible();
   await page.goBack();
   await expect(page.getByRole('heading', { name: /^Nicely solved/ })).toBeVisible();
   await page.goForward();
   await expect(page.getByRole('heading', { name: /^Nicely solved/ })).toBeVisible();
   await page.getByRole('button', { name: 'Replay' }).click();
-  await page.getByRole('button', { name: 'Done' }).click();
+  await page.locator('.lesson-back').click();
   await expect(page.getByRole('heading', { name: /^Nicely solved/ })).toBeVisible();
   await page.goForward();
   await page.waitForTimeout(300);
   await expect(page.getByRole('heading', { name: /^Nicely solved/ })).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'Your easy solve' })).toHaveCount(0);
+  await expect(page.getByRole('heading', { name: 'Easy solve' })).toHaveCount(0);
 });
 
 test('placing a number outlines only that cell, and browser shortcuts are left alone', async ({ page }) => {
@@ -191,9 +192,9 @@ test('placing a number outlines only that cell, and browser shortcuts are left a
   const scrubber = page.getByRole('slider', { name: 'Replay position' });
   await scrubber.fill(String(stepCount));
   await expect(page.locator('.replay-board .cell.changed')).toHaveCount(1);
-  await page.locator('.replay-headline').click();
+  await page.locator('.screen-compact-title').click();
   await scrubber.fill(String(5));
-  await page.locator('.replay-headline').click();
+  await page.locator('.screen-compact-title').click();
   const prevented = await page.evaluate(() => { const e = new KeyboardEvent('keydown', { key: 'ArrowLeft', altKey: true, bubbles: true, cancelable: true }); document.body.dispatchEvent(e); return e.defaultPrevented; });
   expect(prevented).toBe(false);
   await expect(page.locator('.replay-count')).toHaveText(`6 of ${stepCount + 1}`);
@@ -203,7 +204,7 @@ test('Hide timer hides the time on the replay page', async ({ page }) => {
   await start(page, JSON.stringify(game), { ...prefs, hideTimer: true });
   await solveWithNoteAndFix(page);
   await page.getByRole('button', { name: 'Replay' }).click();
-  await expect(page.locator('.replay-headline .home-meta')).not.toContainText(/\d\d:\d\d/);
+  await expect(page.locator('.replay-sub')).not.toContainText(/\d\d:\d\d/);
 });
 
 test('after a reload on a replay, Back goes to Home once and never reopens the finished game', async ({ page }) => {
@@ -225,7 +226,7 @@ test('two quick Escapes close the replay once', async ({ page }) => {
   await start(page);
   await solveWithNoteAndFix(page);
   await page.getByRole('button', { name: 'Replay' }).click();
-  await expect(page.getByRole('heading', { name: 'Your easy solve' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Easy solve' })).toBeVisible();
   await page.evaluate(() => { for (let k = 0; k < 2; k++) document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); });
   await expect(page.locator('.completion')).toBeVisible();
   await page.waitForTimeout(300);
@@ -241,4 +242,19 @@ test('notes from Fill notes replay in their own color', async ({ page }) => {
   await page.getByRole('button', { name: 'Replay' }).click();
   await page.getByRole('slider', { name: 'Replay position' }).fill('1');
   await expect(page.locator('.replay-board .note-generated[data-visible="true"]').first()).toBeVisible();
+});
+
+test('a replay that has not started still shows each step on its timeline', async ({ page }) => {
+  await start(page);
+  await solveWithNoteAndFix(page);
+  await page.getByRole('button', { name: 'Replay' }).click();
+  const fills = await page.locator('.replay-ticks rect').evaluateAll(rects => {
+    const line = getComputedStyle(document.documentElement).getPropertyValue('--line').trim();
+    const probe = document.createElement('i'); probe.style.color = line; document.body.append(probe);
+    const lineColor = getComputedStyle(probe).color; probe.remove();
+    const fill = (kind: string) => getComputedStyle(rects.find(r => r.classList.contains(kind))!).fill;
+    return { line: lineColor, number: fill('number'), note: fill('note') };
+  });
+  expect(fills.number).not.toBe(fills.line);
+  expect(fills.note).not.toBe(fills.line);
 });

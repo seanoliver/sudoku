@@ -24,7 +24,7 @@ async function openLearn(page: Page, learned: Record<string, string> = {}) {
 test('the Learn page lists every lesson with what has been learned, and returns home with the game untouched', async ({ page }) => {
   const before = await openLearn(page, { pointing: '2026-09-25' });
   await expect(page.locator('.learn-row')).toHaveCount(lessonCount);
-  await expect(page.locator('.learn-count')).toHaveText(`1 of ${lessonCount} learned`);
+  await expect(page.locator('.screen-large p')).toHaveText(`1 of ${lessonCount} learned`);
   await expect(page.getByRole('button', { name: 'Pointing pair, learned' })).toBeVisible();
   await expect(page.locator('.learn-band h2')).toHaveText(['Easy', 'Medium', 'Hard', 'Expert']);
   await page.getByRole('button', { name: 'Home' }).click();
@@ -55,7 +55,7 @@ test('finishing a lesson from the list returns to the list with it checked', asy
   }
   await page.getByRole('button', { name: 'Back to Learn' }).click();
   await expect(page.getByRole('button', { name: 'Pointing pair, learned' })).toBeVisible();
-  await expect(page.locator('.learn-count')).toHaveText(`1 of ${lessonCount} learned`);
+  await expect(page.locator('.screen-large p')).toHaveText(`1 of ${lessonCount} learned`);
 });
 
 test('a paused game stays paused, and lessons from the Learn page are still playable', async ({ page }) => {

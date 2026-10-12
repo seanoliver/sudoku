@@ -1,5 +1,6 @@
 import { LESSON_BANDS, lessonDiagram, lessonName, type Learned, type LessonId } from '@/lib/lessons';
 import { Icon } from './icons';
+import { ScreenHeader } from './screen-header';
 
 const BAND_NAMES = { easy: 'Easy', medium: 'Medium', hard: 'Hard', expert: 'Expert' } as const;
 const COUNT = LESSON_BANDS.reduce((total, { lessons }) => total + lessons.length, 0);
@@ -14,11 +15,7 @@ export function LessonDiagram({ id }: { id: LessonId }) {
 export function LearnPage({ learned, onOpen, onExit }: { learned: Learned; onOpen: (id: LessonId) => void; onExit: () => void }) {
   const done = LESSON_BANDS.flatMap(({ lessons }) => lessons).filter(id => learned[id]).length;
   return <>
-    <header className="app-bar lesson-bar">
-      <button className="lesson-back" onClick={onExit}><Icon name="chevron" size={16}/><span>Home</span></button>
-      <div className="lesson-title"><h1 className="learn-heading">Learn</h1><span className="learn-count">{done} of {COUNT} learned</span></div>
-      <span/>
-    </header>
+    <ScreenHeader title="Learn" subtitle={`${done} of ${COUNT} learned`} back="Home" size="large" onExit={onExit}/>
     <main className="game learn-list">
       {LESSON_BANDS.map(({ band, lessons }) => <section key={band} className="learn-band" aria-labelledby={`learn-${band}`}>
         <h2 id={`learn-${band}`}>{BAND_NAMES[band]}</h2>

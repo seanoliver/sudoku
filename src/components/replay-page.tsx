@@ -5,6 +5,7 @@ import type { Difficulty } from '@/lib/sudoku';
 import { CellNotes } from './cell-notes';
 import { LevelTiles } from './home';
 import { Icon } from './icons';
+import { ScreenHeader } from './screen-header';
 
 const STEP_MS = 180;
 const TICK = { number: 8, note: 5, fix: 18, other: 5 } as const;
@@ -12,7 +13,7 @@ const SPEEDS = [1, 2, 4] as const;
 const EMPTY: number[] = [];
 const time = (seconds: number) => `${Math.floor(seconds / 60).toString().padStart(2, '0')}:${(seconds % 60).toString().padStart(2, '0')}`;
 
-export function ReplayPage({ replay, givens, solution, level, seconds, onExit }: { replay: Replay; givens: readonly number[]; solution: readonly number[]; level: Difficulty; seconds: number | null; onExit: () => void }) {
+export function ReplayPage({ replay, givens, solution, level, seconds, back, onExit }: { replay: Replay; givens: readonly number[]; solution: readonly number[]; level: Difficulty; seconds: number | null; back: string; onExit: () => void }) {
   const boards = useMemo(() => boardsOf(replay), [replay]);
   const kinds = useMemo(() => stepKinds(replay, solution), [replay, solution]);
   const last = boards.length - 1;
@@ -53,16 +54,8 @@ export function ReplayPage({ replay, givens, solution, level, seconds, onExit }:
 
   const count = (kind: string) => kinds.filter(k => k === kind).length;
   return <>
-    <header className="app-bar lesson-bar">
-      <button className="lesson-back" onClick={onExit}><Icon name="chevron" size={16}/><span>Done</span></button>
-      <span/><span/>
-    </header>
+    <ScreenHeader title={`${level[0].toUpperCase()}${level.slice(1)} solve`} subtitle={<span className={`replay-sub level-${level}`}><LevelTiles level={level}/>{seconds !== null && time(seconds)}</span>} back={back} size="compact" onExit={onExit}/>
     <main className="game replay">
-      <div className="replay-headline">
-        <p className="home-hello">Replay</p>
-        <h1 className="home-title">Your {level} solve</h1>
-        <span className={`home-meta level-${level}`}><LevelTiles level={level}/>{seconds !== null && time(seconds)}</span>
-      </div>
       <div className="replay-hero">
         <div className="board-wrap">
           <div className="board replay-board" role="img" aria-label={`Board at step ${index + 1} of ${boards.length}`}>

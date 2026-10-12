@@ -1,9 +1,11 @@
+import { ViewTransition } from 'react';
 import type { GameState } from '@/lib/game';
 import { percentFilled, type HomeState } from '@/lib/home';
 import { LESSON_BANDS, lessonName, type LessonId } from '@/lib/lessons';
 import type { Difficulty } from '@/lib/sudoku';
 import { AppMark, Icon } from './icons';
 import { LessonDiagram } from './learn-page';
+import { BOARD_SHARE } from './screen-motion';
 
 const LEVELS: Difficulty[] = ['easy', 'medium', 'hard', 'expert'];
 export const LEVEL_NOTES: Record<Difficulty, string> = { easy: 'Warm up', medium: 'A little thought', hard: 'Take your time', expert: 'Bring your best' };
@@ -51,7 +53,7 @@ export function Home({ state, game, seconds, learned, next, solved, greeting, on
       {state === 'playing' && game ? <>
         <h2 className="home-title" id="home-continue">Your {game.difficulty} puzzle<br/>is right where you left it</h2>
         <button className="home-hero home-continue-button" aria-label={`Continue, ${percentFilled(game)}% filled`} onClick={onContinue}>
-          <MiniBoard values={game.values} givens={game.givens} size={196}/>
+          <ViewTransition name="board" share={BOARD_SHARE} default="none"><MiniBoard values={game.values} givens={game.givens} size={196}/></ViewTransition>
           <span className="home-meta" aria-hidden="true">{[`${percentFilled(game)}% filled`, clock].filter(Boolean).join(' · ')}</span>
           <span className="home-go" aria-hidden="true"><Icon name="play" size={16}/>Continue</span>
         </button>

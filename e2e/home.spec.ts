@@ -67,6 +67,7 @@ test('the game timer does not run on Home', async ({ page }) => {
   await page.getByRole('button', { name: 'Continue' }).click();
   await page.waitForTimeout(1500);
   await page.getByRole('button', { name: 'Home' }).click();
+  await expect(page.getByRole('button', { name: /^Continue/ })).toBeVisible();
   const seconds = () => page.evaluate(() => JSON.parse(localStorage.getItem('sudoku.clock.v1') ?? '{}').seconds as number);
   const start = await seconds();
   await page.waitForTimeout(2500);
@@ -199,4 +200,25 @@ test('Expert puzzles finished before the solved count existed still count on Hom
   await page.addInitScript(() => localStorage.setItem('sudoku.puzzle-history.v1', JSON.stringify({ seen: ['k1', 'k2', 'k3'], completed: ['k1', 'k2'] })));
   await page.goto('/');
   await expect(page.locator('.home-solved-count')).toHaveText('2 solved');
+});
+
+test('a level row shows its whole focus ring inside the grouped list', async ({ page }) => {
+  await page.goto('/');
+  const easy = page.locator('.home-level').first();
+  await easy.waitFor();
+  // A key press first, so the focus that follows counts as keyboard focus (Safari's Tab skips buttons).
+  await page.keyboard.press('Shift');
+  await easy.focus();
+  await expect(easy).toBeFocused();
+  expect(await easy.evaluate(element => element.matches(':focus-visible'))).toBe(true);
+  await expect(easy).toHaveCSS('outline-offset', '-3px');
+});
+
+test('with site data blocked, a puzzle still starts and shows its clock', async ({ page }) => {
+  await page.addInitScript(() => Object.defineProperty(window, 'localStorage', { get() { throw new DOMException('denied', 'SecurityError'); } }));
+  await page.goto('/');
+  await page.getByRole('button', { name: /^New easy puzzle/ }).click();
+  await expect(page.locator('.board .cell').first()).toBeVisible();
+  await expect(page.locator('.time-controls .clock')).toHaveText('00:00');
+  await expect(page.locator('.storage-warning')).toBeVisible();
 });
