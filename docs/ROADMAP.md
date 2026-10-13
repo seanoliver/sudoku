@@ -424,7 +424,28 @@ Captured from Sean on September 24. Long-term scope, modeled on the way Good Sud
 ### R15. Daily puzzle
 
 - **Idea:** A new puzzle unlocks each day at the player's level, with a daily streak and a calendar, so there is something to come back for. Sean asked for it on October 12.
-- **Status:** Built in this PR ([design](plans/2026-10-12-daily-puzzle-design.md), [plan](plans/2026-10-12-daily-puzzle.md)), after Sean chose direction A, Daily hero, on October 12: the daily leads Home with a week row that opens the month, and an unfinished regular game shows as a Continue row under it. Home's solved card is gone; a finished game is in History, and its replay opens from the finish card.
+- **Status:** Shipped in [PR #91](https://github.com/seanoliver/sudoku/pull/91) ([design](plans/2026-10-12-daily-puzzle-design.md), [plan](plans/2026-10-12-daily-puzzle.md)), after Sean chose direction A, Daily hero, on October 12: the daily leads Home with a week row that opens the month, and an unfinished regular game shows as a Continue row under it. Home's solved card is gone; a finished game is in History, and its replay opens from the finish card.
+
+### R16. Leaderboards
+
+- **Idea:** Compare solve times with other players, starting with the daily puzzle, since everyone at a level gets the same one each day. Sean asked for it on October 13.
+- **Research:** Decide what is ranked (daily time per level, streaks, solves) and among whom (everyone, friends). Decide how a time is trusted when the puzzle is solved on the device: hints, undo, pauses, and a client that can post any time it likes. Compare Game Center leaderboards (R17) with a server of our own, which would break "Keep progress local and offline" and needs its own decision. Cover the website, which has no Game Center.
+- **Output:** A recommendation for what to rank, where scores live, and the anti-cheat rules, with the cost of each option.
+- **Status:** Open.
+
+### R17. Game Center
+
+- **Idea:** Use Apple's Game Center in the iOS app for sign-in-free leaderboards, achievements, and friends. Sean asked for it on October 13.
+- **Research:** Find what Game Center needs from a Capacitor app (a native plugin or our own bridge in `MainViewController`), what App Store Connect setup each leaderboard and achievement needs, and how it behaves when the player is signed out or offline. Map R7's accomplishments and R16's leaderboards onto Game Center achievements and leaderboards. Decide what the website shows instead.
+- **Output:** A feasibility note with a proposed first leaderboard and first achievements, and the native work it needs.
+- **Status:** Open. Depends on R7 and R16 for what to report.
+
+### R18. Subscription and monetization
+
+- **Idea:** Make money from the app, for example a subscription or a one-time unlock. Sean asked for it on October 13.
+- **Research:** Compare models (subscription, one-time purchase, tip jar, free with a paid tier) against comparable puzzle apps, and decide what is paid without taking away what free players have now. Cover App Store rules: in-app purchase for digital content, the website's different payment rules, restore purchases, and review guideline 3.1. Find what a purchase needs in a Capacitor app (StoreKit through a plugin or our own bridge) and whether a server is needed to check receipts.
+- **Output:** A recommended model, the free and paid split, prices to test, and the native and App Store Connect work it needs.
+- **Status:** Open.
 
 ## Very low priority: desktop experience
 
@@ -455,4 +476,4 @@ This roadmap keeps automatic bookkeeping limited to explicit actions and existin
 
 ## Delivery discipline
 
-Each item's Status line records what has shipped. Open follow-ups include temporary note preview, default number focus, and optional sole-candidate autofill. Open research spikes (R5–R7, R9, R12) must produce reviewed scope proposals before their feature outcomes enter the implementation sequence. CI merge gates are already active. Each feature starts with three rendered design directions for Sean to review, followed by a detailed implementation plan and a focused PR. Sean may change the order or skip renderings explicitly. This roadmap does not authorize implementing every phase at once. Update milestone status and links as changes merge.
+Each item's Status line records what has shipped. Open follow-ups include temporary note preview, default number focus, and optional sole-candidate autofill. Open research spikes (R5–R7, R9, R12, R16–R18) must produce reviewed scope proposals before their feature outcomes enter the implementation sequence. CI merge gates are already active. Each feature starts with three rendered design directions for Sean to review, followed by a detailed implementation plan and a focused PR. Sean may change the order or skip renderings explicitly. This roadmap does not authorize implementing every phase at once. Update milestone status and links as changes merge.
