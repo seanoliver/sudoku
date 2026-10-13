@@ -1,0 +1,81 @@
+import { expect, test, type Page } from '@playwright/test';
+import { openGame } from './fixtures.ts';
+import { createGame, SAVE_KEY } from '../src/lib/game.ts';
+import { createPuzzle } from '../src/lib/difficulty.ts';
+import { peers } from '../src/lib/sudoku.ts';
+
+const game = createGame(createPuzzle('medium', 7));
+// Two side-by-side empty cells with two digits that are neither answer nor held by a peer, so neither filter refuses them.
+const spare = (a: number) => [1, 2, 3, 4, 5, 6, 7, 8, 9].filter(d => d !== game.solution[a] && d !== game.solution[a + 1] && [a, a + 1].every(i => !peers(i).some(p => game.values[p] === d)));
+const a = game.values.findIndex((v, i) => !v && i % 9 < 8 && !game.values[i + 1] && spare(i).length >= 2);
+const b = a + 1;
+const [first, second] = spare(a);
+const filled = game.values.findIndex(v => v);
+const seed = (page: Page) => page.addInitScript(([key, value]) => { if (!sessionStorage.getItem('seeded')) { localStorage.setItem(key, value); sessionStorage.setItem('seeded', '1'); } }, [SAVE_KEY, JSON.stringify(game)]);
+const cell = (page: Page, i: number) => page.locator(`.board [data-index="${i}"]`);
+const marks = (page: Page, kind: 'exclusions' | 'notes') => page.evaluate(({ key, k, cells }) => { const g = JSON.parse(localStorage.getItem(key)!); return cells.map(i => [...g[k][i]].sort()); }, { key: SAVE_KEY, k: kind, cells: [a, b] });
+const selected = (page: Page) => page.getByRole('status').filter({ hasText: '2 cells selected' });
+const mode = (page: Page, name: string) => page.getByRole('button', { name, exact: true });
+
+async function selectBoth(page: Page) {
+  const [from, to] = await Promise.all([cell(page, a).boundingBox(), cell(page, b).boundingBox()]);
+  await page.mouse.move(from!.x + from!.width / 2, from!.y + from!.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(to!.x + to!.width / 2, to!.y + to!.height / 2, { steps: 5 });
+  await page.mouse.up();
+  await expect(selected(page)).toHaveCount(1);
+}
+
+test('a selection stays in Exclude after each digit, so several digits are crossed out in a row', async ({ page }) => {
+  await seed(page);
+  await openGame(page);
+  await selectBoth(page);
+  await mode(page, 'Exclude').click();
+  await page.keyboard.press(String(first));
+  await page.keyboard.press(String(second));
+  await expect.poll(() => marks(page, 'exclusions')).toEqual([[first, second].sort(), [first, second].sort()]);
+  await expect(selected(page)).toHaveCount(1);
+  await expect(mode(page, 'Exclude')).toHaveAttribute('aria-pressed', 'true');
+});
+
+test('a selection stays in Notes after each digit', async ({ page }) => {
+  await seed(page);
+  await openGame(page);
+  await selectBoth(page);
+  await page.keyboard.press(String(first));
+  await page.keyboard.press(String(second));
+  await expect.poll(() => marks(page, 'notes')).toEqual([[first, second].sort(), [first, second].sort()]);
+  await expect(selected(page)).toHaveCount(1);
+});
+
+test('each digit on a selection is its own undo step', async ({ page }) => {
+  await seed(page);
+  await openGame(page);
+  await selectBoth(page);
+  await mode(page, 'Exclude').click();
+  await page.keyboard.press(String(first));
+  await page.keyboard.press(String(second));
+  await expect.poll(() => marks(page, 'exclusions')).toEqual([[first, second].sort(), [first, second].sort()]);
+  await page.getByRole('button', { name: 'Undo', exact: true }).click();
+  await expect.poll(() => marks(page, 'exclusions')).toEqual([[first], [first]]);
+});
+
+test('Numbers ends the selection', async ({ page }) => {
+  await seed(page);
+  await openGame(page);
+  await selectBoth(page);
+  await mode(page, 'Exclude').click();
+  await page.keyboard.press(String(first));
+  await mode(page, 'Numbers').click();
+  await expect(selected(page)).toHaveCount(0);
+  await expect(mode(page, 'Numbers')).toHaveAttribute('aria-pressed', 'true');
+});
+
+test('tapping a filled cell ends the selection', async ({ page }) => {
+  await seed(page);
+  await openGame(page);
+  await selectBoth(page);
+  await page.keyboard.press(String(first));
+  await cell(page, filled).click();
+  await expect(selected(page)).toHaveCount(0);
+});

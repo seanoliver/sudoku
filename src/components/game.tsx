@@ -514,7 +514,6 @@ export default function SudokuGame() {
       if (next === game) return;
       setGame(next);
       haptic('tap');
-      clearSelection();
     } else {
       const next = enter(game, { index: selected, value, pencil, exclude: excluding, blockIncorrectAnswers: preferences.blockIncorrectAnswers, filterNumberKeys: preferences.filterNumberKeys });
       if (next === game) return;
