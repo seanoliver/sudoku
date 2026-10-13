@@ -24,28 +24,31 @@ test('the number keys form a 3 × 3 grid in keypad order', async ({ page }) => {
   expect(Math.abs(keys[0].x - keys[3].x)).toBeLessThan(1);
 });
 
-test('the entry modes stack to the left of the grid, with Erase below them', async ({ page }) => {
+test('the entry modes sit in a 2 × 2 grid left of the keys, with Erase below them', async ({ page }) => {
   await seed(page);
   await openGame(page);
-  const [numbers, notes, exclude] = await Promise.all(['value', 'note', 'exclude'].map(m => box(page, `.mode-option.mode-${m}`)));
+  const [numbers, notes, exclude, color] = await Promise.all(['value', 'note', 'exclude', 'color'].map(m => box(page, `.mode-option.mode-${m}`)));
   const erase = await box(page, '.erase-control');
   const one = await key(page, 1);
-  expect(numbers.y).toBeLessThan(notes.y);
-  expect(notes.y).toBeLessThan(exclude.y);
+  expect(Math.abs(numbers.y - notes.y)).toBeLessThan(1);
+  expect(numbers.x).toBeLessThan(notes.x);
+  expect(Math.abs(exclude.y - color.y)).toBeLessThan(1);
+  expect(exclude.y).toBeGreaterThan(numbers.y);
   expect(Math.abs(numbers.x - exclude.x)).toBeLessThan(1);
   expect(erase.y).toBeGreaterThan(exclude.y);
-  for (const tool of [numbers, notes, exclude, erase]) expect(tool.x + tool.width).toBeLessThanOrEqual(one.x);
+  for (const tool of [numbers, notes, exclude, color, erase]) expect(tool.x + tool.width).toBeLessThanOrEqual(one.x);
 });
 
 test('the mode indicator sits on the chosen mode', async ({ page }) => {
   await seed(page);
   await openGame(page);
-  for (const [mode, label] of [['note', 'Notes'], ['exclude', 'Exclude'], ['value', 'Numbers']] as const) {
+  for (const [mode, label] of [['note', 'Notes'], ['exclude', 'Exclude'], ['color', 'Color'], ['value', 'Numbers']] as const) {
     await page.locator(`.mode-option.mode-${mode}`).click();
     await expect(page.getByRole('button', { name: label, exact: true })).toHaveAttribute('aria-pressed', 'true');
     await page.waitForTimeout(300);
     const [indicator, option] = await Promise.all([box(page, '.mode-indicator'), box(page, `.mode-option.mode-${mode}`)]);
     expect(Math.abs(indicator.y + indicator.height / 2 - (option.y + option.height / 2))).toBeLessThan(3);
+    expect(Math.abs(indicator.x + indicator.width / 2 - (option.x + option.width / 2))).toBeLessThan(3);
   }
 });
 
