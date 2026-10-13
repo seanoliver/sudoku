@@ -254,7 +254,7 @@ Status: queued for research. The feature outcomes below are uncommitted. Complet
 - **Research:** Define meaningful accomplishments and the solve evidence needed to preserve them. Explore local storage and retrieval, completion/replay integration, and story composition and export/share feasibility on phones.
 - **Output:** An accomplishment model and a proposed save-to-share flow, including what “Instagram-native” means for delivery. Capture current platform requirements during the spike and propose story design directions before implementation.
 - **Relationship:** Coordinate with existing unit celebrations and speed replay. Persistent accomplishments and external sharing require their own scope decision.
-- **Status:** Research done ([investigation](investigations/2026-10-13-accomplishments-sharing.md)); scope review waits on the share format, the daily image design, and whether Block incorrect answers or a restart rules out a clean solve (decisions 3, 5, and 6). Recommended first slice: record hints, fixes, and restarts with each solve, show one accomplishment chip on the finish card, and add a Share button, text or image pending Sean's choice from rendered examples; direct Instagram Stories only if players ask for it. Also open: a limit on hints per puzzle, after which the player starts over. Related: links to the site show a preview image, shipped in [PR #41](https://github.com/seanoliver/sudoku/pull/41) ([design](plans/2026-09-25-share-image-design.md)).
+- **Status:** Research done ([investigation](investigations/2026-10-13-accomplishments-sharing.md)). On October 13 Sean chose finish card direction A ([design](plans/2026-10-13-finish-share-design.md)): one accomplishment chip beside Best time, and a Share button that sends a square solve map image. No text share. A solve with Block incorrect answers on, or after a Restart, is never clean. The hint limit is its own item, R21. Direct Instagram Stories only if players ask for it. Related: links to the site show a preview image, shipped in [PR #41](https://github.com/seanoliver/sudoku/pull/41) ([design](plans/2026-09-25-share-image-design.md)).
 
 ### R8. Number grid keypad
 
@@ -452,6 +452,28 @@ Captured from Sean on September 24. Long-term scope, modeled on the way Good Sud
 - **Idea:** Select several cells, switch to Exclude, and exclude several digits from all of them in a row. The first digit used to apply and then clear the selection, so the keypad dropped out of Exclude. Notes on a selection behaved the same way. Sean asked for it on October 13.
 - **Status:** Shipped in [PR #96](https://github.com/seanoliver/sudoku/pull/96) ([design](plans/2026-10-13-sticky-batch-design.md)), after Sean chose direction A, sticky selection, on October 13: the selection and its mode stay after each number, and it ends on a filled cell, Numbers, or Escape, and a new drag starts a new selection.
 
+### R20. Bold a focused digit's notes
+
+- **Idea:** When a digit is focused, every note for that digit stands out, so fish patterns such as X-wing and swordfish are easy to see. Sean asked for it on October 13.
+- **Current behavior:** digit focus (the focus button or holding a filled cell) already gives that digit's notes a blue chip at weight 750 (`src/components/cell-notes.tsx`). Selecting a filled cell highlights the matching placed digits; with Smart highlighting on, it also shades the empty cells where that digit is still allowed, from computed candidates rather than the player's notes. Neither marks the notes.
+- **Questions for the design:** whether selecting a filled cell should also mark the notes, and whether today's chip is strong enough to read a swordfish across the board.
+- **Status:** Open. Part of R22, which rethinks digit focus.
+
+### R21. Hint limits
+
+- **Idea:** Limit hints per puzzle, 3 by default, with a way to play with unlimited hints. Sean asked for it on October 13, while deciding what a clean solve means for R7.
+- **Research:** Define what counts as one hint (opening level 1, reaching level 2, the walkthrough, or Apply) and what happens at the limit (the hint button locks, or the player starts over). Decide how the limit is set (per level, a setting, or unlimited as a mode) and how it shows on the board without explaining text. Unlimited hints may be a paid feature, so coordinate with R18; nothing in the app is paid yet. Cover lessons, which use hints to teach, and the daily.
+- **Output:** A proposed hint system with worked examples, how it interacts with clean solves (R7) and best times, and a recommendation on free and paid.
+- **Status:** Open.
+
+### R22. Rethink digit focus
+
+- **Idea:** Focus is always on whenever a number is selected, and the focused number is much more obvious. Today focus is an extra step (the focus bar's "Focus on its number", holding a filled cell, or a number key with a filled cell selected), and it is hard to tell whether it is on. Sean asked for it on October 13.
+- **Current behavior:** `focusedDigit` in `src/components/game.tsx` holds the focused number until Clear focus, a new puzzle, or a reload. The focus bar above the board shows it, matching numbers and their notes are highlighted, and selecting a filled cell without focus highlights its number only while that cell is selected.
+- **Research:** Define "a number is selected" (a filled cell, a number key, the last number entered) and when focus ends, so it never sticks on a number the player has moved past. Find a cue for the focused number that reads at a glance without text, on the board and on the keypad, in both themes. Decide what happens to the focus bar, Clear focus, and the hold gesture, and how this works with Smart highlighting, Filter number keys, Notes and Exclude, batch selections (R19), and hints. Fold in R20, a focused digit's notes standing out.
+- **Output:** Three rendered directions and a recommendation, before any build.
+- **Status:** Open. Includes R20.
+
 ## Very low priority: desktop experience
 
 **Player benefit:** Make desktop feel intentionally designed for a larger screen, with comfortable mouse and keyboard play.
@@ -481,4 +503,4 @@ This roadmap keeps automatic bookkeeping limited to explicit actions and existin
 
 ## Delivery discipline
 
-Each item's Status line records what has shipped. Open follow-ups include temporary note preview, default number focus, and optional sole-candidate autofill. Open research spikes (R5–R7, R9, R12, R16–R18) must produce reviewed scope proposals before their feature outcomes enter the implementation sequence. CI merge gates are already active. Each feature starts with three rendered design directions for Sean to review, followed by a detailed implementation plan and a focused PR. Sean may change the order or skip renderings explicitly. This roadmap does not authorize implementing every phase at once. Update milestone status and links as changes merge.
+Each item's Status line records what has shipped. Open follow-ups include temporary note preview, default number focus, and optional sole-candidate autofill. Open research spikes (R5–R7, R9, R12, R16–R18, R21, R22) must produce reviewed scope proposals before their feature outcomes enter the implementation sequence. CI merge gates are already active. Each feature starts with three rendered design directions for Sean to review, followed by a detailed implementation plan and a focused PR. Sean may change the order or skip renderings explicitly. This roadmap does not authorize implementing every phase at once. Update milestone status and links as changes merge.
