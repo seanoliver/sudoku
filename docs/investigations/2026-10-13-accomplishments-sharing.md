@@ -108,13 +108,15 @@ Record solve evidence (hints applied, fixes, restarted) on each solve, show one 
 - Platform facts fetched on 2026-10-13 from the sources linked above; `@capacitor/share` version and date from `npm view`.
 - Not verified: `navigator.share({ files })` in WKWebView; that Instagram's share sheet entry offers Stories for a PNG; Meta's story safe zone.
 
-## Open questions for Sean
+## Decisions and open questions
 
-1. Does opening a hint break a clean solve, or only applying one?
-2. Should a time set after a restart count as a best time?
-3. For a daily, should the share image show the givens, a fill map, or no board?
-4. Is direct-to-Stories worth a Meta app registration and native code, or is the share sheet enough?
-5. Should the website share the image too, or text only?
+Sean answered on October 13:
+
+1. **Hints.** Opening a hint to see the technique's name keeps a solve clean. Going on to the walkthrough, which shows where on the board to look, counts as assisted, and so does applying a move. Sean also wants a limit on hints per puzzle, after which the player starts over. The limit and what happens when it is reached are still open.
+2. **Restart.** A time set after Restart does not count as a best time.
+3. **Daily share.** Agreed in principle that it shows no numbers. Sean wants to see design options before choosing.
+4. **Instagram Stories.** Not now. The share sheet is enough until players ask for it.
+5. **Text or image.** Open. Sean wants to see an example of a text share and an image share before choosing.
 
 ## References
 
