@@ -254,7 +254,7 @@ Status: queued for research. The feature outcomes below are uncommitted. Complet
 - **Research:** Define meaningful accomplishments and the solve evidence needed to preserve them. Explore local storage and retrieval, completion/replay integration, and story composition and export/share feasibility on phones.
 - **Output:** An accomplishment model and a proposed save-to-share flow, including what “Instagram-native” means for delivery. Capture current platform requirements during the spike and propose story design directions before implementation.
 - **Relationship:** Coordinate with existing unit celebrations and speed replay. Persistent accomplishments and external sharing require their own scope decision.
-- **Status:** Research done ([investigation](investigations/2026-10-13-accomplishments-sharing.md)). Recommended first slice: record hints, fixes, and restarts with each solve, show one accomplishment chip on the finish card, and add a Share button, text or image pending Sean's choice from rendered examples; direct Instagram Stories comes later. Related: links to the site show a preview image, shipped in [PR #41](https://github.com/seanoliver/sudoku/pull/41) ([design](plans/2026-09-25-share-image-design.md)).
+- **Status:** Research done ([investigation](investigations/2026-10-13-accomplishments-sharing.md)); scope review waits on the share format and the daily image design (decisions 3 and 5). Recommended first slice: record hints, fixes, and restarts with each solve, show one accomplishment chip on the finish card, and add a Share button, text or image pending Sean's choice from rendered examples; direct Instagram Stories only if players ask for it. Also open: a limit on hints per puzzle, after which the player starts over. Related: links to the site show a preview image, shipped in [PR #41](https://github.com/seanoliver/sudoku/pull/41) ([design](plans/2026-09-25-share-image-design.md)).
 
 ### R8. Number grid keypad
 
@@ -436,14 +436,14 @@ Captured from Sean on September 24. Long-term scope, modeled on the way Good Sud
 ### R17. Game Center
 
 - **Idea:** Use Apple's Game Center in the iOS app for leaderboards, achievements, and friends, using the player's Game Center account instead of an account of our own. Sean asked for it on October 13.
-- **Research:** Find what Game Center needs from a Capacitor app (a native plugin or our own bridge in `MainViewController`), what App Store Connect setup each leaderboard and achievement needs, and how it behaves when the player is signed out or offline. Map R7's accomplishments and R16's leaderboards onto Game Center achievements and leaderboards. Decide what the website shows instead.
+- **Research:** Find what Game Center needs from a Capacitor app (a native plugin or our own bridge in `MainViewController`), what App Store Connect setup each leaderboard and achievement needs, and how it behaves when the player is signed out or offline. Map R7's accomplishments and R16's leaderboards onto Game Center achievements and leaderboards. Decide what the website shows instead. Reporting to Game Center sends progress off the device, so decide whether it is opt-in under "Keep progress local and offline".
 - **Output:** A feasibility note with a proposed first leaderboard and first achievements, and the native work it needs.
 - **Status:** Open. Depends on R7 and R16 for what to report.
 
 ### R18. Subscription and monetization
 
 - **Idea:** Make money from the app, for example a subscription or a one-time unlock. Sean asked for it on October 13.
-- **Research:** Compare models (subscription, one-time purchase, tip jar, free with a paid tier) against comparable puzzle apps, and decide what is paid without taking away what free players have now. Cover App Store rules: in-app purchase for digital content, the website's different payment rules, restore purchases, and review guideline 3.1. Find what a purchase needs in a Capacitor app (StoreKit through a plugin or our own bridge) and whether a server is needed to check receipts.
+- **Research:** Compare models (subscription, one-time purchase, tip jar, free with a paid tier) against comparable puzzle apps, and decide what is paid without taking away what free players have now. Cover App Store rules: in-app purchase for digital content, the website's different payment rules, restore purchases, and review guideline 3.1. Find what a purchase needs in a Capacitor app (StoreKit through a plugin or our own bridge) and whether a server is needed to check receipts, which would conflict with "Keep progress local and offline".
 - **Output:** A recommended model, the free and paid split, prices to test, and the native and App Store Connect work it needs.
 - **Status:** Open.
 
