@@ -57,7 +57,9 @@ No account, backend, advertising, or external font requests. Anonymous page-view
 
 Production is hosted in the Vercel **Cabin 9** workspace, project `sudoku`. The connected GitHub repository is `seanoliver/sudoku`; pushes to `main` trigger production deployments and serve both `sudoclue.app` and the earlier `sudoku.seanoliver.dev`.
 
-Porkbun manages DNS. The `sudoku` CNAME points to `f908c3c1f24cf884.vercel-dns-017.com` with a 600-second TTL. Vercel manages HTTPS.
+Porkbun manages DNS. `sudoclue.app` has an apex A record to `76.76.21.21`, and the `sudoku` CNAME on seanoliver.dev points to `f908c3c1f24cf884.vercel-dns-017.com` with a 600-second TTL. Vercel manages HTTPS.
+
+Saved progress lives in each browser's storage for the domain it was played on, so the two domains do not share progress. Do not redirect `sudoku.seanoliver.dev` to `sudoclue.app` without a way to bring that progress across.
 
 Before deploying through the CLI, verify that its signed-in account can access Cabin 9. The repository link alone does not change CLI authentication.
 
