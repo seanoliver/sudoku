@@ -106,7 +106,7 @@ for (const from of ['home', 'learn'] as const) {
     await expect(page.locator('.lesson-bar .lesson-title')).toBeVisible();
     await page.goForward();
     await page.waitForTimeout(300);
-    await expect(page.locator('.lesson-footer')).toBeVisible();
+    await expect(page.locator('.lesson-coach')).toBeVisible();
     await page.locator('.lesson-back').click();
     if (from === 'learn') await page.locator('.lesson-back').click();
     await onHome(page);

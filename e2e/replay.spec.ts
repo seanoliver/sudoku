@@ -3,6 +3,7 @@ import { createGame, SAVE_KEY } from '../src/lib/game.ts';
 import { createPuzzle } from '../src/lib/difficulty.ts';
 import { PREFS_KEY } from '../src/lib/preferences.ts';
 import { REPLAYS_KEY } from '../src/lib/replay.ts';
+import { tapFooter } from './fixtures.ts';
 
 const game = createGame(createPuzzle('easy', 4242));
 const open = game.givens.flatMap((v, i) => v ? [] : [i]);
@@ -106,7 +107,7 @@ test('restarting a puzzle starts a new recording', async ({ page }) => {
 test('lesson boards are not recorded', async ({ page }) => {
   await page.goto('/');
   await page.locator('.home-lesson').click();
-  await page.locator('.lesson-footer').click();
+  await tapFooter(page);
   await page.locator('.board .cell:not(.given)').first().click();
   await page.keyboard.press('5');
   await page.waitForTimeout(300);

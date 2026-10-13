@@ -145,7 +145,7 @@ test('every link ends at the edge of the note digit it joins', async ({ page }) 
   for (const gap of gaps) expect(gap).toBeLessThan(1);
 });
 
-const SIZES = [{ width: 390, height: 844, strict: true }, { width: 1280, height: 800, strict: true }, { width: 375, height: 553, strict: false }, { width: 320, height: 568, strict: false }];
+const SIZES = [{ width: 390, height: 844, strict: true }, { width: 1280, height: 800, strict: true }, { width: 390, height: 664, strict: true }, { width: 360, height: 640, strict: true }, { width: 375, height: 553, strict: false }, { width: 320, height: 568, strict: false }];
 for (const { strict, ...viewport } of SIZES) test.describe(`at ${viewport.width} × ${viewport.height}`, () => {
   test.use({ viewport });
 
@@ -155,12 +155,12 @@ for (const { strict, ...viewport } of SIZES) test.describe(`at ${viewport.width}
       await stepToEnd(page);
       await page.locator('.walk-learn').click();
       await expect(page.locator('.lesson-bar')).toBeVisible();
-      await expect(counter(page)).toHaveText(/^1 of /);
+      await expect(page.locator('.lesson-coach .walk-progress i.done')).toHaveCount(1);
       await expect.poll(() => page.evaluate(() => document.scrollingElement!.scrollHeight <= innerHeight)).toBe(true);
     }
     for (;;) {
       const fit = await page.evaluate(() => {
-        const action = document.querySelector('.walk-actions')!.getBoundingClientRect(), sentence = document.querySelector('.walk-panel p') as HTMLElement;
+        const action = document.querySelector('.walk-actions')!.getBoundingClientRect(), sentence = document.querySelector('.walk-panel p, .lesson-coach-text') as HTMLElement;
         return { bottom: action.bottom, height: innerHeight, scroll: document.scrollingElement!.scrollHeight, hidden: sentence.scrollHeight - sentence.clientHeight, cue: sentence.classList.contains('clipped') && sentence.tabIndex === 0 };
       });
       expect(fit.bottom).toBeLessThanOrEqual(fit.height);

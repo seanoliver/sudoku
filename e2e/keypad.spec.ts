@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { gameBefore, openGame } from './fixtures.ts';
+import { footer, gameBefore, openGame, tapFooter } from './fixtures.ts';
 import { SAVE_KEY } from '../src/lib/game.ts';
 import { lessonOf } from '../src/lib/lessons.ts';
 
@@ -175,24 +175,28 @@ for (const [width, height] of [[375, 667], [320, 568]] as const) {
     expect(await page.evaluate(() => document.documentElement.scrollHeight <= innerHeight), 'game').toBe(true);
     await page.goto('/');
     await page.locator('.home-lesson').click();
-    await expect(page.locator('.lesson-footer')).toBeVisible();
+    await expect(page.locator('.lesson-coach')).toBeVisible();
     for (const phase of ['watch', 'practice']) {
-      if (phase === 'practice') { await page.locator('.lesson-footer').click(); await page.waitForTimeout(300); }
+      if (phase === 'practice') { await tapFooter(page); await page.waitForTimeout(300); }
       expect(await page.evaluate(() => document.documentElement.scrollHeight <= innerHeight), phase).toBe(true);
     }
   });
 }
 
 for (const [width, height] of [[1024, 768], [890, 626]] as const) {
-  test(`a lesson's footer button can be tapped at ${width} × ${height}`, async ({ page }) => {
+  test(`a lesson's action can be tapped at ${width} × ${height}`, async ({ page }) => {
     await page.setViewportSize({ width, height });
     await page.goto('/');
     await page.locator('.home-lesson').click();
-    const footer = page.locator('.lesson-footer');
-    await expect(footer).toBeVisible();
-    const b = (await footer.boundingBox())!;
-    const hit = await page.evaluate(([x, y]) => document.elementFromPoint(x, y)?.closest('.lesson-footer') !== null, [b.x + b.width / 2, b.y + b.height / 2]);
+    const next = page.locator('.lesson-coach .walk-next');
+    while (await next.count()) await next.click();
+    const action = footer(page);
+    await expect(action).toBeVisible();
+    const b = (await action.boundingBox())!;
+    const hit = await page.evaluate(([x, y]) => document.elementFromPoint(x, y)?.closest('.lesson-action') !== null, [b.x + b.width / 2, b.y + b.height / 2]);
     expect(hit).toBe(true);
+    // Side by side, the lesson board was 453px at 890 × 626 while it kept room for a focus strip.
+    if (width === 890) expect((await box(page, '.board-wrap')).width).toBeGreaterThanOrEqual(480);
   });
 }
 
@@ -207,12 +211,14 @@ for (const [width, height] of [[375, 629], [375, 553], [390, 664], [360, 640], [
     await page.setViewportSize({ width, height });
     await page.goto('/');
     await page.locator('.home-lesson').click();
-    await expect(page.locator('.lesson-footer')).toBeVisible();
+    await expect(page.locator('.lesson-coach')).toBeVisible();
     for (const phase of ['watch', 'practice']) {
-      if (phase === 'practice') { await page.locator('.lesson-footer').click(); await page.waitForTimeout(300); }
+      if (phase === 'practice') { await tapFooter(page); await page.waitForTimeout(300); }
       expect(await page.evaluate(() => document.documentElement.scrollHeight <= innerHeight), phase).toBe(true);
     }
-    if (height === 629) expect((await box(page, '.board-wrap')).width).toBeGreaterThanOrEqual(270);
+    // Lesson boards before the coach card: 270px at 375 × 629, 194px at 375 × 553.
+    if (height === 629) expect((await box(page, '.board-wrap')).width).toBeGreaterThanOrEqual(290);
+    if (height === 553) expect((await box(page, '.board-wrap')).width).toBeGreaterThanOrEqual(210);
   });
 }
 
