@@ -254,7 +254,7 @@ Status: queued for research. The feature outcomes below are uncommitted. Complet
 - **Research:** Define meaningful accomplishments and the solve evidence needed to preserve them. Explore local storage and retrieval, completion/replay integration, and story composition and export/share feasibility on phones.
 - **Output:** An accomplishment model and a proposed save-to-share flow, including what “Instagram-native” means for delivery. Capture current platform requirements during the spike and propose story design directions before implementation.
 - **Relationship:** Coordinate with existing unit celebrations and speed replay. Persistent accomplishments and external sharing require their own scope decision.
-- **Status:** Open. Related: links to the site show a preview image, shipped in [PR #41](https://github.com/seanoliver/sudoku/pull/41) ([design](plans/2026-09-25-share-image-design.md)).
+- **Status:** Research done ([investigation](investigations/2026-10-13-accomplishments-sharing.md)). Recommended first slice: record hints, fixes, and restarts with each solve, show one accomplishment chip on the finish card, and add a Share button that sends a text summary; the story image and direct Instagram Stories come later. Related: links to the site show a preview image, shipped in [PR #41](https://github.com/seanoliver/sudoku/pull/41) ([design](plans/2026-09-25-share-image-design.md)).
 
 ### R8. Number grid keypad
 
