@@ -6,7 +6,7 @@ Sudoclue is a small, free, mobile-friendly Sudoku PWA built with Next.js, React,
 
 | Home | Smart highlighting | Hints that explain | Learn |
 | :---: | :---: | :---: | :---: |
-| <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/readme-home-dark.png"><img src="docs/screenshots/readme-home.png" width="200" alt="Home screen: the Expert puzzle in progress with a Continue button, four difficulty levels, and the next lesson."></picture> | <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/readme-board-dark.png"><img src="docs/screenshots/readme-board.png" width="200" alt="An Expert board focused on 3: green cells show where a 3 can still go."></picture> | <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/readme-hint-dark.png"><img src="docs/screenshots/readme-hint.png" width="200" alt="An XY-wing hint walkthrough on step 4 of 4: the pivot and wings are ringed, the removed candidates are marked in red, with a button to learn XY-wing."></picture> | <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/readme-learn-dark.png"><img src="docs/screenshots/readme-learn.png" width="200" alt="The Learn page: lessons grouped from Easy to Expert, each with a small board diagram, five of them checked as learned."></picture> |
+| <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/readme-home-dark.png"><img src="docs/screenshots/readme-home.png" width="200" alt="Home screen: today’s daily puzzle ready to play, with a 6-day streak, a week of checked days, the Medium level, and Play, above the four difficulty levels."></picture> | <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/readme-board-dark.png"><img src="docs/screenshots/readme-board.png" width="200" alt="An Expert board focused on 3: green cells show where a 3 can still go."></picture> | <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/readme-hint-dark.png"><img src="docs/screenshots/readme-hint.png" width="200" alt="An XY-wing hint walkthrough on step 4 of 4: the pivot and wings are ringed, the removed candidates are marked in red, with a button to learn XY-wing."></picture> | <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/readme-learn-dark.png"><img src="docs/screenshots/readme-learn.png" width="200" alt="The Learn page: lessons grouped from Easy to Expert, each with a small board diagram, five of them checked as learned."></picture> |
 
 ## Run
 
@@ -28,7 +28,8 @@ The build generates `public/sw.js` after Next.js finishes, precaching the comple
 
 ## Play
 
-- The app opens on Home: continue the puzzle in progress, start an Easy, Medium, Hard or Expert puzzle, open the next lesson, or browse all techniques. Home also shows how many puzzles you have solved and, until the app is installed, an install card. The Home button or the browser's back button returns there from a game.
+- The app opens on Home, led by the daily puzzle: one puzzle a day at your chosen level, the same for everyone at that level and built on the device, so it works offline. Its card shows the date, your daily streak, today's board, a week of checked days (tap it for the month), the level, and Play, Continue with the time, or the time until the next one once solved. A missed day stays missed; solving any level counts for the day.
+- Below the daily, a Continue row opens an unfinished regular game. Home also starts an Easy, Medium, Hard or Expert puzzle, opens the next lesson or all techniques, shows how many puzzles you have solved, and, until the app is installed, an install card. The Home button or the browser's back button returns there from a game.
 - The game screen has one bar: Home on the left; the difficulty, timer, and pause in the middle; the hint bulb and Settings on the right. Below it sit two cards, the board and the controls.
 - Select an empty cell, then a number to enter it. With a filled cell selected, the number pad and digit keys focus that digit without replacing the value. Starting numbers cannot be changed. With Block incorrect answers on, a wrong number is refused and shown struck through in red, and so is crossing out a cell's answer in Exclude mode, alone or in a batch.
 - The Numbers, Notes, and Exclude buttons beside the number grid switch what the number keys do. Notes add or remove pencil marks; Exclude crosses out digits and removes those cells from Smart highlighting for that digit.
@@ -40,7 +41,7 @@ The build generates `public/sw.js` after Next.js finishes, precaching the comple
 - Completing a row, column or box plays a short green sweep.
 - Undo and Redo sit beside Erase and restore values, notes and exclusions (up to 200 actions total). Both persist across reopening. A new edit clears Redo. Settings has New puzzle, Restart puzzle and Fill notes.
 - Pause hides the board and stops the clock. The clock also pauses in dialogs and background tabs. Hide timer in Settings hides the time display while elapsed time continues to be tracked and saved.
-- Progress saves automatically on this device, including undo history.
+- Progress saves automatically on this device, including undo history. Each daily level has its own save slot and clock (`sudoku.daily-game.v1.<level>`, `sudoku.daily-clock.v1.<level>`; the chosen level is in `sudoku.daily.v1`), so playing it never replaces a regular game in progress; daily solves are kept in `sudoku.daily-solves.v1` for the streak and the month, and also count in History.
 - Levels are graded by the hardest technique a puzzle needs. Every generated puzzle has exactly one solution. Expert puzzles come from a precomputed bank and do not repeat until you have seen them all.
 - Settings include system/light/dark appearance, Block incorrect answers, Highlight related cells, Smart highlighting, Filter number keys and Hide timer. New players start with every aid on except Hide timer. Filter number keys dims numbers already in the selected cell’s row, column, or box; tapping or typing a dimmed number focuses it instead of entering it.
 
@@ -94,8 +95,10 @@ pnpm test:e2e
 - `src/lib/lessons.ts`: lessons and practice-board grading.
 - `src/lib/expert-bank.ts`, `lesson-bank.ts`: generated by `pnpm build:expert-bank` and `pnpm build:lesson-bank`.
 - `src/lib/puzzle.worker.ts`: puzzle generation outside the UI thread.
+- `src/lib/daily.ts`: the daily puzzle's ids, seeds, save slot, solves and streak.
 - `src/components/game.tsx`: accessible grid, number pad, hints, settings and installation sheets.
 - `src/components/home.tsx`, `learn-page.tsx`, `lesson.tsx`: Home, the lesson list, and a lesson.
+- `src/components/daily-page.tsx`, `history-page.tsx`, `month-calendar.tsx`: the daily's month and History, which share one calendar.
 - `src/components/clock.tsx`: isolated timer updates; no per-second board rerender.
 - `scripts/build-sw.mjs`: versioned, atomic precache from the production output.
 - `scripts/icons.mjs`: regenerate the app icon, its PNGs, and the iOS icon and splash images with `node scripts/icons.mjs`.

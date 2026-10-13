@@ -41,12 +41,12 @@ export function levelStats(solves: readonly Solve[]): LevelStats {
 
 export const isNewBest = (seconds: number | null, best: number | null) => seconds !== null && best !== null && seconds < best;
 
-const addDays = (day: string, days: number) => {
+export const addDays = (day: string, days: number) => {
   const [y, m, d] = day.split('-').map(Number);
   return dayKey(new Date(y, m - 1, d + days));
 };
 /** Days in a row with a solve, ending today, or ending yesterday while today has none yet. */
-export function streak(solves: readonly Solve[], today: string): number {
+export function streak(solves: readonly { day: string }[], today: string): number {
   const days = new Set(solves.map(s => s.day));
   let day = days.has(today) ? today : addDays(today, -1);
   let count = 0;

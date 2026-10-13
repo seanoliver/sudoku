@@ -95,7 +95,7 @@ test('reopening a game that was already finished does not record it again as sol
   const game = JSON.parse(almostSolved().game);
   await page.addInitScript(([key, value, id]) => { localStorage.setItem(key, value); localStorage.setItem('sudoku.clock.v1', JSON.stringify({ id, seconds: 777 })); }, [SAVE_KEY, JSON.stringify({ ...game, values: game.solution }), game.id]);
   await page.goto('/');
-  await expect(page.getByRole('heading', { name: /^Nicely solved/ })).toBeVisible();
+  await expect(page.locator('.home-solved-count')).toHaveText('1 solved');
   await page.waitForTimeout(300);
   expect(await page.evaluate(k => localStorage.getItem(k), SOLVES_KEY)).toBeNull();
 });

@@ -135,7 +135,7 @@ Captured from Sean's September 20 feedback and the [September 21 playtest](playt
 
 ### Speed replay after completion
 
-**Status:** Shipped in [PR #52](https://github.com/seanoliver/sudoku/pull/52) ([design](plans/2026-09-27-speed-replay-design.md)): every move is recorded, and a replay page in the Home look opens from the completion card and Home's solved card. Replay from History rows is a follow-up.
+**Status:** Shipped in [PR #52](https://github.com/seanoliver/sudoku/pull/52) ([design](plans/2026-09-27-speed-replay-design.md)): every move is recorded, and a replay page in the Home look opens from the completion card, and opened from Home's solved card until the daily replaced that card (R15). Replay from History rows is a follow-up.
 
 **Player benefit:** Watch a quick animation of the solve, showing entries in the order they were made.
 
@@ -420,6 +420,11 @@ Captured from Sean on September 24. Long-term scope, modeled on the way Good Sud
 
 - **Idea:** Let players color cells gold or blue to work through coloring deductions (color wrap and color trap) themselves. Sean asked for it on October 12.
 - **Status:** Sean chose direction A, Color mode, on October 12 ([design](plans/2026-10-12-cell-coloring-design.md)), with a Clear all key and a ? sheet that links to the coloring lessons.
+
+### R15. Daily puzzle
+
+- **Idea:** A new puzzle unlocks each day at the player's level, with a daily streak and a calendar, so there is something to come back for. Sean asked for it on October 12.
+- **Status:** Built in this PR ([design](plans/2026-10-12-daily-puzzle-design.md), [plan](plans/2026-10-12-daily-puzzle.md)), after Sean chose direction A, Daily hero, on October 12: the daily leads Home with a week row that opens the month, and an unfinished regular game shows as a Continue row under it. Home's solved card is gone; a finished game is in History, and its replay opens from the finish card.
 
 ## Very low priority: desktop experience
 

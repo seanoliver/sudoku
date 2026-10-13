@@ -319,15 +319,44 @@ h1,h2,h3,p { margin: 0; }
 .home-board .thin line { stroke: var(--line); stroke-width: .03; }
 .home-board text { font-size: .62px; text-anchor: middle; dominant-baseline: central; fill: var(--ink); }
 .home-board text.entered { fill: var(--blue-strong); }
-.home-hero { position: relative; display: flex; flex-direction: column; align-items: center; gap: 14px; width: 100%; padding: 24px 0 34px; border-radius: 24px; background: radial-gradient(circle at 50% 40%, color-mix(in srgb, var(--blue) 16%, var(--surface)), var(--surface) 70%); border: 1px solid var(--line); box-shadow: var(--shadow); color: var(--ink); }
-.home-hero .home-board { transform: rotate(-3deg); border-radius: 10px; box-shadow: 0 10px 30px color-mix(in srgb, var(--blue) 18%, transparent); animation: home-float 5s ease-in-out infinite; }
-.home-hero.quiet { padding: 22px 0; margin-bottom: 0; }
-.home-hero.quiet .home-board { transform: rotate(3deg); animation: none; }
-.home-hero:not(.quiet) + .home-levels { margin-top: 16px; }
-@keyframes home-float { 50% { transform: translateY(-4px) rotate(-2deg); } }
-.home-meta { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 500; color: var(--muted); }
-.home-eyebrow { display: inline-flex; align-items: center; gap: 4px; font-weight: 700; }
-.home-eyebrow.solved { color: var(--green); }
+.daily-hero { display: flex; flex-direction: column; align-items: center; gap: 16px; padding: 16px 16px 18px; border-radius: 24px; background: radial-gradient(circle at 50% 35%, var(--blue-soft), var(--surface) 70%); border: 1px solid var(--line); box-shadow: var(--shadow); }
+.daily-hero.done { background: radial-gradient(circle at 50% 35%, color-mix(in srgb, var(--green) 14%, var(--surface)), var(--surface) 70%); }
+.daily-hero-top, .daily-hero-foot { align-self: stretch; display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 26px; }
+.daily-date { font-size: 14px; font-weight: 650; color: var(--ink); }
+.daily-streak { display: inline-flex; align-items: center; gap: 4px; padding: 5px 10px; border-radius: 99px; background: var(--hint-soft); color: var(--hint-strong); font-size: 13px; font-weight: 600; }
+.daily-streak b { font-weight: 750; }
+.daily-hero-board { position: relative; display: grid; place-items: center; }
+.daily-hero-board .home-board { transform: rotate(-3deg); border-radius: 10px; box-shadow: 0 10px 30px color-mix(in srgb, var(--blue) 18%, transparent); }
+.daily-board-done text.entered { fill: var(--green); }
+.daily-check { position: absolute; right: -10px; bottom: -8px; width: 44px; height: 44px; display: grid; place-items: center; border-radius: 50%; background: var(--green); color: white; box-shadow: 0 4px 12px color-mix(in srgb, var(--green) 40%, transparent); }
+.daily-week-link { display: flex; align-items: center; gap: 6px; align-self: stretch; padding: 4px 2px; border-radius: 12px; }
+.daily-week-link > svg { flex-shrink: 0; transform: rotate(-90deg); color: var(--muted); }
+.daily-week { flex: 1; display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; list-style: none; margin: 0; padding: 0; }
+.daily-week li { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.daily-week small { font-size: 11px; font-weight: 600; color: var(--muted); }
+.daily-week i { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; background: var(--canvas); }
+.daily-week .solved i { background: var(--green); color: white; }
+.daily-week .today i { box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--blue); }
+.daily-week .today small { color: var(--blue-strong); }
+.daily-level { display: inline-flex; align-items: center; gap: 8px; min-height: 36px; padding: 0 12px; white-space: nowrap; border-radius: 99px; background: var(--canvas); color: var(--secondary); font-size: 13px; font-weight: 600; }
+.daily-level .level-tiles { transform: scale(.75); margin: 0 -2px; }
+.daily-play { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 22px; white-space: nowrap; border-radius: 99px; background: linear-gradient(#3584ed, #2471db); color: white; font-size: 15px; font-weight: 650; font-variant-numeric: tabular-nums; box-shadow: 0 6px 16px color-mix(in srgb, var(--blue) 30%, transparent); }
+.daily-next { display: inline-flex; white-space: nowrap; align-items: center; gap: 6px; color: var(--secondary); font-size: 14px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.resume-row { display: flex; align-items: center; gap: 14px; width: 100%; padding: 10px 14px; border-radius: 18px; background: var(--surface); border: 1px solid var(--line); text-align: left; color: var(--ink); }
+.resume-row .home-board { flex-shrink: 0; border-radius: 6px; box-shadow: 0 2px 6px #0000001a; }
+.resume-row .home-lesson-copy small { color: var(--secondary); }
+.resume-meta { font-size: 13px; font-weight: 600; color: var(--muted); font-variant-numeric: tabular-nums; }
+.resume-row > svg:last-child { flex-shrink: 0; transform: rotate(-90deg); color: var(--muted); }
+.home-board .mini-given { fill: var(--secondary); opacity: .55; }
+.home-board .mini-entered { fill: var(--blue); opacity: .7; }
+/* On the smallest phones the chip keeps its tiles, which already show the level, so Continue and its time fit on one line. */
+@media (max-width: 359px) { .daily-play { gap: 6px; padding: 0 16px; font-size: 14px; } .daily-level { gap: 6px; padding: 0 10px; } .daily-level > span:not(.level-tiles) { display: none; } }
+.daily-day { display: grid; place-items: center; justify-self: center; width: 38px; height: 38px; margin: 2px 0; border-radius: 50%; font-size: 13px; font-variant-numeric: tabular-nums; color: var(--secondary); }
+.daily-day.solved { background: var(--green); color: white; }
+.daily-day.missed { color: var(--muted); }
+.daily-day.future { opacity: .35; }
+.daily-day.today:not(.solved) { box-shadow: inset 0 0 0 2px var(--blue); color: var(--blue-strong); font-weight: 700; }
+.daily-day.today.solved { box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--green); }
 .home-go { position: absolute; bottom: -19px; display: inline-flex; align-items: center; gap: 8px; padding: 11px 26px; border-radius: 99px; background: linear-gradient(#3584ed, #2471db); color: white; font-weight: 650; box-shadow: 0 6px 16px #2471db55; }
 .level-easy { --level: var(--green); --level-soft: var(--possible); }
 .level-medium { --level: var(--blue); --level-soft: var(--blue-soft); }
@@ -395,8 +424,6 @@ h1,h2,h3,p { margin: 0; }
 .history-time { font-size: 16px; font-weight: 650; font-variant-numeric: tabular-nums; }
 .history-more { align-self: center; width: auto; }
 .history-earlier { margin: 4px 0 0; text-align: center; font-size: 13px; color: var(--muted); }
-.home-hero.quiet:has(.home-replay) { padding-bottom: 34px; }
-.home-hero:has(.home-replay) + .home-levels { margin-top: 16px; }
 .replay { display: flex; flex-direction: column; gap: 14px; padding-bottom: 24px; }
 .replay-hero { position: relative; display: flex; flex-direction: column; align-items: center; padding: 14px 14px 32px; border-radius: 24px; background: radial-gradient(circle at 50% 40%, color-mix(in srgb, var(--blue) 16%, var(--surface)), var(--surface) 70%); border: 1px solid var(--line); box-shadow: var(--shadow); }
 .replay-hero .board-wrap { width: 100%; }
@@ -427,8 +454,7 @@ h1,h2,h3,p { margin: 0; }
 .replay-speeds button { min-width: 36px; height: 30px; border-radius: 99px; font-size: 12px; font-weight: 700; color: var(--secondary); }
 .replay-speeds button[aria-pressed='true'] { background: var(--surface); color: var(--ink); box-shadow: var(--shadow); }
 @media (hover: hover) { .history-day:is(button):hover { background: var(--peer); } }
-@media (hover: hover) { .home-level:hover { background: color-mix(in srgb, var(--level) 8%, var(--surface)); } .home-lesson:hover, .home-install:hover, .home-chip.home-all:hover, .home-chip.home-solved-count:hover, .home-hero:not(.quiet):hover { border-color: var(--box-line); } }
-@media (prefers-reduced-motion: reduce) { .home-hero .home-board { animation: none; } }
+@media (hover: hover) { .home-level:hover { background: color-mix(in srgb, var(--level) 8%, var(--surface)); } .home-lesson:hover, .home-install:hover, .home-chip.home-all:hover, .home-chip.home-solved-count:hover, .resume-row:hover { border-color: var(--box-line); } }
 /* Folding phones open, laptops, and iPads in landscape. */
 @media (min-aspect-ratio: 5/4) and (min-height: 500px) and (max-height: 820px) {
   /* 33px: the board card's padding, the progress line, and the bottom padding, less the card's 16px padding. A lesson has no focus strip. */

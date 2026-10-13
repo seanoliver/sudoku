@@ -13,6 +13,7 @@ export function percentFilled(game: GameState): number {
 /** The easiest lesson not yet learned, or null once all are. */
 export const nextLesson = (learned: Learned): LessonId | null => LESSON_BANDS.flatMap(band => band.lessons).find(id => !learned[id]) ?? null;
 
+export const CLOCK_KEY = 'sudoku.clock.v1';
 /** Whole seconds the clock saved for this game, if it saved any. */
 export function savedSeconds(raw: string | null, id: string): number | null {
   try {

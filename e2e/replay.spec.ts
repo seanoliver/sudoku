@@ -75,21 +75,12 @@ test('the scrubber, Space, and Escape control the replay', async ({ page }) => {
   await expect(page.locator('.completion')).toBeVisible();
 });
 
-test('Home’s solved card opens the replay and returns to Home', async ({ page }) => {
+test('a finished game leaves Home, where it is counted rather than offered again', async ({ page }) => {
   await start(page);
   await solveWithNoteAndFix(page);
   await page.getByRole('button', { name: 'Home' }).click();
-  await page.getByRole('button', { name: 'Replay' }).click();
-  await expect(page.getByRole('heading', { name: 'Easy solve' })).toBeVisible();
-  await page.getByRole('button', { name: 'Home' }).click();
-  await expect(page.getByRole('button', { name: 'Replay' })).toBeFocused();
-  await expect(page.getByRole('heading', { name: /^Nicely solved/ })).toBeVisible();
-});
-
-test('a game finished before recording existed offers no replay', async ({ page }) => {
-  await page.addInitScript(([key, value]) => localStorage.setItem(key, value), [SAVE_KEY, JSON.stringify({ ...game, values: game.solution })]);
-  await page.goto('/');
-  await expect(page.getByRole('heading', { name: /^Nicely solved/ })).toBeVisible();
+  await expect(page.locator('.home-solved-count')).toHaveText('1 solved');
+  await expect(page.locator('.resume-row')).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Replay' })).toHaveCount(0);
 });
 
@@ -137,12 +128,15 @@ test('back from a replay opened on the completion card returns to the card', asy
 });
 
 test('a long replay keeps its whole timeline on screen', async ({ page }) => {
-  const solved = { ...game, values: game.solution };
+  const last = open.at(-1)!;
+  const almost = { ...game, values: game.solution.map((v, i) => i === last ? 0 : v) };
   const steps = Array.from({ length: 700 }, (_, k) => [[open[0], 0, 1 << (k % 9 + 1), 0]]);
-  steps.push(open.map(i => [i, game.solution[i], 0, 0]));
+  steps.push(open.filter(i => i !== last).map(i => [i, game.solution[i], 0, 0]));
   await page.addInitScript(([saveKey, value, replaysKey, replays]) => { localStorage.setItem(saveKey, value); localStorage.setItem(replaysKey, replays); },
-    [SAVE_KEY, JSON.stringify(solved), REPLAYS_KEY, JSON.stringify({ games: [{ id: game.id, start: game.givens.flatMap((v, i) => v ? [[i, v, 0, 0]] : []), steps }] })]);
+    [SAVE_KEY, JSON.stringify(almost), REPLAYS_KEY, JSON.stringify({ games: [{ id: game.id, start: game.givens.flatMap((v, i) => v ? [[i, v, 0, 0]] : []), steps }] })]);
   await page.goto('/');
+  await page.getByRole('button', { name: /^Continue/ }).click();
+  await enter(page, last, game.solution[last]);
   await page.getByRole('button', { name: 'Replay' }).click();
   const layout = await page.locator('.replay-ticks').evaluate(el => {
     const box = el.getBoundingClientRect();
@@ -167,22 +161,16 @@ test('numbers entered before recording began are not shown as starting numbers',
   await expect(page.locator('.replay-board .cell.wrong')).toHaveCount(1);
 });
 
-test('Back and Forward move between Home and a replay opened there', async ({ page }) => {
+test('Back closes a replay, and Forward never reopens it', async ({ page }) => {
   await start(page);
   await solveWithNoteAndFix(page);
-  await page.getByRole('button', { name: 'Home' }).click();
   await page.getByRole('button', { name: 'Replay' }).click();
   await expect(page.getByRole('heading', { name: 'Easy solve' })).toBeVisible();
   await page.goBack();
-  await expect(page.getByRole('heading', { name: /^Nicely solved/ })).toBeVisible();
-  await page.goForward();
-  await expect(page.getByRole('heading', { name: /^Nicely solved/ })).toBeVisible();
-  await page.getByRole('button', { name: 'Replay' }).click();
-  await page.locator('.lesson-back').click();
-  await expect(page.getByRole('heading', { name: /^Nicely solved/ })).toBeVisible();
+  await expect(page.locator('.completion')).toBeVisible();
   await page.goForward();
   await page.waitForTimeout(300);
-  await expect(page.getByRole('heading', { name: /^Nicely solved/ })).toBeVisible();
+  await expect(page.locator('.completion')).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Easy solve' })).toHaveCount(0);
 });
 
@@ -214,12 +202,12 @@ test('after a reload on a replay, Back goes to Home once and never reopens the f
   await solveWithNoteAndFix(page);
   await page.getByRole('button', { name: 'Replay' }).click();
   await page.reload();
-  await expect(page.getByRole('heading', { name: /^Nicely solved/ })).toBeVisible();
+  await expect(page.getByRole('heading', { name: /^Today’s puzzle/ })).toBeVisible();
   await page.evaluate(() => { (window as unknown as { marker: number }).marker = 1; });
   await page.goBack();
   await page.waitForTimeout(300);
   await expect(page.locator('.completion')).toHaveCount(0);
-  await expect(page.getByRole('heading', { name: /^Nicely solved/ })).toBeVisible();
+  await expect(page.getByRole('heading', { name: /^Today’s puzzle/ })).toBeVisible();
   expect(await page.evaluate(() => (window as unknown as { marker?: number }).marker)).toBe(1);
 });
 
