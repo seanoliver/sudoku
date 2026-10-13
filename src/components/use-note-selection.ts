@@ -23,12 +23,13 @@ export function useNoteSelection({ values, enabled, onSelect, onBegin, onFocus }
   values: readonly number[] | undefined;
   enabled: boolean;
   onSelect: (index: number) => void;
-  onBegin: () => void;
+  onBegin: (start: { replacing: boolean }) => void;
   onFocus: (input: { index: number; hasSelection: boolean }) => void;
 }) {
   const [indices, setIndices] = useState<number[]>([]);
   const gesture = useRef<Gesture | null>(null);
   const suppressClick = useRef(false);
+  const applied = useRef(false);
   const stopGesture = useCallback(() => {
     const current = gesture.current;
     gesture.current = null;
@@ -38,6 +39,7 @@ export function useNoteSelection({ values, enabled, onSelect, onBegin, onFocus }
   }, []);
   const reset = useCallback(() => {
     stopGesture();
+    applied.current = false;
     setIndices([]);
   }, [stopGesture]);
 
@@ -59,6 +61,13 @@ export function useNoteSelection({ values, enabled, onSelect, onBegin, onFocus }
     setIndices(current => current.includes(index) ? current : [...current, index]);
     onSelect(index);
   };
+  const begin = () => {
+    if (indices.length && !applied.current) return;
+    const replacing = indices.length > 0;
+    applied.current = false;
+    setIndices([]);
+    onBegin({ replacing });
+  };
   const onPointerDown = (event: PointerEvent<HTMLDivElement>) => {
     if (!event.isPrimary) { suppressClick.current = true; stopGesture(); return; }
     if (!enabled || event.button !== 0) return;
@@ -78,7 +87,7 @@ export function useNoteSelection({ values, enabled, onSelect, onBegin, onFocus }
       current.dragging = true;
       suppressClick.current = true;
       if (current.kind === 'focus') onFocus({ index, hasSelection: indices.length > 0 });
-      else { if (!indices.length) onBegin(); add(index); }
+      else { begin(); add(index); }
     }, HOLD_MS);
     gesture.current = current;
   };
@@ -90,7 +99,7 @@ export function useNoteSelection({ values, enabled, onSelect, onBegin, onFocus }
       clearTimeout(current.timer);
       suppressClick.current = true;
       if (current.kind === 'focus') { current.cancelled = true; return; }
-      if (!indices.length) onBegin();
+      begin();
       current.dragging = true;
       add(current.index);
     }
@@ -123,12 +132,13 @@ export function useNoteSelection({ values, enabled, onSelect, onBegin, onFocus }
     if (!indices.length) { onSelect(index); return; }
     if (values?.[index]) { reset(); onSelect(index); return; }
     if (!eligible(index)) return;
+    applied.current = false;
     setIndices(current => current.includes(index) ? current.filter(i => i !== index) : [...current, index]);
     onSelect(index);
   };
 
   return {
-    indices, reset, clickCell,
+    indices, reset, clickCell, markApplied: () => { applied.current = true; },
     pointerHandlers: {
       onPointerDown, onPointerMove, onPointerUp, onPointerCancel,
       onLostPointerCapture: onPointerCancel,
