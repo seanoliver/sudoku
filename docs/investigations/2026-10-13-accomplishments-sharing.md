@@ -30,7 +30,7 @@ Gaps:
 2. **WKWebView is unverified.** MDN marks the iOS WebView as mirroring Safari, but I found no primary source confirming `navigator.share({ files })` inside a Capacitor app. Test on a device before depending on it.
 3. **`@capacitor/share` shares files on iOS.** Current version 8.0.3 (npm, published 2026-10-02). `ShareOptions.files` takes `file://` URLs and is "only supported on iOS and Android" ([Capacitor Share docs](https://capacitorjs.com/docs/apis/share)). The image must first be written to a file, for example with `@capacitor/filesystem`.
 4. **Direct Instagram Stories is native only.** The `instagram-stories://share?source_application=<App ID>` scheme needs a Facebook App ID (required since January 2023), `instagram-stories` in `LSApplicationQueriesSchemes`, and the image placed on the iOS pasteboard under `com.instagram.sharedSticker.backgroundImage` or `.stickerImage`, with optional top and bottom colors ([Meta, Sharing to Stories](https://developers.facebook.com/docs/instagram-platform/sharing-to-stories/)). Background images are JPG or PNG, at least 720×1280, 9:16. Stickers are about 640×480. Meta documents only iOS and Android apps, so a website cannot use it, and our app would need native code in `MainViewController`. `Info.plist` has no `LSApplicationQueriesSchemes` today.
-5. **Story size.** 1080×1920. Instagram covers about 250 px at the top and bottom, which leaves a central area of about 1080×1420 ([inro.social, 2026 guide](https://www.inro.social/blog/instagram-story-size)). Meta publishes no official safe zone for organic stories, so treat this as community guidance.
+5. **Story size.** 1080×1920. Instagram covers about 250 px at the top and bottom, which leaves a central area of about 1080×1420. Meta publishes no official safe zone for organic stories. These numbers are uncited community guidance; the guide they came from no longer loads.
 
 "Instagram-native" in practice: the share sheet path sends a PNG to Instagram, which offers Stories, Feed, and Messages. The player then edits it in Instagram's story editor. The direct scheme skips the sheet and opens the story editor with our image as the background or as a sticker on our colors. The second costs a Meta app registration and a native bridge; the first costs nothing beyond the image. That the share sheet offers Stories for an image is expected behavior I did not verify on a device.
 
@@ -42,13 +42,13 @@ Gaps:
 | --- | --- | --- | --- | --- |
 | New best time per level | `seconds`, `difficulty` | Yes: `solves.v1`, `isNewBest` | First solve only (exists). Exclude solves after a restart. | Leaderboard, not achievement |
 | First solve at a level | count per level | Yes: `levelStats` | Once per level | Achievement |
-| Clean solve (no hints, no fixes) | hints used, fixes | No: needs new counters | Counters keyed by game id, never lowered by undo or restart | Achievement (Hard, Expert) |
+| Clean solve (no assisted hints, no fixes) | hint level reached, hints applied, fixes | No: needs new counters | Counters keyed by game id, never lowered by undo or restart | Achievement (Hard, Expert) |
 | Daily solved | day, level | Yes: `daily-solves.v1` | One per day and level (exists) | None |
 | Daily streak 7, 30, 100 | streak length | Yes: `dailyStreak` | Earned once per threshold; date kept | Achievement |
 | Solve count 10, 50, 100, 500 | total solves | Yes: `solved.v1` plus Expert history | Ids are unique (exists) | Incremental achievement |
 | Technique learned, all learned | lesson dates | Yes: `learned.v1` | Once per lesson (exists) | Achievement |
 
-Assistance boundaries: Fill notes, highlighting, and filtered keys are bookkeeping the player chose, so they do not affect a clean solve. Only applied hints and fixes do. Lesson practice games (`lesson-*` ids) do not earn solve accomplishments.
+Assistance boundaries: Fill notes, highlighting, and filtered keys are bookkeeping the player chose, so they do not affect a clean solve. A hint taken to level 2 (where) or further, an applied hint, or a fix does (decision 1). Lesson practice games (`lesson-*` ids) do not earn solve accomplishments.
 
 Storage: keep the per-solve evidence on the solve record (`hints`, `fixes`, `restarted`, all optional so old records still read), and earned milestones in `sudoku.accomplishments.v1` as id to `{ day, solveId }`. Derived wins such as first solve can be recomputed, but storing the earned date keeps them after the 500-solve cap trims History. Both keys stay under `sudoku.` so `ProgressStore` backs them up.
 
@@ -84,7 +84,7 @@ The 3 × 3 grid is the nine boxes, colored by when each was completed (first, mi
 
 ### Recommended first slice
 
-Record solve evidence (hints applied, fixes, restarted) on each solve, show one accomplishment chip on the finish card, and add a Share button that sends the text summary.
+Record solve evidence (hints taken to level 2 or further, hints applied, fixes, restarted) on each solve, show one accomplishment chip on the finish card, and add a Share button that sends the text summary.
 
 - **In:** the evidence fields, the clean-solve, first-solve, and streak-milestone chips, the text share with clipboard fallback, and `sudoku.accomplishments.v1`.
 - **Out:** the story image, direct Instagram Stories, an accomplishments screen, and Game Center. Slice 2 is the story image through the share sheet. Slice 3, only if Sean wants it, is the native Instagram scheme.
@@ -97,8 +97,8 @@ Record solve evidence (hints applied, fixes, restarted) on each solve, show one 
 
 ## Gotchas
 
-- A best time set after a restart is suspect. Mark the solve `restarted` and leave it out of best times, or decide otherwise in the open questions.
-- Counting hints by "levels opened" punishes a player who peeks and then finds the move alone. Counting only applied hints misses a player who reads the full walkthrough and enters the digit themselves.
+- A best time set after a restart is suspect. Mark the solve `restarted` and leave it out of best times (decision 2).
+- Hint evidence must record the highest level reached, not only applied hints, so a player who sees where to look and enters the digit themselves is still marked assisted (decision 1).
 - The device clock sets `day`, so streaks can be gamed. That is acceptable while progress is local; R16 must solve it before ranking.
 - With Hide timer on, the finish card hides the time, and the share text should leave it out too.
 
@@ -112,7 +112,7 @@ Record solve evidence (hints applied, fixes, restarted) on each solve, show one 
 
 Sean answered on October 13:
 
-1. **Hints.** Opening a hint to see the technique's name keeps a solve clean. Going on to the walkthrough, which shows where on the board to look, counts as assisted, and so does applying a move. Sean also wants a limit on hints per puzzle, after which the player starts over. The limit and what happens when it is reached are still open.
+1. **Hints.** Opening a hint to see the technique's name keeps a solve clean. Going on to level 2, which shows where on the board to look, counts as assisted, and so do the walkthrough and applying a move. Sean also wants a limit on hints per puzzle, after which the player starts over. The limit and what happens when it is reached are still open.
 2. **Restart.** A time set after Restart does not count as a best time.
 3. **Daily share.** Agreed in principle that it shows no numbers. Sean wants to see design options before choosing.
 4. **Instagram Stories.** Not now. The share sheet is enough until players ask for it.
@@ -122,4 +122,4 @@ Sean answered on October 13:
 
 - `src/lib/solves.ts`, `src/lib/daily.ts`, `src/lib/home.ts`, `src/lib/replay.ts`, `src/lib/lessons.ts`, `src/components/game.tsx` (`FinishCard`, solve recording).
 - `docs/plans/2026-09-25-share-image-design.md`, `docs/plans/2026-10-11-finish-moment-design.md`, `docs/plans/2026-10-12-daily-puzzle-design.md`, `docs/investigations/2026-10-09-ios-wrapper.md`.
-- [Meta, Sharing to Stories](https://developers.facebook.com/docs/instagram-platform/sharing-to-stories/), [Capacitor Share](https://capacitorjs.com/docs/apis/share), [MDN canShare](https://developer.mozilla.org/en-US/docs/Web/API/Navigator/canShare), [MDN browser-compat-data](https://github.com/mdn/browser-compat-data/blob/main/api/Navigator.json), [inro.social story size guide](https://www.inro.social/blog/instagram-story-size), all accessed 2026-10-13.
+- [Meta, Sharing to Stories](https://developers.facebook.com/docs/instagram-platform/sharing-to-stories/), [Capacitor Share](https://capacitorjs.com/docs/apis/share), [MDN canShare](https://developer.mozilla.org/en-US/docs/Web/API/Navigator/canShare), [MDN browser-compat-data](https://github.com/mdn/browser-compat-data/blob/main/api/Navigator.json), all accessed 2026-10-13.

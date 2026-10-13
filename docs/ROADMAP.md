@@ -254,7 +254,7 @@ Status: queued for research. The feature outcomes below are uncommitted. Complet
 - **Research:** Define meaningful accomplishments and the solve evidence needed to preserve them. Explore local storage and retrieval, completion/replay integration, and story composition and export/share feasibility on phones.
 - **Output:** An accomplishment model and a proposed save-to-share flow, including what “Instagram-native” means for delivery. Capture current platform requirements during the spike and propose story design directions before implementation.
 - **Relationship:** Coordinate with existing unit celebrations and speed replay. Persistent accomplishments and external sharing require their own scope decision.
-- **Status:** Research done ([investigation](investigations/2026-10-13-accomplishments-sharing.md)). Recommended first slice: record hints, fixes, and restarts with each solve, show one accomplishment chip on the finish card, and add a Share button that sends a text summary; the story image and direct Instagram Stories come later. Related: links to the site show a preview image, shipped in [PR #41](https://github.com/seanoliver/sudoku/pull/41) ([design](plans/2026-09-25-share-image-design.md)).
+- **Status:** Research done ([investigation](investigations/2026-10-13-accomplishments-sharing.md)). Recommended first slice: record hints, fixes, and restarts with each solve, show one accomplishment chip on the finish card, and add a Share button, text or image pending Sean's choice from rendered examples; direct Instagram Stories comes later. Related: links to the site show a preview image, shipped in [PR #41](https://github.com/seanoliver/sudoku/pull/41) ([design](plans/2026-09-25-share-image-design.md)).
 
 ### R8. Number grid keypad
 
@@ -435,7 +435,7 @@ Captured from Sean on September 24. Long-term scope, modeled on the way Good Sud
 
 ### R17. Game Center
 
-- **Idea:** Use Apple's Game Center in the iOS app for sign-in-free leaderboards, achievements, and friends. Sean asked for it on October 13.
+- **Idea:** Use Apple's Game Center in the iOS app for leaderboards, achievements, and friends, using the player's Game Center account instead of an account of our own. Sean asked for it on October 13.
 - **Research:** Find what Game Center needs from a Capacitor app (a native plugin or our own bridge in `MainViewController`), what App Store Connect setup each leaderboard and achievement needs, and how it behaves when the player is signed out or offline. Map R7's accomplishments and R16's leaderboards onto Game Center achievements and leaderboards. Decide what the website shows instead.
 - **Output:** A feasibility note with a proposed first leaderboard and first achievements, and the native work it needs.
 - **Status:** Open. Depends on R7 and R16 for what to report.
