@@ -65,11 +65,13 @@ Storage: keep the per-solve evidence on the solve record (`hints`, `fixes`, `res
 2. The finish card shows the chip for anything earned.
 3. The player taps Share. The app draws the image on a canvas from stored data, offline, after `document.fonts.ready`.
 4. `canvas.toBlob` gives a PNG. On the website: `navigator.canShare({ files })`, then `navigator.share({ files, text })`. In the iOS app: write the PNG to the cache folder and call `Share.share({ files })`.
-5. If file sharing is unavailable, share the text summary, then fall back to copying it.
+5. If file sharing is unavailable (for example in desktop Firefox), fall back to saving or copying the image; the design doc leaves the exact fallback open.
 
 A daily is the same puzzle for everyone, so the image shows none of the digits the player placed. Whether it shows the givens, cells shaded by when they were filled, or no board is decision 3.
 
-### Text share, the cheap slice
+### Text share, the cheap slice (not chosen)
+
+Sean chose image only (decision 5). This option is kept as the record of what was compared.
 
 ```
 Sudoclue Daily, Oct 13, Hard
@@ -84,12 +86,14 @@ The 3 × 3 grid is the nine boxes, colored by when each was completed (first, mi
 
 ### Recommended first slice
 
-Record solve evidence (hints taken to level 2 or further, hints applied, fixes, restarted) on each solve, show one accomplishment chip on the finish card, and add a Share button that sends a text summary or a story image, whichever Sean picks (decision 5).
+Record solve evidence (hints taken to level 2 or further, hints applied, fixes, restarted) on each solve, show one accomplishment chip on the finish card, and add a Share button that sends a square solve map image (decisions 3 and 5, and the [design](../plans/2026-10-13-finish-share-design.md)).
 
-- **In:** the evidence fields, the clean-solve, first-solve, and streak-milestone chips, the chosen share format with a fallback to copying, and `sudoku.accomplishments.v1`.
-- **Out:** the hint limit (decision 1), direct Instagram Stories, an accomplishments screen, and Game Center. Whichever share format Sean does not pick becomes slice 2. Direct Instagram Stories comes only if players ask for it (decision 4).
+- **In:** the evidence fields, the clean-solve, first-solve, and streak-milestone chips, the image share with a fallback when file sharing is unavailable, and `sudoku.accomplishments.v1`.
+- **Out:** the hint limit (decision 1), direct Instagram Stories, an accomplishments screen, and Game Center. A portrait image for Instagram Stories comes later, through the iOS app's native share. Direct Instagram Stories comes only if players ask for it (decision 4).
 
-### Design directions to render later
+### Design directions (rendered October 13)
+
+Sean chose B, the solve map. The renders show portrait images and the old domain; slice 1 ships square, on `sudoclue.app`.
 
 - **A. Result card:** the finish card, enlarged to 9:16 on midnight, with the givens board above it.
 - **B. Solve map:** cells shaded by when they were filled as the hero, with the time and level below.
@@ -101,7 +105,7 @@ Record solve evidence (hints taken to level 2 or further, hints applied, fixes, 
 - A best time set after a restart is suspect. Mark the solve `restarted` and leave it out of best times (decision 2).
 - Hint evidence must record the highest level reached, not only applied hints, so a player who sees where to look and enters the digit themselves is still marked assisted (decision 1).
 - The device clock sets `day`, so streaks can be gamed. That is acceptable while progress is local; R16 must solve it before ranking.
-- With Hide timer on, the finish card hides the time, and the share text should leave it out too.
+- With Hide timer on, the finish card hides the time, and the share image should leave it out too.
 
 ## Verification
 
@@ -113,12 +117,12 @@ Record solve evidence (hints taken to level 2 or further, hints applied, fixes, 
 
 Sean answered on October 13:
 
-1. **Hints.** Opening a hint to see the technique's name keeps a solve clean. Going on to level 2, which shows where on the board to look, counts as assisted, and so do the walkthrough and applying a move. Sean also wants a limit on hints per puzzle, after which the player starts over. The limit and what happens when it is reached are still open. Also open: whether level 1 of a mistake hint, which says something is wrong without saying where, keeps a solve clean.
+1. **Hints.** Opening a hint to see the technique's name keeps a solve clean. Going on to level 2, which shows where on the board to look, counts as assisted, and so do the walkthrough and applying a move. Sean also wants a limit on hints per puzzle: 3 by default, with a way to play with unlimited hints, which may be paid. The system is its own research item, R21. Also open: whether level 1 of a mistake hint, which says something is wrong without saying where, keeps a solve clean.
 2. **Restart.** A time set after Restart does not count as a best time.
-3. **Daily share.** Agreed in principle that it shows none of the digits the player placed, so it gives nothing away. Sean wants to see design options before choosing whether it shows the givens, a fill map, or no board.
+3. **Daily share.** Image B, the solve map: cells shaded by when the player filled them, with the starting numbers shown as plain dots and no digits (Sean, October 13). Render: `docs/designs/share-image-approved.png` (panel B; it predates the square shape, the flame streak mark, and the `sudoclue.app` domain).
 4. **Instagram Stories.** Not now. The share sheet is enough until players ask for it.
-5. **Text or image.** Open. Sean wants to see an example of a text share and an image share before choosing.
-6. **Block incorrect answers and Restart.** Open. Can a solve be clean with Block incorrect answers on, and can a restarted solve be clean? Restart already keeps a solve out of best times (decision 2), and the hint limit's "start over" would be a Restart.
+5. **Text or image.** Image (Sean, October 13; comparison in `docs/designs/share-text-vs-image.png`). He found the emoji grid hard to read even with an explanation, and chose finish card direction A, which shares the solve map image ([design](../plans/2026-10-13-finish-share-design.md)).
+6. **Block incorrect answers and Restart.** Neither can be clean (Sean, October 13): a solve with Block incorrect answers on, or after a Restart, earns no clean-solve accomplishment.
 
 ## References
 
