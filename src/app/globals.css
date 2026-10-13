@@ -34,6 +34,10 @@ body { margin: 0; color: var(--ink); font-family: -apple-system, BlinkMacSystemF
 button { font: inherit; color: inherit; cursor: pointer; -webkit-tap-highlight-color: transparent; touch-action: manipulation; border: 0; background: none; padding: 0; }
 button:disabled { cursor: default; }
 button:focus-visible { outline: 3px solid var(--blue); outline-offset: 3px; }
+/* The iPhone app shows no focus rings: around a tapped control they read as a web page, and VoiceOver draws its own. `!important` beats the more specific walkthrough outline. */
+:root[data-app='ios'] :focus-visible { outline: none !important; }
+:root[data-app='ios'] .cell:focus-visible:not(.hint-mistake) { box-shadow: none; }
+:root[data-app='ios'] .cell.hint-mistake:focus-visible { box-shadow: inset 0 0 0 2px var(--red); }
 button:not(:disabled, [data-pressable]):active { transform: scale(.96); }
 button { transition: transform 100ms ease, background-color 120ms ease, opacity 120ms ease; }
 /* Pressable buttons press in on a spring; a CSS transform transition would lag it. */
