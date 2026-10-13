@@ -111,3 +111,47 @@ for (const [name, key] of [['Escape', 'Escape'], ['Erase', 'Backspace'], ['press
     await expect.poll(() => marks(page, 'exclusions')).toEqual([[first], [first]]);
   });
 }
+
+const count = (page: Page, n: number) => page.getByRole('status').filter({ hasText: new RegExp(`^${n} cells? selected$`) });
+const exclusionsOf = (page: Page, cells: number[]) => page.evaluate(({ key, cells }) => { const g = JSON.parse(localStorage.getItem(key)!); return cells.map(i => [...g.exclusions[i]].sort()); }, { key: SAVE_KEY, cells });
+
+test('after a number, holding an empty cell starts a new selection', async ({ page }) => {
+  await seed(page);
+  await openGame(page);
+  await selectBoth(page);
+  await mode(page, 'Exclude').click();
+  await page.keyboard.press(String(first));
+  const box = await cell(page, c).boundingBox();
+  await page.mouse.move(box!.x + box!.width / 2, box!.y + box!.height / 2);
+  await page.mouse.down();
+  await expect(count(page, 1)).toHaveCount(1);
+  await page.mouse.up();
+  await page.keyboard.press(String(later));
+  await expect.poll(() => exclusionsOf(page, [a, b, c])).toEqual([[first], [first], [later]]);
+});
+
+test('after a number, a tapped cell joins the selection and a drag then adds to it', async ({ page }) => {
+  await seed(page);
+  await openGame(page);
+  await selectBoth(page);
+  await mode(page, 'Exclude').click();
+  await page.keyboard.press(String(first));
+  await cell(page, c).click();
+  await expect(count(page, 3)).toHaveCount(1);
+  await drag(page, c, c + 1);
+  await expect(count(page, 4)).toHaveCount(1);
+});
+
+test('a second drag before any number adds to the new selection', async ({ page }) => {
+  await seed(page);
+  await openGame(page);
+  await selectBoth(page);
+  await mode(page, 'Exclude').click();
+  await page.keyboard.press(String(first));
+  await drag(page, c, c + 1);
+  await expect(count(page, 2)).toHaveCount(1);
+  await drag(page, a, b);
+  await expect(count(page, 4)).toHaveCount(1);
+  await page.keyboard.press(String(later));
+  await expect.poll(() => exclusionsOf(page, [a, b, c, c + 1])).toEqual([[first, later].sort(), [first, later].sort(), [later], [later]]);
+});

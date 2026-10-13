@@ -349,3 +349,20 @@ test('a key pressed within 350 ms of Start practice is ignored, and one pressed 
     await page.goto('about:blank');
   }
 });
+
+test('a correct Check clears a selection on the practice board', async ({ page }) => {
+  await openLesson(page);
+  await tapFooter(page);
+  const marks = answer(1);
+  const box = await page.locator(`.board [data-index="${marks[0].cell}"]`).boundingBox();
+  await page.mouse.move(box!.x + box!.width / 2, box!.y + box!.height / 2);
+  await page.mouse.down();
+  await expect(page.getByRole('status').filter({ hasText: /^1 cell selected$/ })).toHaveCount(1);
+  await page.mouse.up();
+  for (const { cell } of marks.slice(1)) await page.locator(`.board [data-index="${cell}"]`).click();
+  await page.keyboard.press(String(marks[0].digit));
+  await expect(page.getByRole('status').filter({ hasText: /cells? selected$/ })).toHaveCount(1);
+  await tapFooter(page);
+  await expect(prompt(page)).toHaveText('Found it');
+  await expect(page.getByRole('status').filter({ hasText: /cells? selected$/ })).toHaveCount(0);
+});
