@@ -5,7 +5,6 @@ import { createPuzzle } from '../src/lib/difficulty.ts';
 import { peers } from '../src/lib/sudoku.ts';
 
 const game = createGame(createPuzzle('medium', 7));
-// Two side-by-side empty cells with two digits that are neither answer nor held by a peer, so neither filter refuses them.
 const spare = (a: number) => [1, 2, 3, 4, 5, 6, 7, 8, 9].filter(d => d !== game.solution[a] && d !== game.solution[a + 1] && [a, a + 1].every(i => !peers(i).some(p => game.values[p] === d)));
 const a = game.values.findIndex((v, i) => !v && i % 9 < 8 && !game.values[i + 1] && spare(i).length >= 2);
 const b = a + 1;
