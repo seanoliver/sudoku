@@ -97,3 +97,16 @@ test('after a number, a new drag starts a new selection', async ({ page }) => {
   await expect.poll(() => marks(page, 'exclusions')).toEqual([[first], [first]]);
   await expect.poll(() => page.evaluate(({ key, cells }) => { const g = JSON.parse(localStorage.getItem(key)!); return cells.map(i => g.notes[i]); }, { key: SAVE_KEY, cells: [c, c + 1] })).toEqual([[later], [later]]);
 });
+
+for (const [name, key] of [['Escape', 'Escape'], ['Erase', 'Backspace'], ['pressing X again', 'x']] as const) {
+  test(`${name} ends the selection and keeps what was applied`, async ({ page }) => {
+    await seed(page);
+    await openGame(page);
+    await selectBoth(page);
+    await mode(page, 'Exclude').click();
+    await page.keyboard.press(String(first));
+    await page.keyboard.press(key);
+    await expect(selected(page)).toHaveCount(0);
+    await expect.poll(() => marks(page, 'exclusions')).toEqual([[first], [first]]);
+  });
+}
