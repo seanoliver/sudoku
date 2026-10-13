@@ -17,7 +17,7 @@ jobs:
   ci:
     name: CI
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     env:
       NEXT_TELEMETRY_DISABLED: '1'
     steps:
@@ -43,3 +43,7 @@ jobs:
         run: pnpm exec playwright install --with-deps chromium webkit
       - name: Browser tests (Chromium and WebKit)
         run: pnpm test:e2e
+      - name: iOS export marks the page as the app
+        run: |
+          BUILD_TARGET=ios pnpm exec next build --webpack
+          grep -q 'data-app="ios"' out/index.html
