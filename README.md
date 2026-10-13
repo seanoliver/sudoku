@@ -1,6 +1,6 @@
-<a href="https://sudoku.seanoliver.dev"><img src="src/app/opengraph-image.png" alt="Sudoclue: a color wrap hint walking through a chain of linked 4s on the board, beside the line “A calm Sudoku that teaches you every technique, one move at a time.”"></a>
+<a href="https://sudoclue.app"><img src="src/app/opengraph-image.png" alt="Sudoclue: a color wrap hint walking through a chain of linked 4s on the board, beside the line “A calm Sudoku that teaches you every technique, one move at a time.”"></a>
 
-**[Play Sudoclue →](https://sudoku.seanoliver.dev)**
+**[Play Sudoclue →](https://sudoclue.app)**
 
 Sudoclue is a small, free, mobile-friendly Sudoku PWA built with Next.js, React, and TypeScript. It grades every puzzle by the techniques it needs, gives hints that explain themselves one step at a time, and has a lesson for every technique. Things 3 inspired the restrained colors, system typography, controls, and interaction style.
 
@@ -55,9 +55,11 @@ No account, backend, advertising, or external font requests. Anonymous page-view
 
 ## Hosting
 
-Production is hosted in the Vercel **Cabin 9** workspace, project `sudoku`. The connected GitHub repository is `seanoliver/sudoku`; pushes to `main` trigger production deployments and automatically assign `sudoku.seanoliver.dev`.
+Production is hosted in the Vercel **Cabin 9** workspace, project `sudoku`. The connected GitHub repository is `seanoliver/sudoku`; pushes to `main` trigger production deployments and serve both `sudoclue.app` and the earlier `sudoku.seanoliver.dev`.
 
-Porkbun manages DNS. The `sudoku` CNAME points to `f908c3c1f24cf884.vercel-dns-017.com` with a 600-second TTL. Vercel manages HTTPS.
+Porkbun manages DNS. `sudoclue.app` has an apex A record to `76.76.21.21`, and the `sudoku` CNAME on seanoliver.dev points to `f908c3c1f24cf884.vercel-dns-017.com` with a 600-second TTL. Vercel manages HTTPS.
+
+Saved progress lives in each browser's storage for the domain it was played on, so the two domains do not share progress. Do not redirect `sudoku.seanoliver.dev` to `sudoclue.app` without a way to bring that progress across.
 
 Before deploying through the CLI, verify that its signed-in account can access Cabin 9. The repository link alone does not change CLI authentication.
 

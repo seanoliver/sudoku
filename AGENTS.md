@@ -33,7 +33,7 @@ Repository workflows live in `.claude/skills/`. Read the matching `SKILL.md` bef
 
 ## Deployment
 
-- Production URL: `https://sudoku.seanoliver.dev`.
+- Production URL: `https://sudoclue.app`. The earlier `https://sudoku.seanoliver.dev` serves the same deployment. Saved progress is stored per domain, so never redirect the old domain to the new one without migrating `sudoku.*` storage first.
 - Vercel workspace: **Cabin 9** (`cabin-9`, team `team_zbOQcoGZ8Edz3hYHUC0mHa3t`), project `sudoku` (`prj_ZvtqGcLsOIhWF59NxNzNDZEg3vS5`).
 - GitHub repository: `seanoliver/sudoku`. Production tracks `main`. Prefer the connected GitHub deployment workflow.
 - Verify both the project link and authenticated account before CLI deployments. The CLI previously used another account; never infer workspace ownership from the project name alone.
