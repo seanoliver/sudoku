@@ -2,7 +2,7 @@ import { expect, test, type Page } from '@playwright/test';
 import { createGame, SAVE_KEY } from '../src/lib/game.ts';
 import { createPuzzle } from '../src/lib/difficulty.ts';
 import { PREFS_KEY } from '../src/lib/preferences.ts';
-import { CLOCK_KEY } from '../src/components/clock.tsx';
+import { CLOCK_KEY } from '../src/lib/home.ts';
 import { SOLVES_KEY, type Solve } from '../src/lib/solves.ts';
 
 const game = createGame(createPuzzle('medium', 4242));

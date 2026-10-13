@@ -1,9 +1,10 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
-import { dayKey, levelStats, monthGrid, streak, type Solve } from '@/lib/solves';
+import { dayKey, levelStats, streak, type Solve } from '@/lib/solves';
 import type { Difficulty } from '@/lib/sudoku';
 import { LevelTiles } from './home';
 import { Icon } from './icons';
+import { dateOf, MonthCalendar } from './month-calendar';
 import { ScreenHeader } from './screen-header';
 
 const LEVELS: Difficulty[] = ['easy', 'medium', 'hard', 'expert'];
@@ -14,7 +15,6 @@ export const solveTime = (seconds: number) => {
   const s = Math.floor(seconds);
   return s >= 3600 ? `${Math.floor(s / 3600)}:${pad(Math.floor(s / 60) % 60)}:${pad(s % 60)}` : `${Math.floor(s / 60)}:${pad(s % 60)}`;
 };
-const dateOf = (day: string) => { const [y, m, d] = day.split('-').map(Number); return new Date(y, m - 1, d); };
 
 /** The starting board as a pattern: a filled square for each starting number, in the level's color. */
 function Pattern({ givens }: { givens: string }) {
@@ -40,9 +40,6 @@ export function HistoryPage({ solves, total: counted, today: opened, hideTimer, 
   const [selected, setSelected] = useState<string | null>(null);
   const [shown, setShown] = useState(PAGE);
   const now = dateOf(today);
-  const month = new Date(now.getFullYear(), now.getMonth() + monthOffset, 1);
-  const grid = monthGrid(month.getFullYear(), month.getMonth());
-  const monthName = month.toLocaleDateString('en-US', month.getFullYear() === now.getFullYear() ? { month: 'long' } : { month: 'long', year: 'numeric' });
   const byDay = new Map<string, Solve[]>();
   for (const solve of solves) byDay.set(solve.day, [...byDay.get(solve.day) ?? [], solve]);
   const stats = levelStats(solves);
@@ -60,26 +57,15 @@ export function HistoryPage({ solves, total: counted, today: opened, hideTimer, 
     <ScreenHeader title="History" subtitle={`${total} solved`} back="Home" size="large" onExit={onExit}/>
     <main className="game history">
       {days >= 2 && <p className="history-streak"><Icon name="sparkles" size={16}/><b>{days} days</b> in a row</p>}
-      <section className="history-calendar" aria-labelledby="history-month">
-        <div className="history-month">
-          <button aria-label="Previous month" onClick={() => { setMonthOffset(offset => offset - 1); setSelected(null); }}><Icon name="chevron" size={16}/></button>
-          <h2 id="history-month" aria-live="polite">{monthName}</h2>
-          <button aria-label="Next month" aria-disabled={monthOffset === 0} onClick={() => { if (monthOffset === 0) return; setMonthOffset(offset => offset + 1); setSelected(null); }}><Icon name="chevron" size={16}/></button>
-        </div>
-        <div className="history-week" aria-hidden="true">{['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((d, k) => <span key={k}>{d}</span>)}</div>
-        <div className="history-days">
-          {Array.from({ length: grid.lead }, (_, k) => <span key={`lead${k}`}/>)}
-          {grid.days.map(day => {
-            const mine = byDay.get(day) ?? [];
-            const label = <><span>{dateOf(day).getDate()}</span><i aria-hidden="true">{mine.slice(0, 4).map(s => <em key={s.id} className={`history-dot level-${s.difficulty}`}/>)}{mine.length > 4 && <b className="history-more-dots">+</b>}</i></>;
-            const className = `history-day${day === today ? ' today' : ''}${day > today ? ' future' : ''}`;
-            return mine.length ? <button key={day} className={className} data-day={day} aria-pressed={selected === day}
-              aria-label={`${dateOf(day).toLocaleDateString('en-US', dateOf(day).getFullYear() === now.getFullYear() ? { month: 'long', day: 'numeric' } : { month: 'long', day: 'numeric', year: 'numeric' })}: ${mine.length} ${mine.length === 1 ? 'solve' : 'solves'}: ${LEVELS.map(level => [level, mine.filter(s => s.difficulty === level).length] as const).filter(([, n]) => n).map(([level, n]) => `${n} ${level}`).join(', ')}`}
-              onClick={() => { setSelected(current => current === day ? null : day); setShown(PAGE); }}>{label}</button>
-              : <span key={day} className={className} data-day={day}>{label}</span>;
-          })}
-        </div>
-      </section>
+      <MonthCalendar today={today} offset={monthOffset} onOffset={offset => { setMonthOffset(offset); setSelected(null); }} day={day => {
+        const mine = byDay.get(day) ?? [];
+        const label = <><span>{dateOf(day).getDate()}</span><i aria-hidden="true">{mine.slice(0, 4).map(s => <em key={s.id} className={`history-dot level-${s.difficulty}`}/>)}{mine.length > 4 && <b className="history-more-dots">+</b>}</i></>;
+        const className = `history-day${day === today ? ' today' : ''}${day > today ? ' future' : ''}`;
+        return mine.length ? <button key={day} className={className} data-day={day} aria-pressed={selected === day}
+          aria-label={`${dateOf(day).toLocaleDateString('en-US', dateOf(day).getFullYear() === now.getFullYear() ? { month: 'long', day: 'numeric' } : { month: 'long', day: 'numeric', year: 'numeric' })}: ${mine.length} ${mine.length === 1 ? 'solve' : 'solves'}: ${LEVELS.map(level => [level, mine.filter(s => s.difficulty === level).length] as const).filter(([, n]) => n).map(([level, n]) => `${n} ${level}`).join(', ')}`}
+          onClick={() => { setSelected(current => current === day ? null : day); setShown(PAGE); }}>{label}</button>
+          : <span key={day} className={className} data-day={day}>{label}</span>;
+      }}/>
       <div className="history-levels">{LEVELS.map(level => <div key={level} className={`history-level level-${level}`}>
         <LevelTiles level={level}/>
         <span className="history-level-count"><b>{stats[level].count}</b><small>{capital(level)}</small></span>

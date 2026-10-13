@@ -7,9 +7,10 @@ const inProgress = gameBefore(step => lessonOf(step) === 'pointing');
 const saved = (page: Page) => page.evaluate(k => localStorage.getItem(k), SAVE_KEY);
 const seed = (page: Page, game: string) => page.addInitScript(([key, value]) => { if (!sessionStorage.getItem('seeded')) { localStorage.setItem(key, value); sessionStorage.setItem('seeded', '1'); } }, [SAVE_KEY, game]);
 
-test('a first visit offers the four difficulties and the first lesson, and starts a puzzle on request', async ({ page }) => {
+test('a first visit offers today’s puzzle, the four difficulties and the first lesson, and starts a puzzle on request', async ({ page }) => {
   await page.goto('/');
-  await expect(page.getByRole('heading', { name: 'Ready for your first puzzle?' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Today’s puzzle is ready' })).toBeVisible();
+  await expect(page.locator('.resume-row')).toHaveCount(0);
   await expect(page.locator('.board')).toHaveCount(0);
   await expect(page.locator('.home-lesson strong')).toHaveText('Naked single');
   await expect(page.locator('.home-solved-count')).toHaveCount(0);
@@ -21,7 +22,7 @@ test('a first visit offers the four difficulties and the first lesson, and start
 test('the app opens on Home with the game waiting, and Home is one tap away from the game', async ({ page }) => {
   await seed(page, inProgress);
   await page.goto('/');
-  await expect(page.getByRole('heading', { name: /^Your expert puzzle/ })).toBeVisible();
+  await expect(page.locator('.resume-row strong')).toHaveText('Expert');
   const before = await saved(page);
   await page.getByRole('button', { name: 'Continue' }).click();
   await expect(page.locator('.board')).toBeVisible();
@@ -51,13 +52,12 @@ test('the next lesson opens from Home and returns there', async ({ page }) => {
   await expect(page.locator('.home-lesson')).toBeFocused();
 });
 
-test('a finished game shows as solved with Play another', async ({ page }) => {
+test('a finished game is counted on Home, with nothing to continue', async ({ page }) => {
   const game = JSON.parse(inProgress);
   await seed(page, JSON.stringify({ ...game, values: game.solution }));
   await page.goto('/');
-  await expect(page.getByRole('heading', { name: /^Nicely solved/ })).toBeVisible();
-  await expect(page.locator('.home-eyebrow.solved')).toHaveText('Solved');
-  await expect(page.getByRole('button', { name: 'Continue' })).toHaveCount(0);
+  await expect(page.getByRole('heading', { name: 'Today’s puzzle is ready' })).toBeVisible();
+  await expect(page.getByRole('button', { name: /^Continue/ })).toHaveCount(0);
   await expect(page.locator('.home-solved-count')).toHaveText('1 solved');
 });
 
@@ -78,7 +78,7 @@ test('a save that cannot be restored says so on Home', async ({ page }) => {
   await seed(page, '{"not":"a game"}');
   await page.goto('/');
   await expect(page.locator('.notice[role="alert"]')).toContainText('could not be restored');
-  await expect(page.getByRole('heading', { name: 'Ready for your first puzzle?' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Today’s puzzle is ready' })).toBeVisible();
 });
 
 const almostSolved = () => {
@@ -109,7 +109,7 @@ test('restarting from Home’s settings resets the time', async ({ page }) => {
   await page.getByRole('button', { name: 'Settings' }).click();
   await page.getByRole('button', { name: /^Restart/ }).first().click();
   await page.getByRole('button', { name: /^Restart/ }).last().click();
-  await expect(page.locator('.home-continue-button .home-meta')).toContainText('00:00');
+  await expect(page.locator('.resume-meta')).toContainText('00:00');
   await page.getByRole('button', { name: 'Continue' }).click();
   await expect(page.locator('.clock')).toHaveText(/^00:0[01]$/);
 });
@@ -162,15 +162,15 @@ test('Home keeps the time hidden when Hide timer is on', async ({ page }) => {
   await page.addInitScript(() => localStorage.setItem('sudoku.preferences.v1', JSON.stringify({ theme: 'system', blockIncorrectAnswers: true, highlightPeers: true, hideTimer: true })));
   await page.addInitScript(id => localStorage.setItem('sudoku.clock.v1', JSON.stringify({ id, seconds: 754 })), JSON.parse(inProgress).id);
   await page.goto('/');
-  await expect(page.locator('.home-meta').first()).toContainText('% filled');
-  await expect(page.locator('.home-meta').first()).not.toContainText(/\d\d:\d\d/);
+  await expect(page.locator('.resume-meta')).toContainText('%');
+  await expect(page.locator('.resume-meta')).not.toContainText(/\d\d:\d\d/);
 });
 
 test('Home’s secondary text stays readable in dark mode', async ({ page }) => {
   await page.emulateMedia({ colorScheme: 'dark' });
   await seed(page, inProgress);
   await page.goto('/');
-  await expect(page.locator('.home-meta').first()).toHaveCSS('color', 'rgb(152, 165, 184)');
+  await expect(page.locator('.resume-meta')).toHaveCSS('color', 'rgb(152, 165, 184)');
 });
 
 test('Home offers to install the app, and the card opens the install sheet', async ({ page }) => {
@@ -192,7 +192,7 @@ test('the install card is gone once the app is installed', async ({ page }) => {
 test('the installed app shows no install card', async ({ page }) => {
   await page.addInitScript(() => Object.defineProperty(navigator, 'standalone', { value: true }));
   await page.goto('/');
-  await expect(page.getByRole('heading', { name: 'Ready for your first puzzle?' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Today’s puzzle is ready' })).toBeVisible();
   await expect(page.locator('.home-install')).toHaveCount(0);
 });
 

@@ -6,7 +6,7 @@ import { lessonOf } from '../src/lib/lessons.ts';
 const inProgress = gameBefore(step => lessonOf(step) === 'pointing');
 const saved = (page: Page) => page.evaluate(k => localStorage.getItem(k), SAVE_KEY);
 const seed = (page: Page) => page.addInitScript(([key, value]) => { if (!sessionStorage.getItem('seeded')) { localStorage.setItem(key, value); sessionStorage.setItem('seeded', '1'); } }, [SAVE_KEY, inProgress]);
-const onHome = (page: Page) => expect(page.getByRole('heading', { name: /^Your \w+ puzzle/ })).toBeVisible();
+const onHome = (page: Page) => expect(page.locator('.resume-row')).toBeVisible();
 const inGame = (page: Page) => expect(page.locator('.board')).toBeVisible();
 
 test('back from the game returns to Home with the game untouched, and forward returns to it', async ({ page }) => {

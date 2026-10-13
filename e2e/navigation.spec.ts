@@ -2,7 +2,7 @@ import { expect, test, type Page } from '@playwright/test';
 import { createGame, SAVE_KEY } from '../src/lib/game.ts';
 import { createPuzzle } from '../src/lib/difficulty.ts';
 import { SOLVED_KEY } from '../src/lib/home.ts';
-import { CLOCK_KEY } from '../src/components/clock.tsx';
+import { CLOCK_KEY } from '../src/lib/home.ts';
 
 const game = createGame(createPuzzle('easy', 4242));
 const open = game.givens.flatMap((v, i) => v ? [] : [i]);
@@ -66,7 +66,7 @@ test('Continue grows the mini-board into the game board, and Home shrinks it bac
   await expect(page.locator(`.board [data-index="${game.values.indexOf(0)}"]`)).toBeFocused();
   await navigate(page, () => page.getByRole('button', { name: 'Home' }).click());
   expect(await transitions(page)).toEqual(expect.arrayContaining([expect.stringContaining('::view-transition-group(board)')]));
-  await expect(page.locator('.home-continue-button')).toBeFocused();
+  await expect(page.locator('.resume-row')).toBeFocused();
 });
 
 test('browser Back from the game changes the screen without a transition', async ({ page }) => {
@@ -217,4 +217,22 @@ test('the screen on top of a push or pop is opaque, so the screen under it does 
   expect(await topBackground('screen-in', '.home-solved-count')).not.toMatch(/^(transparent|rgba\(0, 0, 0, 0\))$/);
   await page.waitForFunction(() => { const w = window as unknown as Watch; return w.finished === w.started; });
   expect(await topBackground('screen-out', '.lesson-back')).not.toMatch(/^(transparent|rgba\(0, 0, 0, 0\))$/);
+});
+
+test('the board shrinks into the daily card only when it shows the open daily', async ({ page }) => {
+  await page.addInitScript(() => { if (!sessionStorage.getItem('seeded')) localStorage.setItem('sudoku.daily.v1', JSON.stringify({ level: 'medium' })); });
+  await start(page);
+  await page.locator('.daily-hero .home-board text').first().waitFor();
+  await navigate(page, () => page.locator('.daily-play').click());
+  await expect(page.locator('.daily-label')).toBeVisible();
+  await navigate(page, () => page.getByRole('button', { name: 'Home' }).click());
+  expect(await transitions(page)).toEqual(expect.arrayContaining([expect.stringContaining('::view-transition-group(board)')]));
+  await page.getByRole('button', { name: 'Daily level: medium. Change' }).click();
+  await page.getByRole('button', { name: /^hard:/ }).click();
+  await expect(page.getByRole('button', { name: 'Daily level: hard. Change' })).toBeVisible();
+  await page.goForward();
+  await expect(page.locator('.daily-label')).toHaveText('Daily · medium');
+  await transitions(page);
+  await navigate(page, () => page.getByRole('button', { name: 'Home' }).click());
+  expect(await transitions(page)).not.toEqual(expect.arrayContaining([expect.stringContaining('::view-transition-group(board)')]));
 });

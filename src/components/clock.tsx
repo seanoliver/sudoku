@@ -1,9 +1,7 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
-import { savedSeconds } from '@/lib/home';
-export const CLOCK_KEY = 'sudoku.clock.v1';
-const KEY = CLOCK_KEY;
-export function Clock({ id, running, hidden = false, resetRevision = 0 }: { id: string; running: boolean; hidden?: boolean; resetRevision?: number }) {
+import { CLOCK_KEY, savedSeconds } from '@/lib/home';
+export function Clock({ id, running, hidden = false, resetRevision = 0, storageKey: KEY = CLOCK_KEY }: { id: string; running: boolean; hidden?: boolean; resetRevision?: number; storageKey?: string }) {
   // Read during render, not in the effect: React holds effects until a screen transition ends, so Continue would show 00:00.
   const [seconds, setSeconds] = useState(() => {
     if (typeof window === 'undefined') return 0;
@@ -33,7 +31,7 @@ export function Clock({ id, running, hidden = false, resetRevision = 0 }: { id: 
     document.addEventListener('visibilitychange', visibility);
     window.addEventListener('pagehide', save);
     return () => { save(); clearTimeout(initial); clearInterval(interval); document.removeEventListener('visibilitychange', visibility); window.removeEventListener('pagehide', save); };
-  }, [id, running, resetRevision]);
+  }, [id, running, resetRevision, KEY]);
   if (hidden) return null;
   const minutes = Math.floor(seconds / 60);
   return <span className="clock" aria-label={`Time played: ${minutes} minutes ${seconds % 60} seconds`}>{minutes.toString().padStart(2, '0')}:{(seconds % 60).toString().padStart(2, '0')}</span>;
