@@ -8,7 +8,7 @@ export function PrivacyPolicy({ headingLevel = 3 }: { headingLevel?: 2 | 3 } = {
     <H>The app</H>
     <p>The iPhone app collects nothing. It makes no network requests and uses no analytics.</p>
     <H>The website</H>
-    <p>sudoku.seanoliver.dev counts page views with Vercel Web Analytics, which uses no cookies and does not identify you.</p>
+    <p>sudoclue.app counts page views with Vercel Web Analytics, which uses no cookies and does not identify you.</p>
     <H>Contact</H>
     <p>Questions go to <a href="https://github.com/seanoliver/sudoku/issues">the project&apos;s GitHub issues</a>.</p>
     <p className="privacy-updated">Updated October 2026.</p>

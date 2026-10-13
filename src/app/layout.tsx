@@ -6,7 +6,7 @@ export const metadata: Metadata = {
   title: 'Sudoclue — a little time to focus',
   description: 'A calm Sudoku that teaches you every technique, one move at a time. Free, private, and playable offline.',
   applicationName: 'Sudoclue',
-  metadataBase: new URL('https://sudoku.seanoliver.dev'),
+  metadataBase: new URL('https://sudoclue.app'),
   openGraph: { type: 'website', url: '/', siteName: 'Sudoclue', title: 'Sudoclue', description: 'A calm Sudoku that teaches you every technique, one move at a time.' },
   twitter: { card: 'summary_large_image', title: 'Sudoclue', description: 'A calm Sudoku that teaches you every technique, one move at a time.' },
   appleWebApp: { capable: true, statusBarStyle: 'default', title: 'Sudoclue' },

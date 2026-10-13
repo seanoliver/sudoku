@@ -7,11 +7,11 @@ test('links to the site share a large 1200×630 image with alt text', async ({ p
   expect(await meta(page, 'twitter:card')).toBe('summary_large_image');
   expect(await meta(page, 'og:description')).toBe('A calm Sudoku that teaches you every technique, one move at a time.');
   const image = await meta(page, 'og:image');
-  expect(image).toMatch(/^https:\/\/sudoku\.seanoliver\.dev\/opengraph-image/);
+  expect(image).toMatch(/^https:\/\/sudoclue\.app\/opengraph-image/);
   expect(await meta(page, 'og:image:width')).toBe('1200');
   expect(await meta(page, 'og:image:height')).toBe('630');
   expect(await meta(page, 'og:image:alt')).toBeTruthy();
-  expect(await meta(page, 'twitter:image')).toMatch(/^https:\/\/sudoku\.seanoliver\.dev\/twitter-image/);
+  expect(await meta(page, 'twitter:image')).toMatch(/^https:\/\/sudoclue\.app\/twitter-image/);
   const response = await request.get(new URL(image!).pathname + new URL(image!).search);
   expect(response.status()).toBe(200);
   expect(response.headers()['content-type']).toBe('image/png');
