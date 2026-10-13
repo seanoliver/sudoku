@@ -23,7 +23,7 @@ export function useNoteSelection({ values, enabled, onSelect, onBegin, onFocus }
   values: readonly number[] | undefined;
   enabled: boolean;
   onSelect: (index: number) => void;
-  onBegin: () => void;
+  onBegin: (start: { replacing: boolean }) => void;
   onFocus: (input: { index: number; hasSelection: boolean }) => void;
 }) {
   const [indices, setIndices] = useState<number[]>([]);
@@ -63,9 +63,10 @@ export function useNoteSelection({ values, enabled, onSelect, onBegin, onFocus }
   };
   const begin = () => {
     if (indices.length && !applied.current) return;
+    const replacing = indices.length > 0;
     applied.current = false;
     setIndices([]);
-    onBegin();
+    onBegin({ replacing });
   };
   const onPointerDown = (event: PointerEvent<HTMLDivElement>) => {
     if (!event.isPrimary) { suppressClick.current = true; stopGesture(); return; }

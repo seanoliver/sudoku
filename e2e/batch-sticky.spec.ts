@@ -85,7 +85,7 @@ test('tapping a filled cell ends the selection', async ({ page }) => {
   await expect(selected(page)).toHaveCount(0);
 });
 
-test('after a number, a new drag starts a new selection', async ({ page }) => {
+test('after a number, a new drag starts a new selection in the same mode', async ({ page }) => {
   await seed(page);
   await openGame(page);
   await selectBoth(page);
@@ -95,7 +95,8 @@ test('after a number, a new drag starts a new selection', async ({ page }) => {
   await expect(selected(page)).toHaveCount(1);
   await page.keyboard.press(String(later));
   await expect.poll(() => marks(page, 'exclusions')).toEqual([[first], [first]]);
-  await expect.poll(() => page.evaluate(({ key, cells }) => { const g = JSON.parse(localStorage.getItem(key)!); return cells.map(i => g.notes[i]); }, { key: SAVE_KEY, cells: [c, c + 1] })).toEqual([[later], [later]]);
+  await expect.poll(() => page.evaluate(({ key, cells }) => { const g = JSON.parse(localStorage.getItem(key)!); return cells.map(i => g.exclusions[i]); }, { key: SAVE_KEY, cells: [c, c + 1] })).toEqual([[later], [later]]);
+  await expect(mode(page, 'Exclude')).toHaveAttribute('aria-pressed', 'true');
 });
 
 for (const [name, key] of [['Escape', 'Escape'], ['Erase', 'Backspace'], ['pressing X again', 'x']] as const) {
