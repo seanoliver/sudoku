@@ -2,11 +2,13 @@ import { conflicts, peers, type Puzzle } from './sudoku.ts';
 import { getPlayableCandidates } from './candidates.ts';
 export type NoteOrigin = 'manual' | 'generated' | null;
 const emptyNotes = (): number[][] => Array.from({ length: 81 }, () => []);
-type Snapshot = { values: number[]; notes: number[][]; exclusions: number[][]; noteOrigins: NoteOrigin[] };
+/** A cell's color: 0 none, 1 gold, 2 blue. */
+export type CellColor = 0 | 1 | 2;
+type Snapshot = { values: number[]; notes: number[][]; exclusions: number[][]; noteOrigins: NoteOrigin[]; colors: CellColor[] };
 export type GameState = Puzzle & Snapshot & { version: 1; history: Snapshot[]; redoHistory: Snapshot[] };
 export const SAVE_KEY = 'sudoku.game.v1';
 export function createGame(puzzle: Puzzle): GameState {
-  return { ...puzzle, version: 1, values: [...puzzle.givens], notes: emptyNotes(), exclusions: emptyNotes(), noteOrigins: Array(81).fill(null), history: [], redoHistory: [] };
+  return { ...puzzle, version: 1, values: [...puzzle.givens], notes: emptyNotes(), exclusions: emptyNotes(), noteOrigins: Array(81).fill(null), colors: Array(81).fill(0), history: [], redoHistory: [] };
 }
 export type Rejection = { kind: 'constraint' | 'answer'; sources: number[]; unit: 'row' | 'column' | 'box' | null };
 const unitOf = (index: number, sources: number[]): Rejection['unit'] => sources.some(s => Math.floor(s / 9) === Math.floor(index / 9)) ? 'row' : sources.some(s => s % 9 === index % 9) ? 'column' : 'box';
@@ -26,10 +28,10 @@ export function rejectEntry(game: GameState, { index, value, pencil = false, exc
 export function restartGame({ id, difficulty, givens, solution, source }: GameState): GameState {
   return createGame({ id, difficulty, givens, solution, ...(source === undefined ? {} : { source }) });
 }
-function snapshot({ values, notes, exclusions, noteOrigins }: GameState): Snapshot {
-  return { values, notes, exclusions, noteOrigins };
+function snapshot({ values, notes, exclusions, noteOrigins, colors }: GameState): Snapshot {
+  return { values, notes, exclusions, noteOrigins, colors };
 }
-function record(game: GameState, next: Snapshot): GameState {
+function record(game: GameState, next: Partial<Snapshot>): GameState {
   return { ...game, ...next, history: [...game.history.slice(-199), snapshot(game)], redoHistory: [] };
 }
 export function fillNotes(game: GameState): GameState {
@@ -41,6 +43,19 @@ export function fillNotes(game: GameState): GameState {
   if (notes.every((cell, i) => cell.length === game.notes[i].length && cell.every(n => game.notes[i].includes(n))
     && noteOrigins[i] === game.noteOrigins[i])) return game;
   return record(game, { values: game.values, notes, exclusions: game.exclusions, noteOrigins });
+}
+/** Colors the non-given cells among `indices`, or clears them when they all already have `color`. Color 0 clears. */
+export function paintCells(game: GameState, { indices, color }: { indices: readonly number[]; color: CellColor }): GameState {
+  const cells = [...new Set(indices)].filter(index => Number.isInteger(index) && index >= 0 && index < 81 && !game.givens[index]);
+  if (!cells.length || isComplete(game)) return game;
+  const next = color && cells.every(index => game.colors[index] === color) ? 0 : color;
+  if (cells.every(index => game.colors[index] === next)) return game;
+  const colors = [...game.colors];
+  for (const index of cells) colors[index] = next;
+  return record(game, { colors });
+}
+export function clearColors(game: GameState): GameState {
+  return game.colors.some(Boolean) && !isComplete(game) ? record(game, { colors: Array(81).fill(0) }) : game;
 }
 /** Empty, editable cells among a batch's indices. */
 const batchCells = (game: GameState, indices: readonly number[]) => [...new Set(indices)].filter(index => Number.isInteger(index) && index >= 0 && index < 81 && !game.givens[index] && !game.values[index]);
@@ -168,7 +183,9 @@ export function restore(raw: string): GameState | null {
       if (!game.givens.every((n,i) => !n || s.values[i] === n)) return null;
       if (!s.values.every((n,i) => n ? s.notes[i].length === 0 && exclusions[i].length === 0 && noteOrigins[i] === null
         : (!s.notes[i].length || noteOrigins[i] !== null) && (!exclusions[i].length || noteOrigins[i] !== null) && !s.notes[i].some(d => exclusions[i].includes(d)))) return null;
-      return { values: s.values, notes: s.notes, exclusions, noteOrigins };
+      const colors = Object.hasOwn(s, 'colors') ? s.colors : Array(81).fill(0);
+      if (!Array.isArray(colors) || colors.length !== 81 || !colors.every((c, i) => c === 0 || (!game.givens[i] && (c === 1 || c === 2)))) return null;
+      return { values: s.values, notes: s.notes, exclusions, noteOrigins, colors };
     };
     const current = migrateSnapshot(game);
     if (!game.givens.every((n,i) => !n || n === game.solution[i]) || !current) return null;

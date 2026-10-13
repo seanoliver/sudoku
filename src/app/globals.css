@@ -193,14 +193,30 @@ h1,h2,h3,p { margin: 0; }
 .number-key.digit-filtered { color: var(--secondary); background: transparent; opacity: .65; }
 
 .note-controls { display: flex; flex-direction: column; align-items: stretch; gap: 8px; }
-.mode-switch { position: relative; flex: 1; display: grid; grid-template-rows: repeat(3, 1fr); padding: 3px; border-radius: 10px; background: var(--canvas); }
-.mode-option { position: relative; z-index: 1; transition: color .22s ease; display: flex; align-items: center; justify-content: flex-start; gap: 6px; min-height: 42px; padding: 0 12px; border-radius: 8px; font-size: 13px; font-weight: 500; color: var(--secondary); }
+.mode-switch { position: relative; flex: 1; display: grid; grid-template: repeat(2, 1fr) / repeat(2, 1fr); padding: 3px; border-radius: 10px; background: var(--canvas); }
+.mode-option { position: relative; z-index: 1; transition: color .22s ease; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; min-height: 0; min-width: 0; padding: 0 2px; border-radius: 8px; font-size: 11px; font-weight: 500; color: var(--secondary); }
 .mode-option:disabled { opacity: .4; }
-.mode-indicator { position: absolute; top: 3px; left: 3px; right: 3px; height: calc((100% - 6px) / 3); border-radius: 8px; box-shadow: 0 1px 2px rgb(0 0 0 / .12); transition: transform .22s ease, background-color .22s ease; }
-.mode-indicator-value { background: var(--surface); }.mode-indicator-note { transform: translateY(100%); background: var(--blue-soft); }.mode-indicator-exclude { transform: translateY(200%); background: var(--red-soft); }
+.mode-indicator { position: absolute; top: 3px; left: 3px; width: calc((100% - 6px) / 2); height: calc((100% - 6px) / 2); border-radius: 8px; box-shadow: 0 1px 2px rgb(0 0 0 / .12); transition: transform .22s ease, background-color .22s ease; }
+.mode-indicator-value { background: var(--surface); }.mode-indicator-note { transform: translateX(100%); background: var(--blue-soft); }.mode-indicator-exclude { transform: translateY(100%); background: var(--red-soft); }.mode-indicator-color { transform: translate(100%, 100%); background: color-mix(in srgb, var(--hint) 20%, var(--surface)); }
 .mode-value[aria-pressed='true'] { color: var(--blue); }
 .mode-note[aria-pressed='true'] { color: var(--note-blue); }
 .mode-exclude[aria-pressed='true'] { color: var(--note-red); }
+.mode-color[aria-pressed='true'] { color: var(--hint-strong); }
+/* As tall as the number pad, so the controls keep their height when the pad swaps. */
+.color-pad { grid-template-columns: 1fr 1fr; grid-template-rows: minmax(0, 1fr) auto; height: calc(3 * 56px + 2 * 8px); }
+.number-pad.color-pad .color-key { height: auto; }
+.color-actions { grid-column: span 2; display: grid; grid-template-columns: 1fr 1.6fr 48px; gap: 8px; }
+.number-pad.color-pad .color-actions .color-key { height: 48px; color: var(--secondary); }
+.color-pad .color-key > span.swatch-dot { width: 46px; height: 46px; border-radius: 50%; background: color-mix(in srgb, var(--blue) 45%, var(--surface)); }
+.color-pad .color-key-gold > span.swatch-dot { background: color-mix(in srgb, var(--hint) 55%, var(--surface)); }
+.color-pad .color-key[aria-pressed='true'] { box-shadow: inset 0 0 0 2px var(--ink); }
+.color-pad .color-clear-all > span { font-size: 14px; font-weight: 550; }
+.color-pad .color-help > span { font-size: 18px; font-weight: 600; }
+/* Translucent, so selection, smart highlighting, and errors still show through. */
+.cell.painted::before { content: ''; position: absolute; inset: 3px; border-radius: 9px; background: color-mix(in srgb, var(--blue) 34%, transparent); pointer-events: none; }
+.cell.paint-gold::before { background: color-mix(in srgb, var(--hint) 42%, transparent); }
+.cell.painted .notes { position: relative; }
+.colors-done { margin-top: 24px; }
 :is(.erase-control, .history-control) { display: grid; place-items: center; min-height: 44px; border-radius: 10px; color: var(--secondary); background: var(--canvas); }
 :is(.erase-control, .history-control):disabled { opacity: .35; }
 .edit-actions { display: grid; grid-template-columns: 1fr 1.2fr 1fr; gap: 6px; }
@@ -227,7 +243,7 @@ h1,h2,h3,p { margin: 0; }
 .board-wrap.walkthrough .cell.walk-answer .notes { visibility: hidden; }
 .play-side { display: contents; }
 .controls-area { position: relative; display: grid; grid-template-columns: minmax(122px, 36%) minmax(0, 1fr); gap: 10px; margin-top: 12px; padding: 10px; border-radius: var(--radius-card-lg); background: var(--surface); box-shadow: 0 1px 2px #0000000d; }
-@media (max-height: 760px) { .number-pad { gap: 6px; } .number-pad .number-key { height: 48px; } .controls-area { margin-top: 8px; } .note-controls { gap: 6px; } .mode-option { min-height: 36px; } :is(.erase-control, .history-control) { min-height: 36px; } }
+@media (max-height: 760px) { .number-pad { gap: 6px; } .number-pad .number-key { height: 48px; } .color-pad { height: calc(3 * 48px + 2 * 6px); } .color-actions { gap: 6px; } .controls-area { margin-top: 8px; } .note-controls { gap: 6px; } .mode-option { min-height: 0; } :is(.erase-control, .history-control) { min-height: 36px; } }
 
 .lesson-hidden { display: none !important; }
 .lesson-bar { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; }
