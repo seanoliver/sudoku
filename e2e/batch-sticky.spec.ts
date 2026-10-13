@@ -16,12 +16,18 @@ const marks = (page: Page, kind: 'exclusions' | 'notes') => page.evaluate(({ key
 const selected = (page: Page) => page.getByRole('status').filter({ hasText: '2 cells selected' });
 const mode = (page: Page, name: string) => page.getByRole('button', { name, exact: true });
 
-async function selectBoth(page: Page) {
-  const [from, to] = await Promise.all([cell(page, a).boundingBox(), cell(page, b).boundingBox()]);
+const c = game.values.findIndex((v, i) => i !== a && i !== b && i + 1 !== a && !v && i % 9 < 8 && !game.values[i + 1] && spare(i).some(d => d !== first && spare(a).includes(d)));
+const later = spare(c).find(d => d !== first && spare(a).includes(d))!;
+
+async function drag(page: Page, start: number, end: number) {
+  const [from, to] = await Promise.all([cell(page, start).boundingBox(), cell(page, end).boundingBox()]);
   await page.mouse.move(from!.x + from!.width / 2, from!.y + from!.height / 2);
   await page.mouse.down();
   await page.mouse.move(to!.x + to!.width / 2, to!.y + to!.height / 2, { steps: 5 });
   await page.mouse.up();
+}
+async function selectBoth(page: Page) {
+  await drag(page, a, b);
   await expect(selected(page)).toHaveCount(1);
 }
 
@@ -77,4 +83,17 @@ test('tapping a filled cell ends the selection', async ({ page }) => {
   await page.keyboard.press(String(first));
   await cell(page, filled).click();
   await expect(selected(page)).toHaveCount(0);
+});
+
+test('after a number, a new drag starts a new selection', async ({ page }) => {
+  await seed(page);
+  await openGame(page);
+  await selectBoth(page);
+  await mode(page, 'Exclude').click();
+  await page.keyboard.press(String(first));
+  await drag(page, c, c + 1);
+  await expect(selected(page)).toHaveCount(1);
+  await page.keyboard.press(String(later));
+  await expect.poll(() => marks(page, 'exclusions')).toEqual([[first], [first]]);
+  await expect.poll(() => page.evaluate(({ key, cells }) => { const g = JSON.parse(localStorage.getItem(key)!); return cells.map(i => g.notes[i]); }, { key: SAVE_KEY, cells: [c, c + 1] })).toEqual([[later], [later]]);
 });

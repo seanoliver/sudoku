@@ -450,7 +450,7 @@ Captured from Sean on September 24. Long-term scope, modeled on the way Good Sud
 ### R19. Keep a batch selection after a note or exclusion
 
 - **Idea:** Select several cells, switch to Exclude, and exclude several digits from all of them in a row. The first digit used to apply and then clear the selection, so the keypad dropped out of Exclude. Notes on a selection behaved the same way. Sean asked for it on October 13.
-- **Status:** Shipped in this PR ([design](plans/2026-10-13-sticky-batch-design.md)), after Sean chose direction A, sticky selection, on October 13: the selection and its mode stay after each number, and it ends on a filled cell, Numbers, or Escape.
+- **Status:** Shipped in [PR #96](https://github.com/seanoliver/sudoku/pull/96) ([design](plans/2026-10-13-sticky-batch-design.md)), after Sean chose direction A, sticky selection, on October 13: the selection and its mode stay after each number, and it ends on a filled cell, Numbers, or Escape, and a new drag starts a new selection.
 
 ## Very low priority: desktop experience
 
