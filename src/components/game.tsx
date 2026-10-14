@@ -553,11 +553,12 @@ export default function SudokuGame() {
     if (next !== game) setGame(next);
     const cell = hint.kind === 'step' ? hint.step.placement?.cell ?? hint.step.eliminations[0]?.cell : hint.kind === 'mistake' ? hint.cell : undefined;
     if (cell !== undefined) { setSelected(cell); focusAfterRender.current = `.board [data-index="${cell}"]`; }
+    if (cell !== undefined && next.values[cell]) setFocusedDigit(next.values[cell]);
   };
   const input = (value: number) => {
     if (!game || paused || busy || sheet || complete || lessonLocked) return;
     lessonTappedAt.current = -Infinity;
-    if (value !== 0 && (numberFocus || keyState(value).focusOnly)) { setFocusedDigit(focusedDigit === value ? null : value); setBlockedEntry(null); return; }
+    if (value !== 0 && (numberFocus || keyState(value).focusOnly)) { setFocusedDigit(current => current === value ? null : value); setBlockedEntry(null); return; }
     const refusedCells = batchSelection && excluding && preferences.blockIncorrectAnswers ? incorrectExclusions(game, { indices: selection.indices, value }) : [];
     const refused = batchSelection ? refusedCells.length ? { kind: 'answer' as const, sources: [], unit: null } : null
       : rejectEntry(game, { index: selected, value, pencil, exclude: excluding, blockIncorrectAnswers: preferences.blockIncorrectAnswers, filterNumberKeys: filtering });
@@ -612,7 +613,7 @@ export default function SudokuGame() {
       const next = (selected + movement[event.key] + 81) % 81;
       resetSelection(); selectCell(next); board.current?.querySelector<HTMLButtonElement>(`[data-index="${next}"]`)?.focus();
     } else if (colorMode && (/^[0-9]$/.test(event.key) || ['Backspace', 'Delete'].includes(event.key))) { event.preventDefault(); if (/^[3-9]$/.test(event.key)) return; paint(event.key === '1' ? 1 : event.key === '2' ? 2 : 0); }
-    else if (/^[1-9]$/.test(event.key)) { event.preventDefault(); input(Number(event.key)); focusSelectedCell(); }
+    else if (/^[1-9]$/.test(event.key)) { event.preventDefault(); if (!event.repeat) input(Number(event.key)); focusSelectedCell(); }
     else if (['Backspace','Delete','0'].includes(event.key)) { event.preventDefault(); input(0); focusSelectedCell(); }
     else if (event.key.toLowerCase() === 'h') { event.preventDefault(); if ((event.target as Element).closest('.digit-focus-bar, .game-bar .hint-button')) focusAfterRender.current = HINT_STRIP_FOCUS; showHint(); }
     else if (event.key.toLowerCase() === 'x') { event.preventDefault(); toggleEntryMode('exclude'); }
@@ -1049,7 +1050,7 @@ export default function SudokuGame() {
           {DIGITS.map(n => {
             const { remaining, filtered, focusOnly } = keyState(n);
             const lit = focusedDigit === n;
-            return <Pressable key={n} className={`number-key ${lit ? 'digit-focused' : ''} ${!remaining ? 'digit-finished' : ''} ${filtered ? 'digit-filtered' : ''}`} aria-pressed={lit} aria-label={(numberFocus || focusOnly ? `Focus on ${n}` : batchSelection ? (game && batchHasMark(game, { indices: selection.indices, value: n, marks: excluding ? 'exclusions' : 'notes' }) ? `Remove ${excluding ? 'exclusion' : 'note'} ${n} from ${selection.indices.length} selected cells` : `${excluding ? 'Exclude' : 'Add note'} ${n} ${excluding ? 'from' : 'to'} ${selection.indices.length} selected cells`) : `${excluding ? 'Rule out' : 'Enter'} ${n}${pencil ? ' as a note' : ''}`) + (filtered ? ', unavailable: already in this row, column, or box' : '') + (remaining ? '' : ', all placed')} disabled={!game || busy || paused || complete} onClick={() => input(n)}><span style={{ gridRow: Math.ceil(n / 3), gridColumn: (n - 1) % 3 + 1 }}>{n}</span></Pressable>;
+            return <Pressable key={n} className={`number-key ${lit ? 'digit-focused' : ''} ${!remaining ? 'digit-finished' : ''} ${filtered ? 'digit-filtered' : ''}`} aria-pressed={numberFocus || focusOnly ? lit : undefined} aria-label={(numberFocus || focusOnly ? `Focus on ${n}` : batchSelection ? (game && batchHasMark(game, { indices: selection.indices, value: n, marks: excluding ? 'exclusions' : 'notes' }) ? `Remove ${excluding ? 'exclusion' : 'note'} ${n} from ${selection.indices.length} selected cells` : `${excluding ? 'Exclude' : 'Add note'} ${n} ${excluding ? 'from' : 'to'} ${selection.indices.length} selected cells`) : `${excluding ? 'Rule out' : 'Enter'} ${n}${pencil ? ' as a note' : ''}`) + (filtered ? ', unavailable: already in this row, column, or box' : '') + (remaining ? '' : ', all placed')} disabled={!game || busy || paused || complete} onClick={() => input(n)}><span style={{ gridRow: Math.ceil(n / 3), gridColumn: (n - 1) % 3 + 1 }}>{n}</span></Pressable>;
           })}
         </div>}
         <p className="sr-only" role="status">{undoAnnouncement.text && `${undoAnnouncement.text}${undoAnnouncement.id % 2 ? '\u00a0' : ''}`}</p>
