@@ -246,6 +246,7 @@ export default function SudokuGame() {
   }, [game, away, complete, preferences.blockIncorrectAnswers, noteGame]);
   // A save that loads already finished was solved on an earlier day, so History doesn't record it as today's.
   const restoredSolved = useRef<string | null>(null);
+  const restartedSolved = useRef(new Set<string>());
   const solvedId = complete && !away ? game?.id : undefined;
   const solvedDifficulty = solvedId ? game?.difficulty : undefined;
   const solvedGivens = solvedId ? game?.givens.join('') : undefined;
@@ -279,7 +280,7 @@ export default function SudokuGame() {
         const { earned, shown } = earnAtSolve(accomplishments, { solveId: solvedId, day: today, level: solvedDifficulty, streak: dailySolves ? dailyStreak(dailySolves, today) : null, firstAtLevel, clean });
         if (Object.keys(earned).length !== Object.keys(accomplishments).length) localStorage.setItem(ACCOMPLISHMENTS_KEY, serializeAccomplishments(earned));
         result.earned = shown;
-      } else result.earned = earnedBy(accomplishments, { solveId: solvedId, clean: solves.find(s => s.id === solvedId)?.clean === true });
+      } else if (!restartedSolved.current.has(solvedId)) result.earned = earnedBy(accomplishments, { solveId: solvedId, clean: solves.find(s => s.id === solvedId)?.clean === true });
     } catch { /* History, the time, the best, and accomplishments are optional. */ }
     finishRef.current = result;
     setFinish(result);
@@ -490,6 +491,7 @@ export default function SudokuGame() {
   const restartPuzzle = () => {
     if (!game || busy) return;
     noteGame(game.id, { fresh: false, restarted: true });
+    restartedSolved.current.add(game.id);
     const restarted = restartGame(game);
     replayStore.record(restarted.id, restarted, { restart: true });
     restoredSolved.current = null;

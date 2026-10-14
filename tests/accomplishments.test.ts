@@ -51,7 +51,10 @@ test('milestones are earned once, and a long streak earns the highest one not ye
   const again = earnAtSolve(held, { ...at, streak: 8, firstAtLevel: true, clean: false });
   assert.equal(again.shown, null);
   assert.deepEqual(again.earned, held);
-  assert.deepEqual(earnAtSolve({}, { ...at, streak: 31, firstAtLevel: false, clean: false }).shown, { kind: 'streak', days: 30 });
+  const long = earnAtSolve({}, { ...at, streak: 31, firstAtLevel: false, clean: false });
+  assert.deepEqual(long.shown, { kind: 'streak', days: 30 });
+  assert.deepEqual(Object.keys(long.earned).sort(), ['streak-30', 'streak-7']);
+  assert.equal(earnAtSolve(long.earned, { ...at, streak: 32, firstAtLevel: false, clean: false }).shown, null);
 });
 
 test('what a solve earned reads back after reopening', () => {

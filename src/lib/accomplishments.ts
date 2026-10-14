@@ -49,8 +49,9 @@ export const serializeAccomplishments = (earned: Accomplishments) => JSON.string
 /** `streak` includes this solve; null for a regular game. */
 export function earnAtSolve(earned: Accomplishments, { solveId, day, level, streak, firstAtLevel, clean }: { solveId: string; day: string; level: Difficulty; streak: number | null; firstAtLevel: boolean; clean: boolean }): { earned: Accomplishments; shown: Earned | null } {
   const next = { ...earned };
-  const milestone = streak === null ? undefined : STREAK_MILESTONES.filter(days => streak >= days && !earned[`streak-${days}`]).at(-1);
-  if (milestone) next[`streak-${milestone}`] = { day, solveId };
+  const reached = streak === null ? [] : STREAK_MILESTONES.filter(days => streak >= days && !earned[`streak-${days}`]);
+  for (const days of reached) next[`streak-${days}`] = { day, solveId };
+  const milestone = reached.at(-1);
   const first = firstAtLevel && !earned[`first-${level}`];
   if (first) next[`first-${level}`] = { day, solveId };
   return { earned: next, shown: milestone ? { kind: 'streak', days: milestone } : first ? { kind: 'first', level } : clean ? { kind: 'clean' } : null };
