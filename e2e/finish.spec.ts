@@ -2,7 +2,7 @@ import { expect, test, type Page } from '@playwright/test';
 import { createGame, SAVE_KEY } from '../src/lib/game.ts';
 import { createPuzzle } from '../src/lib/difficulty.ts';
 import { PREFS_KEY } from '../src/lib/preferences.ts';
-import { CLOCK_KEY } from '../src/lib/home.ts';
+import { CLOCK_KEY, SOLVED_KEY } from '../src/lib/home.ts';
 import { SOLVES_KEY, type Solve } from '../src/lib/solves.ts';
 
 const game = createGame(createPuzzle('medium', 4242));
@@ -233,13 +233,20 @@ for (const [name, assist] of [
 }
 
 test('cancelling the share sheet saves nothing', async ({ page }) => {
-  await page.addInitScript(() => { navigator.canShare = () => true; navigator.share = async () => { throw new DOMException('Share canceled', 'AbortError'); }; });
+  await page.addInitScript(() => { navigator.canShare = () => true; navigator.share = async () => { Object.assign(window, { shareCalls: ((window as unknown as { shareCalls?: number }).shareCalls ?? 0) + 1 }); throw new DOMException('Share canceled', 'AbortError'); }; });
   await finish(page, { solves: [earlier(900)] });
   let downloaded = false;
   page.on('download', () => { downloaded = true; });
   await page.locator('.completion').getByRole('button', { name: 'Share' }).click();
-  await page.waitForTimeout(500);
+  await expect.poll(() => page.evaluate(() => (window as unknown as { shareCalls?: number }).shareCalls)).toBe(1);
+  await page.waitForTimeout(300);
   expect(downloaded).toBe(false);
+});
+
+test('a level solved before History existed is not a first solve', async ({ page }) => {
+  await page.addInitScript(([key, value]) => { if (!sessionStorage.getItem('seeded')) localStorage.setItem(key, value); }, [SOLVED_KEY, JSON.stringify({ ids: ['1-medium'] })]);
+  await finish(page);
+  await expect(page.locator('.finish-chip.earned')).toHaveCount(0);
 });
 
 test('a first Expert solve from the bank shows First solve', async ({ page }) => {
@@ -296,12 +303,14 @@ test('when the share sheet refuses the file, Share saves the image instead', asy
   expect((await download).suggestedFilename()).toBe('sudoclue-solve-medium.png');
 });
 
-test('solving again after Restart earns nothing, even when the first solve did', async ({ page }) => {
+test('solving again after Restart earns nothing, even when the first solve did and the page reloads between', async ({ page }) => {
   await finish(page);
   await expect(page.locator('.finish-chip.earned')).toHaveText('First solveFirst medium solve');
   await page.getByRole('button', { name: 'Settings' }).click();
   await page.getByRole('button', { name: 'Restart puzzle' }).click();
   await page.locator('.sheet').getByRole('button', { name: 'Restart puzzle' }).click();
+  await page.reload();
+  await page.getByRole('button', { name: /^Continue/ }).click();
   for (const cell of game.givens.flatMap((v, i) => v ? [] : [i])) {
     await page.locator(`.board [data-index="${cell}"]`).click();
     await page.keyboard.press(String(game.solution[cell]));

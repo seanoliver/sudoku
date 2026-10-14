@@ -24,6 +24,8 @@ test('evidence keeps the newest games and reads back only valid records', () => 
   assert.equal(ids.length, EVIDENCE_GAMES);
   assert.equal(ids.at(-1), 'g10', 'a changed game becomes the newest');
   assert.ok(!ids.includes('g0'));
+  for (let k = 0; k < EVIDENCE_GAMES; k++) log = noteEvidence(noteEvidence(log, `n${k}`, { fresh: true }), 'g10', { fresh: true });
+  assert.equal((log as Record<string, { fixed: boolean }>).g10?.fixed, true, 'a game still being played is never evicted');
   assert.deepEqual(readEvidence(serializeEvidence(log)), log);
   assert.deepEqual(readEvidence('nope'), {});
   assert.deepEqual(readEvidence(JSON.stringify({ games: { a: { fresh: 'yes' } } })), {});
@@ -55,6 +57,13 @@ test('milestones are earned once, and a long streak earns the highest one not ye
   assert.deepEqual(long.shown, { kind: 'streak', days: 30 });
   assert.deepEqual(Object.keys(long.earned).sort(), ['streak-30', 'streak-7']);
   assert.equal(earnAtSolve(long.earned, { ...at, streak: 32, firstAtLevel: false, clean: false }).shown, null);
+});
+
+test('a streak one day short of a milestone earns nothing', () => {
+  const held = (...days: number[]) => Object.fromEntries(days.map(d => [`streak-${d}`, { day: '2026-10-01', solveId: 'old' }]));
+  for (const [streak, earned] of [[6, held()], [29, held(7)], [99, held(7, 30)]] as const) {
+    assert.equal(earnAtSolve(earned, { ...at, streak, firstAtLevel: false, clean: false }).shown, null, String(streak));
+  }
 });
 
 test('what a solve earned reads back after reopening', () => {

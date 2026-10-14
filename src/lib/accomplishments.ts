@@ -21,7 +21,7 @@ export function noteEvidence(log: EvidenceLog, id: string, { fresh, ...raised }:
   const before = log[id] ?? { fresh, assisted: false, fixed: false, blocked: false, restarted: false };
   const next: Evidence = { ...before };
   for (const flag of ['assisted', 'fixed', 'blocked', 'restarted'] as const) if (raised[flag]) next[flag] = true;
-  if (log[id] && FLAGS.every(flag => next[flag] === before[flag])) return log;
+  if (log[id] && FLAGS.every(flag => next[flag] === before[flag]) && Object.keys(log).at(-1) === id) return log;
   return Object.fromEntries([...Object.entries(log).filter(([key]) => key !== id), [id, next] as const].slice(-EVIDENCE_GAMES));
 }
 

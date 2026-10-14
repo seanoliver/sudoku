@@ -9,7 +9,7 @@ const base64 = (blob: Blob) => new Promise<string>((resolve, reject) => {
   reader.onerror = () => reject(reader.error);
   reader.readAsDataURL(blob);
 });
-const isCancel = (error: unknown) => error instanceof DOMException ? error.name === 'AbortError' : /cancel/i.test(String((error as Error)?.message ?? error));
+export const isCancel = (error: unknown) => error instanceof DOMException ? error.name === 'AbortError' : /cancel/i.test(String((error as Error)?.message ?? error));
 
 export async function shareFile(file: File): Promise<ShareOutcome> {
   if (nativeShare) {
@@ -25,7 +25,7 @@ export async function shareFile(file: File): Promise<ShareOutcome> {
   }
   // No `await` before `navigator.share`: Safari rejects a share that starts after the tap.
   if (navigator.canShare?.({ files: [file] })) {
-    try { await navigator.share({ files: [file] }); return 'shared'; } catch (error) { if (isCancel(error)) return 'cancelled'; }
+    try { await navigator.share({ files: [file] }); return 'shared'; } catch (error) { if (isCancel(error) || (error instanceof DOMException && error.name === 'InvalidStateError')) return 'cancelled'; }
   }
   const link = Object.assign(document.createElement('a'), { href: URL.createObjectURL(file), download: file.name });
   link.click();
