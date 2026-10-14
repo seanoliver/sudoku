@@ -1,5 +1,5 @@
 import type { CSSProperties } from 'react';
-export type IconName = 'haptics' | 'lock' | 'clock' | 'filter' | 'restart' | 'shield' | 'sparkles' | 'focus' | 'fill' | 'undo' | 'erase' | 'pencil' | 'pause' | 'play' | 'plus' | 'chevron' | 'settings' | 'download' | 'check' | 'close' | 'help' | 'sun' | 'moon' | 'numbers' | 'exclude' | 'bulb' | 'learn' | 'home' | 'palette' | 'share' | 'flame' | 'gem' | 'flag';
+export type IconName = 'haptics' | 'lock' | 'clock' | 'filter' | 'restart' | 'shield' | 'sparkles' | 'fill' | 'undo' | 'erase' | 'pencil' | 'pause' | 'play' | 'plus' | 'chevron' | 'settings' | 'download' | 'check' | 'close' | 'help' | 'sun' | 'moon' | 'numbers' | 'exclude' | 'bulb' | 'learn' | 'home' | 'palette' | 'share' | 'flame' | 'gem' | 'flag';
 const paths: Record<IconName, React.ReactNode> = {
   share: <><path d="M12 3v12M8 7l4-4 4 4"/><path d="M8 10H6a1 1 0 0 0-1 1v9a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-9a1 1 0 0 0-1-1h-2"/></>,
   flame: <><path d="M12 2.5c.6 3.6 6.5 6 6.5 12a6.5 6.5 0 0 1-13 0c0-3 1.6-5.2 3.2-6.3.1 2.2.9 3.5 2.1 4.2C10.6 9 11.2 5.6 12 2.5Z"/><path d="M12 21a2.6 2.6 0 0 1-2.6-2.6c0-1.6 1.3-2.6 2.6-4.4 1.3 1.8 2.6 2.8 2.6 4.4A2.6 2.6 0 0 1 12 21Z"/></>,
@@ -13,7 +13,6 @@ const paths: Record<IconName, React.ReactNode> = {
   restart: <><path d="M3 10a9 9 0 1 1 2 8M3 4v6h6"/></>,
   shield: <><path d="M12 3 4 6v6c0 5 8 9 8 9s8-4 8-9V6l-8-3Z"/><path d="m8 12 3 3 5-6"/></>,
   sparkles: <><path d="m12 3 2.5 6.5L21 12l-6.5 2.5L12 21l-2.5-6.5L3 12l6.5-2.5L12 3Z"/></>,
-  focus: <><path d="M8 4H5a1 1 0 0 0-1 1v3m12-4h3a1 1 0 0 1 1 1v3M4 16v3a1 1 0 0 0 1 1h3m8 0h3a1 1 0 0 0 1-1v-3"/><circle cx="12" cy="12" r="2.5"/></>,
   fill: <><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M9 4v16M15 4v16M4 9h16M4 15h16"/></>,
   undo: <><path d="M9 5 4 10l5 5M4 10h10a6 6 0 0 1 0 12" transform="translate(0 -2)" /></>,
   erase: <><path d="m14 3 7 7-10 10H6l-4-4L14 3Z"/><path d="m8 10 7 7M11 20h10"/></>,

@@ -254,7 +254,7 @@ Status: queued for research. The feature outcomes below are uncommitted. Complet
 - **Research:** Define meaningful accomplishments and the solve evidence needed to preserve them. Explore local storage and retrieval, completion/replay integration, and story composition and export/share feasibility on phones.
 - **Output:** An accomplishment model and a proposed save-to-share flow, including what “Instagram-native” means for delivery. Capture current platform requirements during the spike and propose story design directions before implementation.
 - **Relationship:** Coordinate with existing unit celebrations and speed replay. Persistent accomplishments and external sharing require their own scope decision.
-- **Status:** Research done ([investigation](investigations/2026-10-13-accomplishments-sharing.md)). On October 13 Sean chose finish card direction A ([design](plans/2026-10-13-finish-share-design.md)): one accomplishment chip beside Best time, and a Share button that sends a square solve map image. No text share. A solve with Block incorrect answers on, or after a Restart, is never clean. Slice 1, the chip and the solve map share, is built in [PR #101](https://github.com/seanoliver/sudoku/pull/101). The hint limit is its own item, R21. Direct Instagram Stories only if players ask for it. Related: links to the site show a preview image, shipped in [PR #41](https://github.com/seanoliver/sudoku/pull/41) ([design](plans/2026-09-25-share-image-design.md)).
+- **Status:** Research done ([investigation](investigations/2026-10-13-accomplishments-sharing.md)). On October 13 Sean chose finish card direction A ([design](plans/2026-10-13-finish-share-design.md)): one accomplishment chip beside Best time, and a Share button that sends a square solve map image. No text share. A solve with Block incorrect answers on, or after a Restart, is never clean. Slice 1, the chip and the solve map share, shipped in [PR #101](https://github.com/seanoliver/sudoku/pull/101). The hint limit is its own item, R21. Direct Instagram Stories only if players ask for it. Related: links to the site show a preview image, shipped in [PR #41](https://github.com/seanoliver/sudoku/pull/41) ([design](plans/2026-09-25-share-image-design.md)).
 
 ### R8. Number grid keypad
 
@@ -457,7 +457,7 @@ Captured from Sean on September 24. Long-term scope, modeled on the way Good Sud
 - **Idea:** When a digit is focused, every note for that digit stands out, so fish patterns such as X-wing and swordfish are easy to see. Sean asked for it on October 13.
 - **Current behavior:** digit focus (the focus button or holding a filled cell) already gives that digit's notes a blue chip at weight 750 (`src/components/cell-notes.tsx`). Selecting a filled cell highlights the matching placed digits; with Smart highlighting on, it also shades the empty cells where that digit is still allowed, from computed candidates rather than the player's notes. Neither marks the notes.
 - **Questions for the design:** whether selecting a filled cell should also mark the notes, and whether today's chip is strong enough to read a swordfish across the board.
-- **Status:** Open. Part of R22, which rethinks digit focus.
+- **Status:** Built with R22: a focused number's notes are a solid blue chip.
 
 ### R21. Hint limits
 
@@ -472,7 +472,7 @@ Captured from Sean on September 24. Long-term scope, modeled on the way Good Sud
 - **Current behavior:** `focusedDigit` in `src/components/game.tsx` holds the focused number until Clear focus, a new puzzle, or a reload. The focus bar above the board shows it, matching numbers and their notes are highlighted, and selecting a filled cell without focus highlights its number only while that cell is selected.
 - **Research:** Define "a number is selected" (a filled cell, a number key, the last number entered) and when focus ends, so it never sticks on a number the player has moved past. Find a cue for the focused number that reads at a glance without text, on the board and on the keypad, in both themes. Decide what happens to the focus bar, Clear focus, and the hold gesture, and how this works with Smart highlighting, Filter number keys, Notes and Exclude, batch selections (R19), and hints. Fold in R20, a focused digit's notes standing out.
 - **Output:** Three rendered directions and a recommendation, before any build.
-- **Status:** Open. Includes R20.
+- **Status:** On October 14 Sean chose direction A, lit key ([design](plans/2026-10-14-digit-focus-design.md)): selecting a filled cell or placing a number focuses it, the focused key is solid blue, and the focus bar is gone. Includes R20.
 
 ## Very low priority: desktop experience
 
@@ -503,4 +503,4 @@ This roadmap keeps automatic bookkeeping limited to explicit actions and existin
 
 ## Delivery discipline
 
-Each item's Status line records what has shipped. Open follow-ups include temporary note preview, default number focus, and optional sole-candidate autofill. Open research spikes (R5–R7, R9, R12, R16–R18, R21, R22) must produce reviewed scope proposals before their feature outcomes enter the implementation sequence. CI merge gates are already active. Each feature starts with three rendered design directions for Sean to review, followed by a detailed implementation plan and a focused PR. Sean may change the order or skip renderings explicitly. This roadmap does not authorize implementing every phase at once. Update milestone status and links as changes merge.
+Each item's Status line records what has shipped. Open follow-ups include temporary note preview, default number focus, and optional sole-candidate autofill. Open research spikes (R5–R7, R9, R12, R16–R18, R21) must produce reviewed scope proposals before their feature outcomes enter the implementation sequence. CI merge gates are already active. Each feature starts with three rendered design directions for Sean to review, followed by a detailed implementation plan and a focused PR. Sean may change the order or skip renderings explicitly. This roadmap does not authorize implementing every phase at once. Update milestone status and links as changes merge.
