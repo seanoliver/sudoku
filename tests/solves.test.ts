@@ -14,6 +14,11 @@ test('solves read back only when every field is valid', () => {
   }
 });
 
+test('a clean solve keeps its flag when read back, and anything but true is dropped', () => {
+  assert.deepEqual(readSolves(JSON.stringify({ solves: [solve('a', { clean: true })] })), [solve('a', { clean: true })]);
+  assert.deepEqual(readSolves(JSON.stringify({ solves: [{ ...solve('a'), clean: 'yes' }] })), [solve('a')]);
+});
+
 test('a solve is recorded once, newest first, and the list is capped', () => {
   assert.deepEqual(recordSolve([solve('a')], solve('b')).map(s => s.id), ['b', 'a']);
   assert.deepEqual(recordSolve([solve('a')], solve('a', { seconds: 9 })), [solve('a')]);

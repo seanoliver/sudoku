@@ -2,7 +2,7 @@ import { expect, test, type Page } from '@playwright/test';
 import { createGame, SAVE_KEY } from '../src/lib/game.ts';
 import { createPuzzle } from '../src/lib/difficulty.ts';
 import { PREFS_KEY } from '../src/lib/preferences.ts';
-import { CLOCK_KEY } from '../src/lib/home.ts';
+import { CLOCK_KEY, SOLVED_KEY } from '../src/lib/home.ts';
 import { SOLVES_KEY, type Solve } from '../src/lib/solves.ts';
 
 const game = createGame(createPuzzle('medium', 4242));
@@ -47,7 +47,7 @@ test('beating the earlier best shows the badge, and a first solve shows no best'
   const first = await context.newPage();
   await finish(first);
   await expect(first.locator('.finish-time')).toHaveText(solveTime);
-  await expect(chips(first)).toHaveCount(2);
+  await expect(chips(first)).toHaveText(['First solveFirst medium solve', '00 notes', '00 fixes']);
 });
 
 test('a note and a fixed number are counted on the card', async ({ page }) => {
@@ -65,7 +65,7 @@ test('a note and a fixed number are counted on the card', async ({ page }) => {
   await page.keyboard.press('Backspace');
   await page.keyboard.press(String(game.solution[second]));
   for (const cell of [first, third, ...rest]) await enter(cell, game.solution[cell]);
-  await expect(chips(page)).toHaveText(['22 notes', '11 fix']);
+  await expect(chips(page)).toHaveText(['First solveFirst medium solve', '22 notes', '11 fix']);
 });
 
 test('solving again after Restart is never a new best, since History keeps the first solve', async ({ page }) => {
@@ -119,7 +119,7 @@ test('finishing with a hint’s Apply shows the card and announces the summary',
     if (await action.count()) await action.click();
     await expect(page.locator('.completion')).toBeVisible({ timeout: 500 });
   }).toPass();
-  await expect(announcement(page)).toHaveText(/^Solved in \d+ minutes? \d+ seconds?, medium\.$/);
+  await expect(announcement(page)).toHaveText(/^Solved in \d+ minutes? \d+ seconds?, medium\. First medium solve\.$/);
 });
 
 test('on the narrowest screen, an hour-long Expert solve fits inside the card', async ({ page }) => {
@@ -149,4 +149,183 @@ test('pausing hides the focus strip', async ({ page }) => {
   await expect(page.locator('.digit-focus-bar')).toBeHidden();
   await page.getByRole('button', { name: 'Resume puzzle' }).click();
   await expect(page.locator('.digit-focus-bar')).toBeVisible();
+});
+
+async function solveFromStart(page: Page, { solves = [] as Solve[], extra = {} as Record<string, string> } = {}) {
+  await page.addInitScript(values => { if (!sessionStorage.getItem('seeded')) { for (const [key, value] of Object.entries(values)) localStorage.setItem(key, value); sessionStorage.setItem('seeded', '1'); } },
+    { [SAVE_KEY]: JSON.stringify(game), [PREFS_KEY]: JSON.stringify(prefs), [SOLVES_KEY]: JSON.stringify({ solves }), ...extra });
+  await page.goto('/');
+  await page.getByRole('button', { name: /^Continue/ }).click();
+  for (const cell of game.givens.flatMap((v, i) => v ? [] : [i])) {
+    await page.locator(`.board [data-index="${cell}"]`).click();
+    await page.keyboard.press(String(game.solution[cell]));
+  }
+  await expect(page.locator('.completion')).toBeVisible();
+}
+
+test('a solve with no fix and no hint past the technique is clean, and History keeps it', async ({ page }) => {
+  await solveFromStart(page, { solves: [earlier(900)] });
+  await expect(page.locator('.finish-chip.earned')).toHaveText('CleanClean solve');
+  await expect(status(page)).toContainText('Clean solve.');
+  expect(await page.evaluate(key => JSON.parse(localStorage.getItem(key)!).solves[0].clean, SOLVES_KEY)).toBe(true);
+});
+
+const savedValues = (page: Page) => page.evaluate(key => (JSON.parse(localStorage.getItem(key) ?? 'null')?.values ?? []) as number[], SAVE_KEY);
+async function fillRest(page: Page) {
+  for (const [cell, value] of (await savedValues(page)).entries()) {
+    if (value) continue;
+    await page.locator(`.board [data-index="${cell}"]`).click();
+    await page.keyboard.press(String(game.solution[cell]));
+  }
+  await expect(page.locator('.completion')).toBeVisible();
+}
+async function startFresh(page: Page) {
+  await page.addInitScript(values => { if (!sessionStorage.getItem('seeded')) { for (const [key, value] of Object.entries(values)) localStorage.setItem(key, value); sessionStorage.setItem('seeded', '1'); } },
+    { [SAVE_KEY]: JSON.stringify(game), [PREFS_KEY]: JSON.stringify(prefs), [SOLVES_KEY]: JSON.stringify({ solves: [earlier(900)] }) });
+  await page.goto('/');
+  await page.getByRole('button', { name: /^Continue/ }).click();
+}
+const openHint = async (page: Page, presses: number) => {
+  await page.getByRole('button', { name: 'Show a hint' }).click();
+  for (let k = 0; k < presses; k++) await page.keyboard.press('h');
+};
+
+test('a hint kept at naming the technique leaves a solve clean', async ({ page }) => {
+  await startFresh(page);
+  await openHint(page, 0);
+  await expect(page.locator('.hint-strip')).toBeVisible();
+  await page.keyboard.press('Escape');
+  await fillRest(page);
+  await expect(page.locator('.finish-chip.earned')).toHaveText('CleanClean solve');
+});
+
+for (const [name, assist] of [
+  ['a hint past naming the technique', async (page: Page) => { await openHint(page, 1); await page.keyboard.press('Escape'); }],
+  ['a hint’s Apply', async (page: Page) => {
+    const before = (await savedValues(page)).filter(Boolean).length;
+    await page.getByRole('button', { name: 'Show a hint' }).click();
+    const action = page.locator('.hint-strip .hint-action');
+    await expect(async () => { await page.keyboard.press('h'); await expect(action).toHaveText('Apply', { timeout: 500 }); }).toPass();
+    await expect(async () => { if (await action.count()) await action.click(); await expect(action).toHaveCount(0, { timeout: 500 }); }).toPass();
+    await expect.poll(async () => (await savedValues(page)).filter(Boolean).length).toBeGreaterThan(before);
+  }],
+  ['a wrong number, even once fixed', async (page: Page) => {
+    const cell = game.givens.indexOf(0);
+    await page.locator(`.board [data-index="${cell}"]`).click();
+    await page.keyboard.press(String(game.solution[cell] % 9 + 1));
+    await page.keyboard.press('Backspace');
+  }],
+  ['a restart', async (page: Page) => {
+    const cell = game.givens.indexOf(0);
+    await page.locator(`.board [data-index="${cell}"]`).click();
+    await page.keyboard.press(String(game.solution[cell]));
+    await page.getByRole('button', { name: 'Settings' }).click();
+    await page.getByRole('button', { name: 'Restart puzzle' }).click();
+    await page.locator('.sheet').getByRole('button', { name: 'Restart puzzle' }).click();
+  }],
+] as const) {
+  test(`a solve after ${name} is not clean`, async ({ page }) => {
+    await startFresh(page);
+    await assist(page);
+    await fillRest(page);
+    await expect(page.locator('.finish-chip.earned')).toHaveCount(0);
+  });
+}
+
+test('cancelling the share sheet saves nothing', async ({ page }) => {
+  await page.addInitScript(() => { navigator.canShare = () => true; navigator.share = async () => { Object.assign(window, { shareCalls: ((window as unknown as { shareCalls?: number }).shareCalls ?? 0) + 1 }); throw new DOMException('Share canceled', 'AbortError'); }; });
+  await finish(page, { solves: [earlier(900)] });
+  let downloaded = false;
+  page.on('download', () => { downloaded = true; });
+  await page.locator('.completion').getByRole('button', { name: 'Share' }).click();
+  await expect.poll(() => page.evaluate(() => (window as unknown as { shareCalls?: number }).shareCalls)).toBe(1);
+  await page.waitForTimeout(300);
+  expect(downloaded).toBe(false);
+});
+
+test('a second tap while the share sheet is open saves nothing', async ({ page }) => {
+  await page.addInitScript(() => { navigator.canShare = () => true; navigator.share = async () => { Object.assign(window, { shareCalls: ((window as unknown as { shareCalls?: number }).shareCalls ?? 0) + 1 }); throw new DOMException('An earlier share has not yet completed', 'InvalidStateError'); }; });
+  await finish(page, { solves: [earlier(900)] });
+  let downloaded = false;
+  page.on('download', () => { downloaded = true; });
+  await page.locator('.completion').getByRole('button', { name: 'Share' }).click();
+  await expect.poll(() => page.evaluate(() => (window as unknown as { shareCalls?: number }).shareCalls)).toBe(1);
+  await page.waitForTimeout(300);
+  expect(downloaded).toBe(false);
+});
+
+test('a level solved before History existed is not a first solve', async ({ page }) => {
+  await page.addInitScript(([key, value]) => { if (!sessionStorage.getItem('seeded')) localStorage.setItem(key, value); }, [SOLVED_KEY, JSON.stringify({ ids: ['1-medium'] })]);
+  await finish(page);
+  await expect(page.locator('.finish-chip.earned')).toHaveCount(0);
+});
+
+test('a first Expert solve from the bank shows First solve', async ({ page }) => {
+  const expert = createGame(createPuzzle('expert', 11));
+  const open = expert.givens.indexOf(0);
+  await page.addInitScript(values => { if (!sessionStorage.getItem('seeded')) { for (const [key, value] of Object.entries(values)) localStorage.setItem(key, value); sessionStorage.setItem('seeded', '1'); } },
+    { [SAVE_KEY]: JSON.stringify({ ...expert, values: expert.solution.map((v, i) => i === open ? 0 : v) }), [PREFS_KEY]: JSON.stringify(prefs) });
+  await page.goto('/');
+  await page.getByRole('button', { name: /^Continue/ }).click();
+  await page.locator(`.board [data-index="${open}"]`).click();
+  await page.keyboard.press(String(expert.solution[open]));
+  await expect(page.locator('.finish-chip.earned')).toHaveText('First solveFirst expert solve');
+});
+
+test('a game already in progress is never clean', async ({ page }) => {
+  await finish(page, { solves: [earlier(900)] });
+  await expect(page.locator('.finish-chip.earned')).toHaveCount(0);
+});
+
+test('a game played with Block incorrect answers is never clean', async ({ page }) => {
+  await solveFromStart(page, { solves: [earlier(900)], extra: { [PREFS_KEY]: JSON.stringify({ ...prefs, blockIncorrectAnswers: true }) } });
+  await expect(page.locator('.finish-chip.earned')).toHaveCount(0);
+});
+
+test('Share sends a square PNG of the solve map through the share sheet', async ({ page }) => {
+  await page.addInitScript(() => {
+    const shared: { name: string; type: string; width: number; height: number }[] = [];
+    Object.assign(window, { shared });
+    navigator.canShare = () => true;
+    navigator.share = async data => {
+      for (const file of data?.files ?? []) { const image = await createImageBitmap(file); shared.push({ name: file.name, type: file.type, width: image.width, height: image.height }); }
+    };
+  });
+  await finish(page, { solves: [earlier(900)] });
+  const share = page.locator('.completion').getByRole('button', { name: 'Share' });
+  await expect(share).toBeEnabled();
+  await share.click();
+  await expect.poll(() => page.evaluate(() => (window as unknown as { shared: unknown[] }).shared)).toEqual([{ name: 'sudoclue-solve-medium.png', type: 'image/png', width: 1080, height: 1080 }]);
+});
+
+test('without file sharing, Share saves the image instead', async ({ page }) => {
+  await page.addInitScript(() => { Object.defineProperty(navigator, 'canShare', { value: undefined }); });
+  await finish(page, { solves: [earlier(900)] });
+  const download = page.waitForEvent('download');
+  await page.locator('.completion').getByRole('button', { name: 'Share' }).click();
+  expect((await download).suggestedFilename()).toBe('sudoclue-solve-medium.png');
+});
+
+test('when the share sheet refuses the file, Share saves the image instead', async ({ page }) => {
+  await page.addInitScript(() => { navigator.canShare = () => true; navigator.share = async () => { throw new DOMException('Not allowed', 'NotAllowedError'); }; });
+  await finish(page, { solves: [earlier(900)] });
+  const download = page.waitForEvent('download');
+  await page.locator('.completion').getByRole('button', { name: 'Share' }).click();
+  expect((await download).suggestedFilename()).toBe('sudoclue-solve-medium.png');
+});
+
+test('solving again after Restart earns nothing, even when the first solve did and the page reloads between', async ({ page }) => {
+  await finish(page);
+  await expect(page.locator('.finish-chip.earned')).toHaveText('First solveFirst medium solve');
+  await page.getByRole('button', { name: 'Settings' }).click();
+  await page.getByRole('button', { name: 'Restart puzzle' }).click();
+  await page.locator('.sheet').getByRole('button', { name: 'Restart puzzle' }).click();
+  await page.reload();
+  await page.getByRole('button', { name: /^Continue/ }).click();
+  for (const cell of game.givens.flatMap((v, i) => v ? [] : [i])) {
+    await page.locator(`.board [data-index="${cell}"]`).click();
+    await page.keyboard.press(String(game.solution[cell]));
+  }
+  await expect(page.locator('.completion')).toBeVisible();
+  await expect(page.locator('.finish-chip.earned')).toHaveCount(0);
 });

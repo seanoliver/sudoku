@@ -335,3 +335,17 @@ test('a new puzzle from a daily names the regular game it would replace', async 
   await page.getByRole('button', { name: 'New puzzle' }).click();
   await expect(page.locator('.replacement-note')).toHaveText('This will replace your expert puzzle in progress.');
 });
+
+test('the daily that reaches a 7-day streak shows the flame, and the share image carries the date', async ({ page }) => {
+  const medium = createGame({ ...createPuzzle('medium', dailySeed(TODAY, 'medium')), id: dailyId(TODAY, 'medium') });
+  const last = medium.givens.indexOf(0);
+  await page.addInitScript(() => { navigator.canShare = () => true; navigator.share = async data => { Object.assign(window, { sharedName: data?.files?.[0]?.name }); }; });
+  await homeAt(page, { solved: daysBefore(6), daily: { ...medium, values: medium.solution.map((v, i) => i === last ? 0 : v) } });
+  await playDaily(page);
+  await page.locator(`.board [data-index="${last}"]`).click();
+  await page.keyboard.press(String(medium.solution[last]));
+  await expect(page.locator('.finish-chip.earned')).toHaveText('7 days7-day streak');
+  expect(Object.keys((await stored(page, 'sudoku.accomplishments.v1')).earned)).toContain('streak-7');
+  await page.locator('.completion').getByRole('button', { name: 'Share' }).click();
+  await expect.poll(() => page.evaluate(() => (window as unknown as { sharedName?: string }).sharedName)).toBe(`sudoclue-${TODAY}-medium.png`);
+});

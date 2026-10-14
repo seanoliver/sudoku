@@ -1,6 +1,6 @@
 'use client';
 
-import { addTransitionType, startTransition, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore, ViewTransition, type KeyboardEvent } from 'react';
+import { addTransitionType, startTransition, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore, ViewTransition, type KeyboardEvent, type RefObject } from 'react';
 import { flushSync } from 'react-dom';
 import { createGame, restartGame, enter, toggleNotes, toggleExclusions, incorrectExclusions, batchHasMark, fillNotes, paintCells, clearColors, undo, redo, restore, isComplete, rejectEntry, SAVE_KEY, type CellColor, type GameState, type Rejection } from '@/lib/game';
 import { peers, getEntryDigits, completedUnits, celebrationLabel, type Difficulty, type Puzzle } from '@/lib/sudoku';
@@ -23,7 +23,11 @@ import { Clock } from './clock';
 import { clockKey, dailyGameKey, dailyId, dailyOf, dailySeed, dailyStreak, firstDailyLevel, readDailyGame, readDailyLevel, readDailySolves, recordDailySolve, serializeDailyLevel, serializeDailySolves, storesDaily, DAILY_KEY, DAILY_SOLVES_KEY, type DailySolve } from '@/lib/daily';
 import { restorePreferences, DEFAULT_PREFS, PREFS_KEY, type Theme, type Preferences } from '@/lib/preferences';
 import { dayKey, isNewBest, levelStats, readSolves, recordSolve, serializeSolves, SOLVES_KEY, type Solve } from '@/lib/solves';
-import { replayStats } from '@/lib/replay';
+import { replayStats, type Replay } from '@/lib/replay';
+import { ACCOMPLISHMENTS_KEY, earnAtSolve, earnedBy, EVIDENCE_KEY, isClean, isFirstAtLevel, noteEvidence, readAccomplishments, readEvidence, serializeAccomplishments, serializeEvidence, type Earned, type Evidence } from '@/lib/accomplishments';
+import { fillOrder } from '@/lib/solve-map';
+import { canvasBlob, drawShareImage, earnedText, paletteOf } from './share-image';
+import { shareFile } from './share-file';
 import { HISTORY_KEY, readHistory, recordCompleted, recordSeen, type PuzzleHistory } from '@/lib/history';
 import { applyHint, nextHint, type Hint } from '@/lib/hints';
 import { hintView, type HintLevel } from '@/lib/hint-view';
@@ -96,26 +100,50 @@ function readDailyHome(regular: GameState | null): DailyHome {
 }
 /** Bars filled up to the level, matching the header's difficulty mark. */
 const LevelBars = ({ level }: { level: Difficulty }) => <span className="level-mark" aria-hidden="true">{LEVELS.map((step, k) => <i key={step} className={k <= LEVELS.indexOf(level) ? 'active' : ''}/>)}</span>;
-type Finish = { id: string; seconds: number | null; best: number | null; recorded: boolean };
+type Finish = { id: string; seconds: number | null; best: number | null; recorded: boolean; earned: Earned | null };
 type Counts = { notes: number; fixes: number };
 const clockText = (seconds: number) => `${String(Math.floor(seconds / 60)).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`;
 const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
 const spokenTime = (seconds: number) => `${plural(Math.floor(seconds / 60), 'minute')} ${plural(seconds % 60, 'second')}`;
-const finishSummary = (level: Difficulty, seconds: number | null, newBest: boolean) =>
-  `Solved${seconds === null ? '' : ` in ${spokenTime(seconds)}`}, ${level}.${newBest ? ' New best time.' : ''}`;
-const Chip = ({ icon, text, spoken, best = false }: { icon: IconName; text: string; spoken: string; best?: boolean }) =>
-  <span className={`finish-chip ${best ? 'best' : ''}`}><Icon name={icon} size={14}/><span aria-hidden="true">{text}</span><span className="sr-only">{spoken}</span></span>;
-function FinishCard({ level, seconds, best, newBest, counts, onReplay, onPlayAgain }: { level: Difficulty; seconds: number | null; best: number | null; newBest: boolean; counts: Counts | null; onReplay?: () => void; onPlayAgain: () => void }) {
-  return <div className="completion">
-    <span className="sr-only finish-summary">{finishSummary(level, seconds, newBest)}</span>
+const EARNED_ICON: Record<Earned['kind'], IconName> = { streak: 'flame', first: 'flag', clean: 'gem' };
+const spokenEarned = (earned: Earned, level: Difficulty) => earned.kind === 'streak' ? `${earned.days}-day streak` : earned.kind === 'first' ? `First ${level} solve` : 'Clean solve';
+const finishSummary = (level: Difficulty, seconds: number | null, newBest: boolean, earned: Earned | null) =>
+  `Solved${seconds === null ? '' : ` in ${spokenTime(seconds)}`}, ${level}.${newBest ? ' New best time.' : ''}${earned ? ` ${spokenEarned(earned, level)}.` : ''}`;
+const Chip = ({ icon, text, spoken, tone }: { icon: IconName; text: string; spoken: string; tone?: 'best' | 'earned' }) =>
+  <span className={`finish-chip ${tone ?? ''}`}><Icon name={icon} size={14}/><span aria-hidden="true">{text}</span><span className="sr-only">{spoken}</span></span>;
+type ShareSource = { givens: readonly number[]; solution: readonly number[]; replay?: Replay; day: string | null; theme: Theme };
+// Drawn before the tap: Safari opens the share sheet only during the tap, and drawing inside it uses the tap up.
+function useShareImage(card: RefObject<HTMLDivElement | null>, { level, seconds, earned, source }: { level: Difficulty; seconds: number | null; earned: Earned | null; source: ShareSource }) {
+  const [file, setFile] = useState<File | null>(null);
+  const { givens, solution, replay, day, theme } = source;
+  useEffect(() => {
+    let live = true;
+    (async () => {
+      await document.fonts?.ready;
+      if (!live || !card.current) return;
+      const canvas = document.createElement('canvas');
+      drawShareImage(canvas, { level, order: fillOrder({ givens, solution, replay }), seconds, day, earned, palette: paletteOf(card.current) });
+      const blob = await canvasBlob(canvas);
+      if (live && blob) setFile(new File([blob], `sudoclue-${day ?? 'solve'}-${level}.png`, { type: 'image/png' }));
+    })().catch(() => { /* Sharing is optional; the button stays disabled. */ });
+    return () => { live = false; };
+  }, [card, level, seconds, earned, givens, solution, replay, day, theme]);
+  return file;
+}
+function FinishCard({ level, seconds, best, newBest, earned, counts, share, onReplay, onPlayAgain }: { level: Difficulty; seconds: number | null; best: number | null; newBest: boolean; earned: Earned | null; counts: Counts | null; share: ShareSource; onReplay?: () => void; onPlayAgain: () => void }) {
+  const card = useRef<HTMLDivElement>(null);
+  const file = useShareImage(card, { level, seconds, earned, source: share });
+  return <div ref={card} className={`completion level-${level}`}>
+    <span className="sr-only finish-summary">{finishSummary(level, seconds, newBest, earned)}</span>
     <div className="finish-head" aria-hidden="true">
       <span className="finish-check"><Icon name="check" size={22}/></span>
       {seconds !== null && <span className="finish-time">{clockText(seconds)}</span>}
       <span className="finish-level"><LevelBars level={level}/><span className="capitalize">{level}</span></span>
     </div>
-    {(counts || (seconds !== null && best !== null)) && <div className="finish-chips">
+    {(earned || counts || (seconds !== null && best !== null)) && <div className="finish-chips">
+      {earned && <Chip icon={EARNED_ICON[earned.kind]} text={earnedText(earned)} spoken={spokenEarned(earned, level)} tone="earned"/>}
       {seconds !== null && best !== null && (newBest
-        ? <Chip icon="sparkles" text="Best time" spoken="New best time" best/>
+        ? <Chip icon="sparkles" text="Best time" spoken="New best time" tone="best"/>
         : <Chip icon="clock" text={`Best ${clockText(best)}`} spoken={`Best time: ${spokenTime(best)}`}/>)}
       {counts && <>
         <Chip icon="pencil" text={String(counts.notes)} spoken={plural(counts.notes, 'note')}/>
@@ -125,6 +153,7 @@ function FinishCard({ level, seconds, best, newBest, counts, onReplay, onPlayAga
     <div className="finish-actions">
       {onReplay && <button className="secondary-button replay-button" onClick={onReplay}><Icon name="play" size={15}/>Replay</button>}
       <button className="primary-button" onClick={onPlayAgain}>Play again</button>
+      <button className="secondary-button share-button" aria-label="Share" disabled={!file} onClick={() => { if (file) shareFile(file).catch(() => { /* A failed share leaves the card as it was. */ }); }}><Icon name="share" size={20}/></button>
     </div>
   </div>;
 }
@@ -202,38 +231,66 @@ export default function SudokuGame() {
   const hintDisplay = activeHint ? hintView(activeHint.hint, activeHint.level) : null;
   const completedSource = complete ? game?.source : undefined;
   useEffect(() => { if (completedSource) updateHistory(history => recordCompleted(history, completedSource)); }, [completedSource]);
+  const noteGame = useCallback((id: string, flags: Partial<Omit<Evidence, 'fresh'>> & { fresh: boolean }) => {
+    if (id.startsWith('lesson-')) return;
+    try {
+      const log = readEvidence(localStorage.getItem(EVIDENCE_KEY));
+      const next = noteEvidence(log, id, flags);
+      if (next !== log) localStorage.setItem(EVIDENCE_KEY, serializeEvidence(next));
+    } catch { /* Without storage no solve is clean. */ }
+  }, []);
+  useEffect(() => {
+    if (!game || away || complete) return;
+    noteGame(game.id, { fresh: !game.history.length && game.values.every((value, i) => value === game.givens[i]),
+      fixed: game.values.some((value, i) => value && value !== game.solution[i]), blocked: preferences.blockIncorrectAnswers });
+  }, [game, away, complete, preferences.blockIncorrectAnswers, noteGame]);
   // A save that loads already finished was solved on an earlier day, so History doesn't record it as today's.
   const restoredSolved = useRef<string | null>(null);
   const solvedId = complete && !away ? game?.id : undefined;
   const solvedDifficulty = solvedId ? game?.difficulty : undefined;
   const solvedGivens = solvedId ? game?.givens.join('') : undefined;
+  const solvedSource = solvedId ? game?.source : undefined;
   // Read once per solve: the clock saves its final time when it stops, which happens before this effect runs, and
   // History must be read before this solve is added. Coming back to the same solve (after a lesson) keeps the result.
   useEffect(() => {
     if (!solvedId || !solvedDifficulty || !solvedGivens) return;
     storeSolved(solvedId);
     if (finishRef.current?.id === solvedId) return;
-    const result: Finish = { id: solvedId, seconds: null, best: null, recorded: false };
+    const result: Finish = { id: solvedId, seconds: null, best: null, recorded: false, earned: null };
     try {
       result.seconds = savedSeconds(localStorage.getItem(clockKey(solvedId)), solvedId);
       const solves = readSolves(localStorage.getItem(SOLVES_KEY));
       result.best = levelStats(solves)[solvedDifficulty].best;
-      if (result.seconds !== null && solvedId !== restoredSolved.current && !solves.some(s => s.id === solvedId)) {
-        localStorage.setItem(SOLVES_KEY, serializeSolves(recordSolve(solves, { id: solvedId, difficulty: solvedDifficulty, seconds: result.seconds, day: dayKey(new Date()), givens: solvedGivens })));
+      const today = dayKey(new Date());
+      const evidence = readEvidence(localStorage.getItem(EVIDENCE_KEY))[solvedId];
+      const clean = isClean(evidence);
+      const recording = result.seconds !== null && solvedId !== restoredSolved.current && !solves.some(s => s.id === solvedId);
+      if (recording) {
+        localStorage.setItem(SOLVES_KEY, serializeSolves(recordSolve(solves, { id: solvedId, difficulty: solvedDifficulty, seconds: result.seconds!, day: today, givens: solvedGivens, ...(clean ? { clean: true } as const : {}) })));
         result.recorded = true;
       }
       const daily = dailyOf(solvedId);
       // Counted for the day in its id, so a daily finished after midnight still counts for the day it was.
-      if (daily && solvedId !== restoredSolved.current) localStorage.setItem(DAILY_SOLVES_KEY, serializeDailySolves(recordDailySolve(readDailySolves(localStorage.getItem(DAILY_SOLVES_KEY)), { day: daily.day, level: daily.level, seconds: result.seconds ?? 0 })));
-    } catch { /* History, the time, and the best are optional. */ }
+      const dailySolves = daily && solvedId !== restoredSolved.current ? recordDailySolve(readDailySolves(localStorage.getItem(DAILY_SOLVES_KEY)), { day: daily.day, level: daily.level, seconds: result.seconds ?? 0 }) : null;
+      if (dailySolves) localStorage.setItem(DAILY_SOLVES_KEY, serializeDailySolves(dailySolves));
+      const accomplishments = readAccomplishments(localStorage.getItem(ACCOMPLISHMENTS_KEY));
+      if (recording) {
+        const firstAtLevel = isFirstAtLevel({ level: solvedDifficulty, solveId: solvedId, historyLevels: solves.map(s => s.difficulty), solvedIds: readSolved(localStorage.getItem(SOLVED_KEY)),
+          expertCompleted: readHistory(localStorage.getItem(HISTORY_KEY)).completed.filter(source => source !== solvedSource).length });
+        const { earned, shown } = earnAtSolve(accomplishments, { solveId: solvedId, day: today, level: solvedDifficulty, streak: dailySolves ? dailyStreak(dailySolves, today) : null, firstAtLevel, clean });
+        if (Object.keys(earned).length !== Object.keys(accomplishments).length) localStorage.setItem(ACCOMPLISHMENTS_KEY, serializeAccomplishments(earned));
+        result.earned = shown;
+      } else if (!evidence?.restarted) result.earned = earnedBy(accomplishments, { solveId: solvedId, clean: solves.find(s => s.id === solvedId)?.clean === true });
+    } catch { /* History, the time, the best, and accomplishments are optional. */ }
     finishRef.current = result;
     setFinish(result);
-  }, [solvedId, solvedDifficulty, solvedGivens]);
+  }, [solvedId, solvedDifficulty, solvedGivens, solvedSource]);
   const shownFinish = complete && finish?.id === game?.id ? finish : null;
   const finishSeconds = shownFinish && !preferences.hideTimer ? shownFinish.seconds : null;
   const newBest = Boolean(shownFinish?.recorded) && isNewBest(finishSeconds, shownFinish?.best ?? null);
   const finishReplay = shownFinish ? replays.find(r => r.id === shownFinish.id && r.steps.length > 0) : undefined;
   const finishCounts = useMemo(() => finishReplay && game ? replayStats(finishReplay, game.solution) : null, [finishReplay, game]);
+  const finishShare = useMemo<ShareSource | null>(() => shownFinish && game ? { givens: game.givens, solution: game.solution, replay: finishReplay, day: dailyOf(game.id)?.day ?? null, theme: preferences.theme } : null, [shownFinish, game, finishReplay, preferences.theme]);
   // The cell the last selection tick was for, so repeated pointer samples on one cell stay silent.
   const lastTicked = useRef(0);
   useEffect(() => { lastTicked.current = selected; }, [selected]);
@@ -433,6 +490,7 @@ export default function SudokuGame() {
   const focusSelectedCell = () => board.current?.querySelector<HTMLButtonElement>(`[data-index="${selected}"]`)?.focus();
   const restartPuzzle = () => {
     if (!game || busy) return;
+    noteGame(game.id, { fresh: false, restarted: true });
     const restarted = restartGame(game);
     replayStore.record(restarted.id, restarted, { restart: true });
     restoredSolved.current = null;
@@ -485,12 +543,14 @@ export default function SudokuGame() {
     if (!game || paused || busy || sheet || complete) return;
     resetSelection();
     if (!activeHint) { setHintState({ game, level: 1, hint: nextHint(game), line: 0 }); return; }
-    if (hintDisplay && activeHint.level < hintDisplay.levels) setHintState({ ...activeHint, level: (activeHint.level + 1) as HintLevel, line: 0 });
+    // Naming the technique keeps a solve clean; showing where to look, or more, does not.
+    if (hintDisplay && activeHint.level < hintDisplay.levels) { noteGame(game.id, { fresh: false, assisted: true }); setHintState({ ...activeHint, level: (activeHint.level + 1) as HintLevel, line: 0 }); }
     else if (walkthrough && activeHint.line < walkthrough.length - 1) stepWalkthrough(activeHint.line + 1);
   };
   const applyActiveHint = () => {
     if (!game || !activeHint) return;
     const { hint } = activeHint;
+    noteGame(game.id, { fresh: false, assisted: true });
     const next = hint.kind === 'step' ? applyHint(game, hint.step)
       : hint.kind === 'mistake' ? enter(game, hint.digit ? { index: hint.cell, value: hint.digit, exclude: true } : { index: hint.cell, value: 0 }) : game;
     setHintState(null); setBlockedEntry(null); resetSelection();
@@ -963,13 +1023,13 @@ export default function SudokuGame() {
           {busy ? <><span className="spinner"/><h2>Getting your puzzle ready</h2></> : paused ? <><span className="pause-emblem"><Icon name="pause" size={28}/></span><h2>Take a break</h2><p>Your puzzle will be right here.</p><button className="primary-button" onClick={() => setPaused(false)}><Icon name="play" size={17}/>Resume puzzle</button></> : <><h2>Let’s try that again</h2><button className="primary-button" onClick={() => requestPuzzle(difficulty)}>Create puzzle</button></>}
         </div>}
       </div></ViewTransition>
-      <p className="sr-only" role="status">{shownFinish && game ? finishSummary(game.difficulty, finishSeconds, newBest) : celebrating?.label ?? ''}</p>
+      <p className="sr-only" role="status">{shownFinish && game ? finishSummary(game.difficulty, finishSeconds, newBest, shownFinish.earned) : celebrating?.label ?? ''}</p>
 
       </div>
 
       <div className="progress-line" role="progressbar" aria-label="Cells filled" aria-valuemin={0} aria-valuemax={total} aria-valuenow={filled}><span style={{ transform: `scaleX(${filled/total})` }}/></div>
       <div className="play-side">
-      {complete ? shownFinish && game && <FinishCard level={game.difficulty} seconds={finishSeconds} best={finishSeconds === null ? null : shownFinish.best} newBest={newBest} counts={finishCounts} onReplay={finishReplay ? openReplay : undefined} onPlayAgain={() => openSheet('new')}/> : <>
+      {complete ? shownFinish && game && finishShare && <FinishCard level={game.difficulty} seconds={finishSeconds} best={finishSeconds === null ? null : shownFinish.best} newBest={newBest} earned={shownFinish.earned} counts={finishCounts} share={finishShare} onReplay={finishReplay ? openReplay : undefined} onPlayAgain={() => openSheet('new')}/> : <>
         {/* A lesson action reveals the keypad under the finger, so a quick second tap must not land on it. */}
         <div className="controls-area" onMouseDownCapture={event => { if (lessonJustActed(event.timeStamp)) event.preventDefault(); }} onClickCapture={event => { if (lessonJustActed(event.timeStamp)) { event.preventDefault(); event.stopPropagation(); } }}>
           {lesson && lessonState && lesson.phase !== 'done' && <LessonCoach name={lessonName(lesson.id)} state={lessonState} action={lessonAction && { ...lessonAction, onClick: onLessonAction }}
