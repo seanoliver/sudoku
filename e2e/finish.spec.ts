@@ -47,7 +47,7 @@ test('beating the earlier best shows the badge, and a first solve shows no best'
   const first = await context.newPage();
   await finish(first);
   await expect(first.locator('.finish-time')).toHaveText(solveTime);
-  await expect(chips(first)).toHaveCount(2);
+  await expect(chips(first)).toHaveText(['First solveFirst medium solve', '00 notes', '00 fixes']);
 });
 
 test('a note and a fixed number are counted on the card', async ({ page }) => {
@@ -65,7 +65,7 @@ test('a note and a fixed number are counted on the card', async ({ page }) => {
   await page.keyboard.press('Backspace');
   await page.keyboard.press(String(game.solution[second]));
   for (const cell of [first, third, ...rest]) await enter(cell, game.solution[cell]);
-  await expect(chips(page)).toHaveText(['22 notes', '11 fix']);
+  await expect(chips(page)).toHaveText(['First solveFirst medium solve', '22 notes', '11 fix']);
 });
 
 test('solving again after Restart is never a new best, since History keeps the first solve', async ({ page }) => {
@@ -119,7 +119,7 @@ test('finishing with a hint’s Apply shows the card and announces the summary',
     if (await action.count()) await action.click();
     await expect(page.locator('.completion')).toBeVisible({ timeout: 500 });
   }).toPass();
-  await expect(announcement(page)).toHaveText(/^Solved in \d+ minutes? \d+ seconds?, medium\.$/);
+  await expect(announcement(page)).toHaveText(/^Solved in \d+ minutes? \d+ seconds?, medium\. First medium solve\.$/);
 });
 
 test('on the narrowest screen, an hour-long Expert solve fits inside the card', async ({ page }) => {
@@ -149,4 +149,57 @@ test('pausing hides the focus strip', async ({ page }) => {
   await expect(page.locator('.digit-focus-bar')).toBeHidden();
   await page.getByRole('button', { name: 'Resume puzzle' }).click();
   await expect(page.locator('.digit-focus-bar')).toBeVisible();
+});
+
+/** Plays `game` from the start, entering every answer. */
+async function solveFromStart(page: Page, { solves = [] as Solve[], extra = {} as Record<string, string> } = {}) {
+  await page.addInitScript(values => { if (!sessionStorage.getItem('seeded')) { for (const [key, value] of Object.entries(values)) localStorage.setItem(key, value); sessionStorage.setItem('seeded', '1'); } },
+    { [SAVE_KEY]: JSON.stringify(game), [PREFS_KEY]: JSON.stringify(prefs), [SOLVES_KEY]: JSON.stringify({ solves }), ...extra });
+  await page.goto('/');
+  await page.getByRole('button', { name: /^Continue/ }).click();
+  for (const cell of game.givens.flatMap((v, i) => v ? [] : [i])) {
+    await page.locator(`.board [data-index="${cell}"]`).click();
+    await page.keyboard.press(String(game.solution[cell]));
+  }
+  await expect(page.locator('.completion')).toBeVisible();
+}
+
+test('a solve with no fix and no hint past the technique is clean, and History keeps it', async ({ page }) => {
+  await solveFromStart(page, { solves: [earlier(900)] });
+  await expect(page.locator('.finish-chip.earned')).toHaveText('CleanClean solve');
+  await expect(status(page)).toContainText('Clean solve.');
+  expect(await page.evaluate(key => JSON.parse(localStorage.getItem(key)!).solves[0].clean, SOLVES_KEY)).toBe(true);
+});
+
+test('a game already in progress, or played with Block incorrect answers, is never clean', async ({ page, context }) => {
+  await finish(page, { solves: [earlier(900)] });
+  await expect(page.locator('.finish-chip.earned')).toHaveCount(0);
+  await page.close();
+  const blocked = await context.newPage();
+  await solveFromStart(blocked, { solves: [earlier(900)], extra: { [PREFS_KEY]: JSON.stringify({ ...prefs, blockIncorrectAnswers: true }) } });
+  await expect(blocked.locator('.finish-chip.earned')).toHaveCount(0);
+});
+
+test('Share sends a square PNG of the solve map through the share sheet', async ({ page }) => {
+  await page.addInitScript(() => {
+    const shared: { name: string; type: string; width: number; height: number }[] = [];
+    Object.assign(window, { shared });
+    navigator.canShare = () => true;
+    navigator.share = async data => {
+      for (const file of data?.files ?? []) { const image = await createImageBitmap(file); shared.push({ name: file.name, type: file.type, width: image.width, height: image.height }); }
+    };
+  });
+  await finish(page, { solves: [earlier(900)] });
+  const share = page.locator('.completion').getByRole('button', { name: 'Share' });
+  await expect(share).toBeEnabled();
+  await share.click();
+  await expect.poll(() => page.evaluate(() => (window as unknown as { shared: unknown[] }).shared)).toEqual([{ name: 'sudoclue-solve-medium.png', type: 'image/png', width: 1080, height: 1080 }]);
+});
+
+test('without file sharing, Share saves the image instead', async ({ page }) => {
+  await page.addInitScript(() => { Object.defineProperty(navigator, 'canShare', { value: undefined }); });
+  await finish(page, { solves: [earlier(900)] });
+  const download = page.waitForEvent('download');
+  await page.locator('.completion').getByRole('button', { name: 'Share' }).click();
+  expect((await download).suggestedFilename()).toBe('sudoclue-solve-medium.png');
 });

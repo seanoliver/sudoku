@@ -1,7 +1,7 @@
 import type { Difficulty } from './sudoku.ts';
 
-/** One finished puzzle, kept for History. `givens` is the starting board as 81 digits, 0 for open cells. */
-export type Solve = { id: string; difficulty: Difficulty; seconds: number; day: string; givens: string };
+/** One finished puzzle, kept for History. `givens` is the starting board as 81 digits, 0 for open cells. `clean` marks a solve with no assisted hint and no fix. */
+export type Solve = { id: string; difficulty: Difficulty; seconds: number; day: string; givens: string; clean?: true };
 export const SOLVES_KEY = 'sudoku.solves.v1';
 export const SOLVES_CAP = 500;
 const LEVELS: readonly Difficulty[] = ['easy', 'medium', 'hard', 'expert'];
@@ -19,7 +19,7 @@ const isSolve = (value: unknown): value is Solve => {
 export function readSolves(raw: string | null): Solve[] {
   try {
     const solves = JSON.parse(raw ?? 'null')?.solves;
-    return Array.isArray(solves) ? solves.filter(isSolve).slice(0, SOLVES_CAP).map(({ id, difficulty, seconds, day, givens }) => ({ id, difficulty, seconds, day, givens })) : [];
+    return Array.isArray(solves) ? solves.filter(isSolve).slice(0, SOLVES_CAP).map(({ id, difficulty, seconds, day, givens, clean }) => ({ id, difficulty, seconds, day, givens, ...(clean === true ? { clean } : {}) })) : [];
   } catch { return []; }
 }
 export const serializeSolves = (solves: readonly Solve[]) => JSON.stringify({ solves });

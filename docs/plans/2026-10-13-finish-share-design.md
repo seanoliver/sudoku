@@ -11,11 +11,13 @@ R7 (accomplishments and sharing), slice 1. On October 13, 2026, Sean chose direc
 - **No text share.** Sean found the Wordle-style emoji grid hard to read. A one-line caption can be added later if a tappable link is wanted.
 - **Not in slice 1:** a hint limit per puzzle, direct Instagram Stories, and an accomplishments screen.
 
-## Open before building
+## Settled while building slice 1
 
-- Whether `navigator.share({ files })` works in the iOS app's web view, or the app needs `@capacitor/share`. Test on a device first.
-- Drawing the image before the tap, so Safari still allows the share.
-- The fallback when file sharing is unavailable, for example in desktop Firefox: save or copy the image.
-- Whether level 1 of a mistake hint keeps a solve clean (investigation, decision 1).
-- With Hide timer on, the image leaves out the time.
-- One streak mark: Home and the daily show the streak with sparkles, and this chip uses a flame. Pick one. The flame, flag, gem, and Share icons are new.
+- **iOS share path:** the app writes the PNG to its cache folder with `@capacitor/filesystem` and opens the native sheet with `@capacitor/share`, which documents file sharing on iOS. Whether `navigator.share({ files })` works in the web view was not needed. Still to confirm on a device: the sheet opens and offers Messages and Instagram.
+- **Drawing before the tap:** the finish card draws the image as soon as it shows, and again when the theme changes. Share is disabled until the file exists, so Safari's share call runs inside the tap.
+- **Fallback:** a browser that cannot share files downloads the image.
+- **Mistake hints:** level 1 of a mistake hint keeps a solve clean, like level 1 of a technique hint. A wrong number on the board marks the solve as fixed in any case.
+- **Hide timer:** the image leaves out the time, and the level moves to the center.
+- **Streak mark:** the chip and image use the flame; Home and the daily keep sparkles for now. Unifying them is still open.
+- **Theme:** the image follows the theme the player sees, light or dark.
+- **Older games:** a game already in progress when this shipped cannot be clean, since what happened before is unknown. A first solve also checks the finished-game ids and Expert bank completions that predate History, so long-time players never see a false one.
