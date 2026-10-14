@@ -1,9 +1,6 @@
 import type { Replay } from './replay.ts';
 
-/**
- * How far through the solve each cell got its final number, from 0 (first) to 1 (last); null for a starting number.
- * Cells are ranked by the step that last changed them to their answer. Without a usable replay every open cell is 0.5.
- */
+/** 0 for the first open cell to get its answer, 1 for the last, null for a starting number. 0.5 for all without a usable replay. */
 export function fillOrder({ givens, solution, replay }: { givens: readonly number[]; solution: readonly number[]; replay?: Replay }): (number | null)[] {
   // NaN: never given its answer. A cell already right when the recording began counts as filled before the first step.
   const filledAt: number[] = Array(81).fill(NaN);

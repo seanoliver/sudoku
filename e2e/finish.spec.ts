@@ -151,7 +151,6 @@ test('pausing hides the focus strip', async ({ page }) => {
   await expect(page.locator('.digit-focus-bar')).toBeVisible();
 });
 
-/** Plays `game` from the start, entering every answer. */
 async function solveFromStart(page: Page, { solves = [] as Solve[], extra = {} as Record<string, string> } = {}) {
   await page.addInitScript(values => { if (!sessionStorage.getItem('seeded')) { for (const [key, value] of Object.entries(values)) localStorage.setItem(key, value); sessionStorage.setItem('seeded', '1'); } },
     { [SAVE_KEY]: JSON.stringify(game), [PREFS_KEY]: JSON.stringify(prefs), [SOLVES_KEY]: JSON.stringify({ solves }), ...extra });

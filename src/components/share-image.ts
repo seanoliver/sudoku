@@ -1,19 +1,17 @@
 import type { Earned } from '@/lib/accomplishments';
 import type { Difficulty } from '@/lib/sudoku';
 
-/** The square solve map a player shares: 1080 px, drawn at 3x a 360 px layout. */
 export const SHARE_SIZE = 1080;
 const S = SHARE_SIZE / 360;
 const LEVELS: readonly Difficulty[] = ['easy', 'medium', 'hard', 'expert'];
 const FONT = "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
-// The icons' own 24-unit paths, so the image's marks match the finish card's.
+// Copies of the flame, flag, and gem paths in icons.tsx. Change both together.
 const ICON_PATHS: Record<Earned['kind'], string[]> = {
   streak: ['M12 2.5c.6 3.6 6.5 6 6.5 12a6.5 6.5 0 0 1-13 0c0-3 1.6-5.2 3.2-6.3.1 2.2.9 3.5 2.1 4.2C10.6 9 11.2 5.6 12 2.5Z', 'M12 21a2.6 2.6 0 0 1-2.6-2.6c0-1.6 1.3-2.6 2.6-4.4 1.3 1.8 2.6 2.8 2.6 4.4A2.6 2.6 0 0 1 12 21Z'],
   first: ['M5 21V4', 'M5 4h11l-2 4 2 4H5'],
   clean: ['M7 4h10l4 5-9 11L3 9l4-5Z', 'M3 9h18M9.5 4 8 9l4 11 4-11-1.5-5'],
 };
 
-/** The colors the image takes from the page, so it matches the theme the player sees. */
 export type SharePalette = { level: string; levelSoft: string; canvas: string; surface: string; ink: string; secondary: string; line: string; boxLine: string };
 export function paletteOf(element: Element): SharePalette {
   const style = getComputedStyle(element);
@@ -27,7 +25,6 @@ const mix = (a: string, b: string, t: number) => { const x = rgb(a), y = rgb(b);
 const levelName = (level: Difficulty) => level[0].toUpperCase() + level.slice(1);
 const shortTime = (seconds: number) => `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`;
 export const earnedText = (earned: Earned) => earned.kind === 'streak' ? `${earned.days} days` : earned.kind === 'first' ? 'First solve' : 'Clean';
-/** "Tuesday, October 13" for a day key. */
 export const longDay = (day: string) => { const [y, m, d] = day.split('-').map(Number); return new Date(y, m - 1, d).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }); };
 
 function roundRect(g: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
@@ -39,7 +36,6 @@ function drawIcon(g: CanvasRenderingContext2D, kind: Earned['kind'], x: number, 
   for (const d of ICON_PATHS[kind]) g.stroke(new Path2D(d));
   g.restore();
 }
-/** The app mark: a midnight tile with a 3 x 3 grid and a lit center cell. */
 function drawMark(g: CanvasRenderingContext2D, x: number, y: number, size: number) {
   const fill = g.createLinearGradient(x, y, x + size * .4, y + size);
   fill.addColorStop(0, '#3b3f8f'); fill.addColorStop(.6, '#232663'); fill.addColorStop(1, '#15173d');
@@ -51,10 +47,6 @@ function drawMark(g: CanvasRenderingContext2D, x: number, y: number, size: numbe
   }
 }
 
-/**
- * Draws the solve map: every open cell shaded by when it was filled (paler first, deeper last), starting numbers as
- * plain dots, no digits. The time is left out when `seconds` is null (Hide timer), and the date shows only for a daily.
- */
 export function drawShareImage(canvas: HTMLCanvasElement, { level, order, seconds, day, earned, palette: p }: { level: Difficulty; order: readonly (number | null)[]; seconds: number | null; day: string | null; earned: Earned | null; palette: SharePalette }) {
   canvas.width = canvas.height = SHARE_SIZE;
   const g = canvas.getContext('2d');
@@ -64,7 +56,6 @@ export function drawShareImage(canvas: HTMLCanvasElement, { level, order, second
   g.fillStyle = glow; g.fillRect(0, 0, SHARE_SIZE, SHARE_SIZE);
   g.textBaseline = 'middle';
 
-  // Brand, and the accomplishment on the right.
   const top = 26 * S, left = 26 * S, right = SHARE_SIZE - 26 * S;
   drawMark(g, left, top, 29 * S);
   g.fillStyle = p.ink; g.font = `650 ${17 * S}px ${FONT}`; g.textAlign = 'left';
@@ -77,7 +68,6 @@ export function drawShareImage(canvas: HTMLCanvasElement, { level, order, second
     g.fillStyle = p.level; g.fillText(text, right - width + 30 * S, top + h / 2);
   }
 
-  // The map: nine boxes, with a wider gap between boxes than between cells.
   const gap = 3 * S, boxGap = 7 * S, map = 200 * S;
   const cell = (map - 6 * gap - 2 * boxGap) / 9;
   const mapTop = 80 * S, mapLeft = (SHARE_SIZE - map) / 2;
@@ -91,7 +81,6 @@ export function drawShareImage(canvas: HTMLCanvasElement, { level, order, second
     } else { g.fillStyle = mix(p.level, p.canvas, .22 + .78 * rank); g.fill(); }
   });
 
-  // Date for a daily, then time and level, then the address.
   if (day) {
     g.fillStyle = p.secondary; g.font = `650 ${14 * S}px ${FONT}`; g.textAlign = 'left';
     g.fillText(`Daily · ${longDay(day)}`, left, 63 * S);
@@ -102,7 +91,7 @@ export function drawShareImage(canvas: HTMLCanvasElement, { level, order, second
   const name = levelName(level), nameWidth = g.measureText(name).width;
   const tilesRight = seconds === null ? SHARE_SIZE / 2 + (nameWidth + 34 * S) / 2 : right;
   g.fillText(name, tilesRight, foot);
-  // The level tiles: a 3 x 3 grid with 2, 4, 6, or 8 lit in the same order as Home's.
+  // The same lighting order as Home's level tiles. Change both together.
   const lit = 2 + LEVELS.indexOf(level) * 2, tile = 8 * S, tileGap = 2 * S;
   const tilesLeft = tilesRight - nameWidth - 8 * S - (3 * tile + 2 * tileGap);
   [0, 4, 8, 2, 6, 1, 3, 5, 7].forEach((k, n) => {

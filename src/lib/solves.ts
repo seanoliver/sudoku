@@ -1,6 +1,6 @@
 import type { Difficulty } from './sudoku.ts';
 
-/** One finished puzzle, kept for History. `givens` is the starting board as 81 digits, 0 for open cells. `clean` marks a solve with no assisted hint and no fix. */
+/** One finished puzzle, kept for History. `givens` is the starting board as 81 digits, 0 for open cells. */
 export type Solve = { id: string; difficulty: Difficulty; seconds: number; day: string; givens: string; clean?: true };
 export const SOLVES_KEY = 'sudoku.solves.v1';
 export const SOLVES_CAP = 500;

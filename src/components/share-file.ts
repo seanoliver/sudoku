@@ -1,4 +1,3 @@
-/** How a share ended: sent through the share sheet, saved because this browser cannot share files, or dismissed. */
 export type ShareOutcome = 'shared' | 'saved' | 'cancelled';
 
 const ios = process.env.NEXT_PUBLIC_BUILD_TARGET === 'ios';
@@ -12,11 +11,6 @@ const base64 = (blob: Blob) => new Promise<string>((resolve, reject) => {
 });
 const isCancel = (error: unknown) => error instanceof DOMException ? error.name === 'AbortError' : /cancel/i.test(String((error as Error)?.message ?? error));
 
-/**
- * Sends an image through the share sheet. The iOS app writes it to its cache folder and uses the native sheet. The
- * website uses the Web Share API, which must run during the tap, so the file has to exist before it; a browser that
- * cannot share files saves the image instead.
- */
 export async function shareFile(file: File): Promise<ShareOutcome> {
   try {
     if (nativeShare) {
@@ -25,6 +19,7 @@ export async function shareFile(file: File): Promise<ShareOutcome> {
       await Share.share({ files: [uri] });
       return 'shared';
     }
+    // No `await` before `navigator.share`: Safari rejects a share that starts after the tap.
     if (navigator.canShare?.({ files: [file] })) { await navigator.share({ files: [file] }); return 'shared'; }
   } catch (error) {
     if (isCancel(error)) return 'cancelled';

@@ -112,10 +112,7 @@ const finishSummary = (level: Difficulty, seconds: number | null, newBest: boole
 const Chip = ({ icon, text, spoken, tone }: { icon: IconName; text: string; spoken: string; tone?: 'best' | 'earned' }) =>
   <span className={`finish-chip ${tone ?? ''}`}><Icon name={icon} size={14}/><span aria-hidden="true">{text}</span><span className="sr-only">{spoken}</span></span>;
 type ShareSource = { givens: readonly number[]; solution: readonly number[]; replay?: Replay; day: string | null; theme: Theme };
-/**
- * Draws the share image as soon as the card shows, because Safari only opens the share sheet during the tap itself,
- * and drawing then would use up the tap. It is drawn again when the theme changes, so it matches what the player sees.
- */
+// Drawn before the tap: Safari opens the share sheet only during the tap, and drawing inside it uses the tap up.
 function useShareImage(card: RefObject<HTMLDivElement | null>, { level, seconds, earned, source }: { level: Difficulty; seconds: number | null; earned: Earned | null; source: ShareSource }) {
   const [file, setFile] = useState<File | null>(null);
   const { givens, solution, replay, day, theme } = source;
@@ -234,7 +231,6 @@ export default function SudokuGame() {
   const hintDisplay = activeHint ? hintView(activeHint.hint, activeHint.level) : null;
   const completedSource = complete ? game?.source : undefined;
   useEffect(() => { if (completedSource) updateHistory(history => recordCompleted(history, completedSource)); }, [completedSource]);
-  // What decides a clean solve is written as it happens, so undo and restart can never lower it. Lessons earn nothing.
   const noteGame = useCallback((id: string, flags: Partial<Omit<Evidence, 'fresh'>> & { fresh: boolean }) => {
     if (id.startsWith('lesson-')) return;
     try {
