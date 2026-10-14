@@ -243,6 +243,17 @@ test('cancelling the share sheet saves nothing', async ({ page }) => {
   expect(downloaded).toBe(false);
 });
 
+test('a second tap while the share sheet is open saves nothing', async ({ page }) => {
+  await page.addInitScript(() => { navigator.canShare = () => true; navigator.share = async () => { Object.assign(window, { shareCalls: ((window as unknown as { shareCalls?: number }).shareCalls ?? 0) + 1 }); throw new DOMException('An earlier share has not yet completed', 'InvalidStateError'); }; });
+  await finish(page, { solves: [earlier(900)] });
+  let downloaded = false;
+  page.on('download', () => { downloaded = true; });
+  await page.locator('.completion').getByRole('button', { name: 'Share' }).click();
+  await expect.poll(() => page.evaluate(() => (window as unknown as { shareCalls?: number }).shareCalls)).toBe(1);
+  await page.waitForTimeout(300);
+  expect(downloaded).toBe(false);
+});
+
 test('a level solved before History existed is not a first solve', async ({ page }) => {
   await page.addInitScript(([key, value]) => { if (!sessionStorage.getItem('seeded')) localStorage.setItem(key, value); }, [SOLVED_KEY, JSON.stringify({ ids: ['1-medium'] })]);
   await finish(page);

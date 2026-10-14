@@ -27,6 +27,8 @@ test('evidence keeps the newest games and reads back only valid records', () => 
   for (let k = 0; k < EVIDENCE_GAMES; k++) log = noteEvidence(noteEvidence(log, `n${k}`, { fresh: true }), 'g10', { fresh: true });
   assert.equal((log as Record<string, { fixed: boolean }>).g10?.fixed, true, 'a game still being played is never evicted');
   assert.deepEqual(readEvidence(serializeEvidence(log)), log);
+  const many = Object.fromEntries(Array.from({ length: EVIDENCE_GAMES + 5 }, (_, k) => [`m${k}`, { fresh: true, assisted: false, fixed: false, blocked: false, restarted: false }]));
+  assert.deepEqual(Object.keys(readEvidence(serializeEvidence(many))), Object.keys(many).slice(-EVIDENCE_GAMES));
   assert.deepEqual(readEvidence('nope'), {});
   assert.deepEqual(readEvidence(JSON.stringify({ games: { a: { fresh: 'yes' } } })), {});
 });
