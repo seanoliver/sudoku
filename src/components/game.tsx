@@ -654,7 +654,6 @@ export default function SudokuGame() {
   /** Home's numbers come from storage, read when Home is shown rather than during render. */
   function refreshHome(current: GameState | null) {
     const regular = current && !dailyOf(current.id) ? current : lastRegular.current ?? storedRegular();
-    // Written by the old hold-to-focus hint; removing it also deletes the iOS copy.
     try { localStorage.removeItem('sudoku.focus-hold-learned.v1'); } catch { /* Nothing reads it. */ }
     try { setHomeData({ seconds: regular ? savedSeconds(localStorage.getItem(clockKey(regular.id)), regular.id) : null, regular, daily: readDailyHome(regular), learned: readLearned(localStorage.getItem(LEARNED_KEY)), solved: solvedCount(readSolved(localStorage.getItem(SOLVED_KEY)), readHistory(localStorage.getItem(HISTORY_KEY)).completed), greeting: greeting(new Date().getHours()) }); }
     catch { setHomeData(data => ({ ...data, regular, daily: readDailyHome(regular) })); }
