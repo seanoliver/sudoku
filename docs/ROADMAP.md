@@ -474,6 +474,14 @@ Captured from Sean on September 24. Long-term scope, modeled on the way Good Sud
 - **Output:** Three rendered directions and a recommendation, before any build.
 - **Status:** On October 14 Sean chose direction A, lit key ([design](plans/2026-10-14-digit-focus-design.md)): selecting a filled cell or placing a number focuses it, the focused key is solid blue, and the focus bar is gone. Includes R20.
 
+### R23. Bold notes
+
+- **Idea:** Another way to mark notes: bold a note to give it special emphasis, such as the two cells of a pair or the candidates a deduction depends on. Sean asked for it on October 14.
+- **Current behavior:** A note looks one of three ways: plain, excluded (faded red, from Exclude mode), or the focused number's blue chip (R22). Color mode (R14) marks whole cells, not single notes.
+- **Research:** Decide how a player bolds a note (a fifth mode beside Numbers, Notes, Exclude and Color, a gesture on an existing note, or an option inside Notes mode), and how a bold note reads next to blue focused chips and red exclusions in both themes. Decide whether bold survives Fill notes, undo, batch selections (R19), and saved games, and whether hints ignore it.
+- **Output:** Three rendered directions and a recommendation, before any build.
+- **Status:** Not started.
+
 ## Very low priority: desktop experience
 
 **Player benefit:** Make desktop feel intentionally designed for a larger screen, with comfortable mouse and keyboard play.
