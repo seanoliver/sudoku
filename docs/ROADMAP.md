@@ -149,13 +149,15 @@ Captured from Sean's September 20 feedback and the [September 21 playtest](playt
 
 ## September 21 additions
 
-Source: [original playtest notes and coverage](playtests/2026-09-21.md). Status: number-row focus, incorrect-entry feedback and faded red exclusions have shipped (see each item). Default number focus and sole-candidate autofill are still pending design. The configurable number picker has shipped and is tracked in the existing section above.
+Source: [original playtest notes and coverage](playtests/2026-09-21.md). Status: number-row focus, incorrect-entry feedback and faded red exclusions have shipped (see each item). Default number focus shipped with R22. Sole-candidate autofill is still pending design. The configurable number picker has shipped and is tracked in the existing section above.
 
 ### Default number focus
 
+**Status:** Shipped with R22 in [PR #105](https://github.com/seanoliver/sudoku/pull/105): selecting a filled cell or placing a number focuses it.
+
 - Make number focus the default when selecting a number, without requiring the separate focus action.
 - Define which selections activate focus, how it clears, and how it interacts with selecting empty cells and entering values. Preserve explicit entry and annotation behavior.
-- This extends shipped digit focus; the default selection behavior remains new work.
+- This extended the earlier digit focus.
 
 **Completion criteria:** Selecting a number activates a visible focus state, and changing or clearing focus works consistently with Smart highlighting, note/exclusion modes, touch and keyboard.
 
@@ -455,9 +457,9 @@ Captured from Sean on September 24. Long-term scope, modeled on the way Good Sud
 ### R20. Bold a focused digit's notes
 
 - **Idea:** When a digit is focused, every note for that digit stands out, so fish patterns such as X-wing and swordfish are easy to see. Sean asked for it on October 13.
-- **Current behavior:** digit focus (the focus button or holding a filled cell) already gives that digit's notes a blue chip at weight 750 (`src/components/cell-notes.tsx`). Selecting a filled cell highlights the matching placed digits; with Smart highlighting on, it also shades the empty cells where that digit is still allowed, from computed candidates rather than the player's notes. Neither marks the notes.
+- **Before R22:** digit focus (the focus button or holding a filled cell) gave that digit's notes a blue chip at weight 750 (`src/components/cell-notes.tsx`). Selecting a filled cell without focus highlighted the matching placed digits but did not mark the notes.
 - **Questions for the design:** whether selecting a filled cell should also mark the notes, and whether today's chip is strong enough to read a swordfish across the board.
-- **Status:** Built with R22: a focused number's notes are a solid blue chip.
+- **Status:** Shipped with R22 in [PR #105](https://github.com/seanoliver/sudoku/pull/105): a focused number's notes are a solid blue chip.
 
 ### R21. Hint limits
 
@@ -469,10 +471,18 @@ Captured from Sean on September 24. Long-term scope, modeled on the way Good Sud
 ### R22. Rethink digit focus
 
 - **Idea:** Focus is always on whenever a number is selected, and the focused number is much more obvious. Today focus is an extra step (the focus bar's "Focus on its number", holding a filled cell, or a number key with a filled cell selected), and it is hard to tell whether it is on. Sean asked for it on October 13.
-- **Current behavior:** `focusedDigit` in `src/components/game.tsx` holds the focused number until Clear focus, a new puzzle, or a reload. The focus bar above the board shows it, matching numbers and their notes are highlighted, and selecting a filled cell without focus highlights its number only while that cell is selected.
+- **Before R22:** `focusedDigit` in `src/components/game.tsx` held the focused number until Clear focus, a new puzzle, or a reload. The focus bar above the board showed it, and selecting a filled cell without focus highlighted its number only while that cell was selected.
 - **Research:** Define "a number is selected" (a filled cell, a number key, the last number entered) and when focus ends, so it never sticks on a number the player has moved past. Find a cue for the focused number that reads at a glance without text, on the board and on the keypad, in both themes. Decide what happens to the focus bar, Clear focus, and the hold gesture, and how this works with Smart highlighting, Filter number keys, Notes and Exclude, batch selections (R19), and hints. Fold in R20, a focused digit's notes standing out.
 - **Output:** Three rendered directions and a recommendation, before any build.
-- **Status:** On October 14 Sean chose direction A, lit key ([design](plans/2026-10-14-digit-focus-design.md)): selecting a filled cell or placing a number focuses it, the focused key is solid blue, and the focus bar is gone. Includes R20.
+- **Status:** Shipped in [PR #105](https://github.com/seanoliver/sudoku/pull/105), direction A, lit key ([design](plans/2026-10-14-digit-focus-design.md)): selecting a filled cell or placing a number focuses it, the focused key is solid blue, and the focus bar is gone. Includes R20. Follow-ups: [#106](https://github.com/seanoliver/sudoku/issues/106).
+
+### R23. Bold notes
+
+- **Idea:** Another way to mark notes: bold a note to give it special emphasis, such as the two cells of a pair or the candidates a deduction depends on. Sean asked for it on October 14.
+- **Current behavior:** A note looks one of four ways: plain, generated by Fill notes (blue text), excluded (faded red, from Exclude mode), or the focused number's blue chip (R22). Color mode (R14) marks whole cells, not single notes.
+- **Research:** Decide how a player bolds a note (a fifth mode beside Numbers, Notes, Exclude and Color, a gesture on an existing note, or an option inside Notes mode), and how a bold note reads next to blue focused chips and red exclusions in both themes. Decide whether bold survives Fill notes, undo, batch selections (R19), and saved games, and whether hints ignore it.
+- **Output:** Three rendered directions and a recommendation, before any build.
+- **Status:** Not started.
 
 ## Very low priority: desktop experience
 
@@ -503,4 +513,4 @@ This roadmap keeps automatic bookkeeping limited to explicit actions and existin
 
 ## Delivery discipline
 
-Each item's Status line records what has shipped. Open follow-ups include temporary note preview, default number focus, and optional sole-candidate autofill. Open research spikes (R5–R7, R9, R12, R16–R18, R21) must produce reviewed scope proposals before their feature outcomes enter the implementation sequence. CI merge gates are already active. Each feature starts with three rendered design directions for Sean to review, followed by a detailed implementation plan and a focused PR. Sean may change the order or skip renderings explicitly. This roadmap does not authorize implementing every phase at once. Update milestone status and links as changes merge.
+Each item's Status line records what has shipped. Open follow-ups include temporary note preview and optional sole-candidate autofill. Open research spikes (R5–R7, R9, R12, R16–R18, R21) must produce reviewed scope proposals before their feature outcomes enter the implementation sequence. CI merge gates are already active. Each feature starts with three rendered design directions for Sean to review, followed by a detailed implementation plan and a focused PR. Sean may change the order or skip renderings explicitly. This roadmap does not authorize implementing every phase at once. Update milestone status and links as changes merge.

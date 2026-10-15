@@ -4,6 +4,7 @@ import { nextHint } from '../src/lib/hints.ts';
 import { createGame, SAVE_KEY } from '../src/lib/game.ts';
 import { createPuzzle } from '../src/lib/difficulty.ts';
 import { getPlayableCandidates } from '../src/lib/candidates.ts';
+import { DEFAULT_PREFS, PREFS_KEY } from '../src/lib/preferences.ts';
 
 const base = createGame(createPuzzle('medium', 7));
 const candidates = getPlayableCandidates(base);
@@ -27,7 +28,7 @@ test('selecting a filled cell lights its key, rings its matches, and marks its n
   await expect(lit(page)).toHaveText(String(digit));
   await expect(lit(page)).toHaveAttribute('aria-pressed', 'true');
   await expect(page.locator('.number-key').nth(digit % 9)).toHaveAttribute('aria-pressed', 'false');
-  await expect(page.getByRole('status').filter({ hasText: `Focused on ${digit}` })).toHaveCount(1);
+  await expect(page.getByRole('status').filter({ hasText: 'Focused on' })).toHaveCount(0);
   await expect(page.locator('.cell.focused')).toHaveCount(game.values.filter(v => v === digit).length);
   await expect(cell(page, empty).locator(`.note-digit.note-focused[data-digit="${digit}"]`)).toHaveCount(1);
 });
@@ -55,11 +56,13 @@ test('tapping the lit key clears focus', async ({ page }) => {
   await cell(page, filled).click();
   await lit(page).click();
   await expect(lit(page)).toHaveCount(0);
+  await expect(page.getByRole('status').filter({ hasText: 'Focus cleared' })).toHaveCount(1);
   await expect(page.locator('.cell.focused')).toHaveCount(0);
   await expect(page.locator('.cell.matching')).toHaveCount(0);
   await expect(page.locator('.cell.possible')).toHaveCount(0);
   await page.locator('.number-key').nth(digit - 1).click();
   await expect(lit(page)).toHaveText(String(digit));
+  await expect(page.getByRole('status').filter({ hasText: `Focused on ${digit}` })).toHaveCount(1);
 });
 
 test('placing a number with nothing focused focuses it, and an exclusion leaves focus alone', async ({ page }) => {
@@ -203,6 +206,11 @@ test('a focused number that is finished or not allowed here keeps its dim digit 
   await expect(lit(page)).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
   await expect(lit(page)).toHaveCSS('box-shadow', new RegExp(`${(await resolved(page, '--blue')).replace(/[()]/g, '\\$&')}.*inset`));
   await expect(lit(page).locator('span')).toHaveCSS('opacity', '0.35');
+  await cell(page, full.indexOf(0)).click();
+  await expect(lit(page)).toHaveClass(/digit-finished.*digit-filtered/);
+  expect(await settled(lit(page).locator('span'), 'opacity')).toBe('0.35');
+  await lit(page).hover();
+  await expect(lit(page)).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
   const other = full.find(v => v && v !== digit)!;
   const blocked = full.findIndex((v, i) => !v && game.notes[i].length && !getPlayableCandidates({ values: full, exclusions: game.exclusions })[i].has(other));
   await cell(page, full.indexOf(other)).click();
@@ -210,4 +218,104 @@ test('a focused number that is finished or not allowed here keeps its dim digit 
   await expect(lit(page)).toHaveClass(/digit-filtered/);
   await expect(lit(page)).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
   await expect(lit(page).locator('span')).toHaveCSS('opacity', '0.65');
+});
+
+test('holding Enter on the lit key toggles focus once', async ({ page }) => {
+  await seed(page);
+  await openGame(page);
+  await cell(page, filled).click();
+  await lit(page).focus();
+  await page.keyboard.down('Enter');
+  await page.keyboard.down('Enter');
+  await page.keyboard.up('Enter');
+  await expect(lit(page)).toHaveCount(0);
+});
+
+test('undo and redo leave focus alone', async ({ page }) => {
+  await seed(page);
+  await openGame(page);
+  await cell(page, empty).click();
+  await page.keyboard.press(String(other));
+  await expect(lit(page)).toHaveText(String(other));
+  await page.keyboard.press('ControlOrMeta+z');
+  await expect(cell(page, empty).locator('.cell-number')).toHaveCount(0);
+  await expect(lit(page)).toHaveText(String(other));
+  await page.keyboard.press('ControlOrMeta+Shift+z');
+  await expect(lit(page)).toHaveText(String(other));
+});
+
+test('a mistake hint on a focused number shows only its red ring', async ({ page }) => {
+  const prefs = { ...DEFAULT_PREFS, blockIncorrectAnswers: false };
+  await page.addInitScript(([saveKey, saved, prefsKey, preferences]) => { if (!sessionStorage.getItem('seeded')) { localStorage.setItem(saveKey, saved); localStorage.setItem(prefsKey, preferences); sessionStorage.setItem('seeded', '1'); } }, [SAVE_KEY, JSON.stringify(base), PREFS_KEY, JSON.stringify(prefs)]);
+  await openGame(page);
+  const at = base.givens.findIndex(v => !v);
+  const wrong = base.solution[at] % 9 + 1;
+  await cell(page, at).click();
+  await page.keyboard.press(String(wrong));
+  await page.getByRole('button', { name: 'Show a hint' }).click();
+  await page.locator('.hint-action').click();
+  const mistake = cell(page, at);
+  await expect(mistake).toHaveClass(/hint-mistake/);
+  await expect(mistake).toHaveClass(/focused/);
+  await expect.poll(() => mistake.evaluate(el => getComputedStyle(el, '::after').boxShadow)).toBe('none');
+  await expect(mistake.locator('.cell-number')).toHaveCSS('font-weight', '430');
+});
+
+test('a key-set focus announcement does not come back on the next puzzle', async ({ page }) => {
+  await seed(page);
+  await openGame(page);
+  await cell(page, filled).click();
+  await page.keyboard.press(String(other));
+  await expect(page.getByRole('status').filter({ hasText: `Focused on ${other}` })).toHaveCount(1);
+  await page.getByRole('button', { name: 'Settings' }).click();
+  await page.getByRole('dialog').getByRole('button', { name: 'New puzzle' }).click();
+  await page.getByRole('button', { name: 'Start puzzle' }).click();
+  await expect(page.locator('.board .cell').first()).toBeVisible();
+  await expect(page.getByRole('status').filter({ hasText: 'Focused on' })).toHaveCount(0);
+});
+
+test('selecting a cell silences an earlier key-set focus announcement', async ({ page }) => {
+  await seed(page);
+  await openGame(page);
+  await cell(page, filled).click();
+  await page.keyboard.press(String(other));
+  await expect(page.getByRole('status').filter({ hasText: `Focused on ${other}` })).toHaveCount(1);
+  await cell(page, filled).click();
+  await expect(lit(page)).toHaveText(String(digit));
+  await expect(page.getByRole('status').filter({ hasText: 'Focused on' })).toHaveCount(0);
+});
+
+const keySetFocusOnEmpty = async (page: Page) => {
+  const peer = Array.from({ length: 81 }, (_, i) => i).find(i => i !== empty && Math.floor(i / 9) === Math.floor(empty / 9) && game.values[i])!;
+  const dimmed = game.values[peer];
+  await cell(page, empty).click();
+  await page.getByRole('button', { name: 'Numbers', exact: true }).click();
+  await page.locator('.number-key').nth(dimmed - 1).click();
+  await expect(page.getByRole('status').filter({ hasText: `Focused on ${dimmed}` })).toHaveCount(1);
+};
+
+test('placing a number silences an earlier key-set focus announcement', async ({ page }) => {
+  await seed(page);
+  await openGame(page);
+  await keySetFocusOnEmpty(page);
+  await page.keyboard.press(String(other));
+  await expect(cell(page, empty).locator('.cell-number')).toHaveText(String(other));
+  await expect(page.getByRole('status').filter({ hasText: 'Focused on' })).toHaveCount(0);
+});
+
+test('applying a hint silences an earlier key-set focus announcement', async ({ page }) => {
+  await seed(page);
+  await openGame(page);
+  await keySetFocusOnEmpty(page);
+  await page.getByRole('button', { name: 'Show a hint' }).click();
+  const action = page.locator('.hint-strip .hint-action');
+  await expect(async () => { await page.keyboard.press('h'); await expect(action).toHaveText('Apply', { timeout: 500 }); }).toPass();
+  await expect(async () => { if (await action.count()) await action.click(); await expect(action).toHaveCount(0, { timeout: 500 }); }).toPass();
+  await expect(page.getByRole('status').filter({ hasText: 'Focused on' })).toHaveCount(0);
+});
+
+test('Home removes the retired focus-hold storage key', async ({ page }) => {
+  await page.addInitScript(() => { if (!sessionStorage.getItem('seeded')) { localStorage.setItem('sudoku.focus-hold-learned.v1', '1'); sessionStorage.setItem('seeded', '1'); } });
+  await page.goto('/');
+  await expect.poll(() => page.evaluate(() => localStorage.getItem('sudoku.focus-hold-learned.v1'))).toBeNull();
 });
