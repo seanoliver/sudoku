@@ -1,7 +1,6 @@
 import { createHash } from 'node:crypto';
 import { defineConfig, devices } from '@playwright/test';
 
-// A port per checkout, so a server left running in another worktree is never reused.
 const checkoutPort = 3400 + parseInt(createHash('sha256').update(process.cwd()).digest('hex').slice(0, 8), 16) % 600;
 const PORT = Number(process.env.E2E_PORT) || (process.env.CI ? 3400 : checkoutPort);
 const phone = { viewport: { width: 390, height: 844 } };
