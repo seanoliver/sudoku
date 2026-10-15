@@ -19,5 +19,6 @@ export default defineConfig({
     { name: 'motion', testMatch: /navigation\.spec/, use: { ...devices['Desktop Chrome'], ...phone, reducedMotion: 'no-preference' } },
     { name: 'motion-webkit', testMatch: /navigation\.spec/, use: { ...devices['Desktop Safari'], ...phone, reducedMotion: 'no-preference' } },
   ],
+  // Keep reuse off despite Playwright's "already used" hint: a reused server can be another checkout's. Set E2E_PORT instead.
   webServer: { command: `pnpm start --port ${PORT}`, url: `http://localhost:${PORT}`, reuseExistingServer: false },
 });
