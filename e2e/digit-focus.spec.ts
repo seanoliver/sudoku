@@ -260,3 +260,33 @@ test('a mistake hint on a focused number shows only its red ring', async ({ page
   expect(await mistake.evaluate(el => getComputedStyle(el, '::after').boxShadow)).toBe('none');
   await expect(mistake.locator('.cell-number')).toHaveCSS('font-weight', '430');
 });
+
+test('a key-set focus announcement does not come back on the next puzzle', async ({ page }) => {
+  const last = base.givens.findIndex(v => !v);
+  const nearly = { ...base, values: base.solution.map((v, i) => i === last ? 0 : v) };
+  await page.addInitScript(([key, value]) => { if (!sessionStorage.getItem('seeded')) { localStorage.setItem(key, value); sessionStorage.setItem('seeded', '1'); } }, [SAVE_KEY, JSON.stringify(nearly)]);
+  await openGame(page);
+  const filledAt = nearly.values.findIndex(v => v);
+  const keyed = nearly.values[filledAt] % 9 + 1;
+  await cell(page, filledAt).click();
+  await page.keyboard.press(String(keyed));
+  await expect(page.getByRole('status').filter({ hasText: `Focused on ${keyed}` })).toHaveCount(1);
+  await cell(page, last).click();
+  await page.keyboard.press(String(base.solution[last]));
+  await page.getByRole('button', { name: 'Play again' }).click();
+  await page.getByRole('button', { name: 'Start puzzle' }).click();
+  await expect(page.locator('.completion')).toHaveCount(0);
+  await expect(page.locator('.board .cell').first()).toBeVisible();
+  await expect(page.getByRole('status').filter({ hasText: 'Focused on' })).toHaveCount(0);
+});
+
+test('selecting a cell silences an earlier key-set focus announcement', async ({ page }) => {
+  await seed(page);
+  await openGame(page);
+  await cell(page, filled).click();
+  await page.keyboard.press(String(other));
+  await expect(page.getByRole('status').filter({ hasText: `Focused on ${other}` })).toHaveCount(1);
+  await cell(page, filled).click();
+  await expect(lit(page)).toHaveText(String(digit));
+  await expect(page.getByRole('status').filter({ hasText: 'Focused on' })).toHaveCount(0);
+});

@@ -189,6 +189,8 @@ export default function SudokuGame() {
   const [sheet, setSheet] = useState<Sheet>(null);
   const [undoAnnouncement, setUndoAnnouncement] = useState({ id: 0, text: '' });
   const [focusAnnouncement, setFocusAnnouncement] = useState({ id: 0, text: '' });
+  const moveFocus = (digit: number | null) => { setFocusedDigit(digit); setFocusAnnouncement(current => ({ ...current, text: '' })); };
+  const clearFocus = () => moveFocus(null);
   const [difficulty, setDifficulty] = useState<Difficulty>('easy');
   const [preferences, setPreferences] = useState(DEFAULT_PREFS);
   // Read through a ref so effects that play a cue do not rerun when the setting changes.
@@ -296,7 +298,7 @@ export default function SudokuGame() {
   const selectCell = (index: number) => {
     if (index !== lastTicked.current) { lastTicked.current = index; haptic('select'); }
     setSelected(index); setBlockedEntry(null);
-    if (game?.values[index]) setFocusedDigit(game.values[index]);
+    if (game?.values[index]) moveFocus(game.values[index]);
   };
   const selection = useNoteSelection({
     values: game?.values, enabled: Boolean(game) && !paused && !busy && !sheet && !complete,
@@ -305,7 +307,7 @@ export default function SudokuGame() {
       const digit = game?.values[index];
       if (!digit) return;
       if (!hasSelection) selectCell(index);
-      setFocusedDigit(digit);
+      moveFocus(digit);
     },
   });
   // iOS swipe-back: where the swipe returns, fixed when it starts so the underlay cannot change as the screen does.
@@ -333,7 +335,7 @@ export default function SudokuGame() {
 
   /** Opens `next` on the game screen, resetting the view the last game left. */
   const startGame = (next: GameState) => {
-    resetSelection(); setFocusedDigit(null); setBlockedEntry(null); setCelebration(null); setHintState(null);
+    resetSelection(); clearFocus(); setBlockedEntry(null); setCelebration(null); setHintState(null);
     const first = Math.max(0, next.values.indexOf(0));
     setGame(next); setSelected(first);
     // Starting from Home or a sheet leaves focus on a button that unmounts or closes, so the keyboard needs somewhere to go.
@@ -379,7 +381,7 @@ export default function SudokuGame() {
     worker.current.postMessage(request);
   };
   const requestPuzzle = (level: Difficulty, { daily }: { daily?: { id: string; seed: number } } = {}) => {
-    setView('game'); enterGameEntry(); resetSelection(); setFocusedDigit(null);
+    setView('game'); enterGameEntry(); resetSelection(); clearFocus();
     setBusy(true); setError(''); setBlockedEntry(null); setCelebration(null);
     try { postPuzzle(daily ? { difficulty: level, avoid: [], seed: daily.seed, tag: { daily: daily.id } } : { difficulty: level, avoid: level === 'expert' ? seenPuzzles() : [] }); }
     catch { setBusy(false); setError('Could not create a puzzle. Reload the app to try again.'); }
@@ -491,7 +493,7 @@ export default function SudokuGame() {
     const restarted = restartGame(game);
     replayStore.record(restarted.id, restarted, { restart: true });
     restoredSolved.current = null;
-    setGame(restarted); resetSelection(); setFocusedDigit(null);
+    setGame(restarted); resetSelection(); clearFocus();
     // The clock may not be mounted (restarting from Home), so the reset has to reach its storage directly.
     try { localStorage.setItem(clockKey(restarted.id), JSON.stringify({ id: restarted.id, seconds: 0 })); } catch { /* The clock tolerates missing storage. */ }
     refreshHome(restarted);
@@ -554,7 +556,7 @@ export default function SudokuGame() {
     if (next !== game) setGame(next);
     const cell = hint.kind === 'step' ? hint.step.placement?.cell ?? hint.step.eliminations[0]?.cell : hint.kind === 'mistake' ? hint.cell : undefined;
     if (cell !== undefined) { setSelected(cell); focusAfterRender.current = `.board [data-index="${cell}"]`; }
-    if (cell !== undefined && next.values[cell]) setFocusedDigit(next.values[cell]);
+    if (cell !== undefined && next.values[cell]) moveFocus(next.values[cell]);
   };
   const input = (value: number) => {
     if (!game || paused || busy || sheet || complete || lessonLocked) return;
@@ -583,7 +585,7 @@ export default function SudokuGame() {
       if (next === game) return;
       setGame(next);
       if (value && !pencil && !excluding) setPlaced({ index: selected, id: ++placedId.current });
-      if (value && !pencil && !excluding) setFocusedDigit(value);
+      if (value && !pencil && !excluding) moveFocus(value);
       if (!pencil && !excluding && value) {
         const units = completedUnits({ before: game.values, after: next.values, index: selected });
         const finished = isComplete(next);
@@ -650,11 +652,11 @@ export default function SudokuGame() {
     if (lesson) setLesson({ ...lesson, line }); else if (activeHint) setHintState({ ...activeHint, line });
   };
   const lessonBoards = lesson ? LESSON_BANK[lesson.id] : [];
-  const showBoard = (start: GameState) => { setGame(start); resetSelection(); setBlockedEntry(null); setFocusedDigit(null); setCelebration(null); setSelected(Math.max(0, start.values.indexOf(0))); };
+  const showBoard = (start: GameState) => { setGame(start); resetSelection(); setBlockedEntry(null); clearFocus(); setCelebration(null); setSelected(Math.max(0, start.values.indexOf(0))); };
   /** Home's numbers come from storage, read when Home is shown rather than during render. */
   function refreshHome(current: GameState | null) {
     const regular = current && !dailyOf(current.id) ? current : lastRegular.current ?? storedRegular();
-    try { localStorage.removeItem('sudoku.focus-hold-learned.v1'); } catch { /* Nothing reads it. */ }
+    try { if (localStorage.getItem('sudoku.focus-hold-learned.v1') !== null) localStorage.removeItem('sudoku.focus-hold-learned.v1'); } catch { /* Nothing reads it. */ }
     try { setHomeData({ seconds: regular ? savedSeconds(localStorage.getItem(clockKey(regular.id)), regular.id) : null, regular, daily: readDailyHome(regular), learned: readLearned(localStorage.getItem(LEARNED_KEY)), solved: solvedCount(readSolved(localStorage.getItem(SOLVED_KEY)), readHistory(localStorage.getItem(HISTORY_KEY)).completed), greeting: greeting(new Date().getHours()) }); }
     catch { setHomeData(data => ({ ...data, regular, daily: readDailyHome(regular) })); }
   }
@@ -736,7 +738,7 @@ export default function SudokuGame() {
   const restoreGame = () => {
     if (!held) return;
     setGame(held.game); setSelected(held.selected); setHeld(null); setPaused(held.paused);
-    resetSelection(); setBlockedEntry(null); setCelebration(null); setEntry(held.entry); setColorMode(held.colorMode); setFocusedDigit(held.focus);
+    resetSelection(); setBlockedEntry(null); setCelebration(null); setEntry(held.entry); setColorMode(held.colorMode); moveFocus(held.focus);
     focusAfterRender.current = `.board [data-index="${held.selected}"]`;
   };
   const openLearn = () => move('push', openLearnNow);
