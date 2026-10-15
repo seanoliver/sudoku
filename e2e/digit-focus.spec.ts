@@ -15,6 +15,7 @@ const other = game.solution[empty];
 const seed = (page: Page) => page.addInitScript(([key, value]) => { if (!sessionStorage.getItem('seeded')) { localStorage.setItem(key, value); sessionStorage.setItem('seeded', '1'); } }, [SAVE_KEY, JSON.stringify(game)]);
 const cell = (page: Page, i: number) => page.locator(`.board [data-index="${i}"]`);
 const lit = (page: Page) => page.locator('.number-key.digit-focused');
+const resolved = (page: Page, token: string) => page.evaluate(t => { const probe = document.createElement('i'); probe.style.color = `var(${t})`; document.body.append(probe); const color = getComputedStyle(probe).color; probe.remove(); return color; }, token);
 
 test('selecting a filled cell lights its key, rings its matches, and marks its notes', async ({ page }) => {
   await seed(page);
@@ -50,6 +51,8 @@ test('tapping the lit key clears focus', async ({ page }) => {
   await lit(page).click();
   await expect(lit(page)).toHaveCount(0);
   await expect(page.locator('.cell.focused')).toHaveCount(0);
+  await expect(page.locator('.cell.matching')).toHaveCount(0);
+  await expect(page.locator('.cell.possible')).toHaveCount(0);
   await page.locator('.number-key').nth(digit - 1).click();
   await expect(lit(page)).toHaveText(String(digit));
 });
@@ -72,8 +75,9 @@ test('the lit key is solid blue and its matches are ringed', async ({ page }) =>
   await seed(page);
   await openGame(page);
   await cell(page, filled).click();
-  const blue = await page.evaluate(() => { const probe = document.createElement('i'); probe.style.color = 'var(--blue)'; document.body.append(probe); const color = getComputedStyle(probe).color; probe.remove(); return color; });
+  const blue = await resolved(page, '--blue');
   await expect(lit(page)).toHaveCSS('background-color', blue);
+  await expect(page.locator('.note-digit.note-focused').first()).toHaveCSS('background-color', blue);
   const ring = await page.locator('.cell.focused').first().evaluate(el => getComputedStyle(el, '::after').boxShadow);
   expect(ring).toContain('inset');
 });
@@ -118,4 +122,47 @@ test('the finished puzzle announces no focus', async ({ page }) => {
   await page.keyboard.press(String(base.solution[last]));
   await expect(page.locator('.completion')).toBeVisible();
   await expect(page.getByRole('status').filter({ hasText: 'Focused on' })).toHaveCount(0);
+  await expect(page.locator('.cell.focused')).toHaveCount(0);
+});
+
+test('the focused number enters into an empty cell, whose key then reads as Enter with no pressed state', async ({ page }) => {
+  await seed(page);
+  await openGame(page);
+  await cell(page, filled).click();
+  const target = game.values.findIndex((v, i) => !v && game.solution[i] === digit);
+  await cell(page, target).click();
+  const key = page.locator('.number-key').nth(digit - 1);
+  await expect(key).not.toHaveAttribute('aria-pressed');
+  await key.click();
+  await expect(cell(page, target).locator('.cell-number')).toHaveText(String(digit));
+  await expect(lit(page)).toHaveText(String(digit));
+});
+
+test('a focused wrong answer stays red, and the lit key dims while paused', async ({ page }) => {
+  const wrongAt = game.values.findIndex(v => !v);
+  const wrong = game.solution[wrongAt] % 9 + 1;
+  const saved = { ...game, values: game.values.map((v, i) => i === wrongAt ? wrong : v), notes: game.notes.map((n, i) => i === wrongAt ? [] : n), noteOrigins: game.noteOrigins.map((o, i) => i === wrongAt ? null : o) };
+  await page.addInitScript(([key, value]) => { if (!sessionStorage.getItem('seeded')) { localStorage.setItem(key, value); sessionStorage.setItem('seeded', '1'); } }, [SAVE_KEY, JSON.stringify(saved)]);
+  await openGame(page);
+  await cell(page, wrongAt).click();
+  await expect(page.locator('.cell.focused.conflict .cell-number')).toHaveCSS('color', await resolved(page, '--red'));
+  await page.getByRole('button', { name: 'Pause game' }).click();
+  await expect(lit(page)).toHaveCSS('opacity', '0.42');
+});
+
+test('applying a hint that only removes candidates leaves focus alone', async ({ page }) => {
+  const saved = gameBefore(step => !step.placement);
+  const start = JSON.parse(saved).values.findIndex((v: number) => v);
+  const kept = JSON.parse(saved).values[start];
+  await page.addInitScript(([key, value]) => { if (!sessionStorage.getItem('seeded')) { localStorage.setItem(key, value); sessionStorage.setItem('seeded', '1'); } }, [SAVE_KEY, saved]);
+  await openGame(page);
+  await cell(page, start).click();
+  await page.getByRole('button', { name: 'Show a hint' }).click();
+  await page.locator('.hint-action').click();
+  await page.locator('.hint-action').click();
+  await page.locator('.walk-panel').waitFor();
+  await stepToEnd(page);
+  await page.locator('.hint-action').click();
+  await expect(page.locator('.walk-panel')).toHaveCount(0);
+  await expect(lit(page)).toHaveText(String(kept));
 });
