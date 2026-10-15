@@ -34,8 +34,11 @@ test('focus stays on an empty cell, moves to a placed number, and Notes leaves i
   await seed(page);
   await openGame(page);
   await cell(page, filled).click();
+  const possible = await page.locator('.cell.possible').count();
+  expect(possible).toBeGreaterThan(0);
   await cell(page, empty).click();
   await expect(lit(page)).toHaveText(String(digit));
+  await expect(page.locator('.cell.possible')).toHaveCount(possible);
   await page.getByRole('button', { name: 'Notes', exact: true }).click();
   await page.keyboard.press(String(other));
   await expect(lit(page)).toHaveText(String(digit));
@@ -165,4 +168,42 @@ test('applying a hint that only removes candidates leaves focus alone', async ({
   await page.locator('.hint-action').click();
   await expect(page.locator('.walk-panel')).toHaveCount(0);
   await expect(lit(page)).toHaveText(String(kept));
+});
+
+test('holding a filled cell during a selection focuses its number and keeps the selection', async ({ page }) => {
+  await seed(page);
+  await openGame(page);
+  const pair = game.values.findIndex((v, i) => !v && i % 9 < 8 && !game.values[i + 1]);
+  const [from, to] = await Promise.all([cell(page, pair).boundingBox(), cell(page, pair + 1).boundingBox()]);
+  await page.mouse.move(from!.x + from!.width / 2, from!.y + from!.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(to!.x + to!.width / 2, to!.y + to!.height / 2, { steps: 5 });
+  await page.mouse.up();
+  const selected = page.getByRole('status').filter({ hasText: '2 cells selected' });
+  await expect(selected).toHaveCount(1);
+  const box = await cell(page, filled).boundingBox();
+  await page.mouse.move(box!.x + box!.width / 2, box!.y + box!.height / 2);
+  await page.mouse.down();
+  await expect(lit(page)).toHaveText(String(digit));
+  await page.mouse.up();
+  await expect(selected).toHaveCount(1);
+});
+
+test('a focused number that is finished or not allowed here keeps its dim digit inside a blue outline', async ({ page }) => {
+  const full = game.values.map((v, i) => game.solution[i] === digit ? digit : v);
+  const saved = { ...game, values: full, notes: game.notes.map((n, i) => full[i] ? [] : n), noteOrigins: game.noteOrigins.map((o, i) => full[i] ? null : o) };
+  await page.addInitScript(([key, value]) => { if (!sessionStorage.getItem('seeded')) { localStorage.setItem(key, value); sessionStorage.setItem('seeded', '1'); } }, [SAVE_KEY, JSON.stringify(saved)]);
+  await openGame(page);
+  await cell(page, full.indexOf(digit)).click();
+  await expect(lit(page)).toHaveClass(/digit-finished/);
+  await expect(lit(page)).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
+  await expect(lit(page)).toHaveCSS('box-shadow', new RegExp(`${(await resolved(page, '--blue')).replace(/[()]/g, '\\$&')}.*inset`));
+  await expect(lit(page).locator('span')).toHaveCSS('opacity', '0.35');
+  const other = full.find(v => v && v !== digit)!;
+  const blocked = full.findIndex((v, i) => !v && game.notes[i].length && !getPlayableCandidates({ values: full, exclusions: game.exclusions })[i].has(other));
+  await cell(page, full.indexOf(other)).click();
+  await cell(page, blocked).click();
+  await expect(lit(page)).toHaveClass(/digit-filtered/);
+  await expect(lit(page)).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
+  await expect(lit(page).locator('span')).toHaveCSS('opacity', '0.65');
 });

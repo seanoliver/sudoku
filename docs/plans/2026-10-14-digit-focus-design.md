@@ -18,6 +18,7 @@ Roadmap item: R22, rethink digit focus, including R20, a focused digit's notes s
 ## How it looks
 
 - The focused key on the keypad is solid blue with a surface-colored digit. Color mode shows the color pad, so no key is lit.
+- When the focused number is finished, or cannot go in the selected cell, its key keeps that dimmed digit and gets a blue outline instead of the fill (Sean, October 14, from two rendered options).
 - Matching placed numbers keep the matching background and add a blue ring and a bold blue digit.
 - The focused number's notes are a solid blue chip with a surface-colored digit (R20), so fish patterns read across the board.
 - The focus bar's button, label, Clear focus, and "Or hold a filled cell" hint are removed. The row keeps its height for the hint strip, so the board does not move when a hint opens.

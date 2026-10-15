@@ -226,7 +226,10 @@ h1,h2,h3,p { margin: 0; }
 @media (hover: hover) { .number-pad .number-key.digit-finished:hover { background: transparent; } }
 .number-pad .number-key.digit-focused { background: var(--blue); opacity: 1; }.number-pad .number-key.digit-focused>span { color: var(--surface); opacity: 1; font-weight: 600; }
 .number-pad .number-key.digit-focused:disabled { opacity: .42; }
-@media (hover: hover) { .number-pad .number-key.digit-focused:not(:disabled):hover { background: var(--blue-strong); } }
+@media (hover: hover) { .number-pad .number-key.digit-focused:not(:disabled, .digit-finished, .digit-filtered):hover { background: var(--blue-strong); } }
+.number-pad .number-key.digit-focused:is(.digit-finished, .digit-filtered) { background: transparent; box-shadow: inset 0 0 0 2px var(--blue); }
+.number-pad .number-key.digit-focused.digit-finished>span { color: var(--secondary); opacity: .35; font-weight: 430; }
+.number-pad .number-key.digit-focused.digit-filtered>span { color: var(--secondary); opacity: .65; font-weight: 430; }
 .number-pad.mode-note .number-key,.number-pad.mode-exclude .number-key { display: grid; grid-template: repeat(3, 1fr) / repeat(3, 1fr); place-items: center; padding: 6px 12px; gap: 0; }.number-pad.mode-note .number-key>span,.number-pad.mode-exclude .number-key>span { font-size: 17px; line-height: 1; font-weight: 600; }.number-pad.mode-exclude .number-key>span::after { height: 1.5px; margin-top: -.75px; }
 .digit-focus-bar.hint-strip { gap: 8px; padding-left: 12px; background: var(--hint-soft); }
 .hint-copy { display: flex; flex: 1; min-width: 0; align-items: center; gap: 8px; font-size: 13px; font-weight: 650; color: var(--ink); white-space: nowrap; }.hint-copy>span { overflow: hidden; text-overflow: ellipsis; }.hint-copy>svg { flex-shrink: 0; color: var(--hint); }
