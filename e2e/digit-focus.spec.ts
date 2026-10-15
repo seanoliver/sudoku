@@ -262,20 +262,14 @@ test('a mistake hint on a focused number shows only its red ring', async ({ page
 });
 
 test('a key-set focus announcement does not come back on the next puzzle', async ({ page }) => {
-  const last = base.givens.findIndex(v => !v);
-  const nearly = { ...base, values: base.solution.map((v, i) => i === last ? 0 : v) };
-  await page.addInitScript(([key, value]) => { if (!sessionStorage.getItem('seeded')) { localStorage.setItem(key, value); sessionStorage.setItem('seeded', '1'); } }, [SAVE_KEY, JSON.stringify(nearly)]);
+  await seed(page);
   await openGame(page);
-  const filledAt = nearly.values.findIndex(v => v);
-  const keyed = nearly.values[filledAt] % 9 + 1;
-  await cell(page, filledAt).click();
-  await page.keyboard.press(String(keyed));
-  await expect(page.getByRole('status').filter({ hasText: `Focused on ${keyed}` })).toHaveCount(1);
-  await cell(page, last).click();
-  await page.keyboard.press(String(base.solution[last]));
-  await page.getByRole('button', { name: 'Play again' }).click();
+  await cell(page, filled).click();
+  await page.keyboard.press(String(other));
+  await expect(page.getByRole('status').filter({ hasText: `Focused on ${other}` })).toHaveCount(1);
+  await page.getByRole('button', { name: 'Settings' }).click();
+  await page.getByRole('dialog').getByRole('button', { name: 'New puzzle' }).click();
   await page.getByRole('button', { name: 'Start puzzle' }).click();
-  await expect(page.locator('.completion')).toHaveCount(0);
   await expect(page.locator('.board .cell').first()).toBeVisible();
   await expect(page.getByRole('status').filter({ hasText: 'Focused on' })).toHaveCount(0);
 });
@@ -289,4 +283,39 @@ test('selecting a cell silences an earlier key-set focus announcement', async ({
   await cell(page, filled).click();
   await expect(lit(page)).toHaveText(String(digit));
   await expect(page.getByRole('status').filter({ hasText: 'Focused on' })).toHaveCount(0);
+});
+
+const keySetFocusOnEmpty = async (page: Page) => {
+  const peer = Array.from({ length: 81 }, (_, i) => i).find(i => i !== empty && Math.floor(i / 9) === Math.floor(empty / 9) && game.values[i])!;
+  const dimmed = game.values[peer];
+  await cell(page, empty).click();
+  await page.getByRole('button', { name: 'Numbers', exact: true }).click();
+  await page.locator('.number-key').nth(dimmed - 1).click();
+  await expect(page.getByRole('status').filter({ hasText: `Focused on ${dimmed}` })).toHaveCount(1);
+};
+
+test('placing a number silences an earlier key-set focus announcement', async ({ page }) => {
+  await seed(page);
+  await openGame(page);
+  await keySetFocusOnEmpty(page);
+  await page.keyboard.press(String(other));
+  await expect(cell(page, empty).locator('.cell-number')).toHaveText(String(other));
+  await expect(page.getByRole('status').filter({ hasText: 'Focused on' })).toHaveCount(0);
+});
+
+test('applying a hint silences an earlier key-set focus announcement', async ({ page }) => {
+  await seed(page);
+  await openGame(page);
+  await keySetFocusOnEmpty(page);
+  await page.getByRole('button', { name: 'Show a hint' }).click();
+  const action = page.locator('.hint-strip .hint-action');
+  await expect(async () => { await page.keyboard.press('h'); await expect(action).toHaveText('Apply', { timeout: 500 }); }).toPass();
+  await expect(async () => { if (await action.count()) await action.click(); await expect(action).toHaveCount(0, { timeout: 500 }); }).toPass();
+  await expect(page.getByRole('status').filter({ hasText: 'Focused on' })).toHaveCount(0);
+});
+
+test('Home removes the retired focus-hold storage key', async ({ page }) => {
+  await page.addInitScript(() => { if (!sessionStorage.getItem('seeded')) { localStorage.setItem('sudoku.focus-hold-learned.v1', '1'); sessionStorage.setItem('seeded', '1'); } });
+  await page.goto('/');
+  await expect.poll(() => page.evaluate(() => localStorage.getItem('sudoku.focus-hold-learned.v1'))).toBeNull();
 });
