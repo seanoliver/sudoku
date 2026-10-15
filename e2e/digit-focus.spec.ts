@@ -257,7 +257,7 @@ test('a mistake hint on a focused number shows only its red ring', async ({ page
   const mistake = cell(page, at);
   await expect(mistake).toHaveClass(/hint-mistake/);
   await expect(mistake).toHaveClass(/focused/);
-  expect(await mistake.evaluate(el => getComputedStyle(el, '::after').boxShadow)).toBe('none');
+  await expect.poll(() => mistake.evaluate(el => getComputedStyle(el, '::after').boxShadow)).toBe('none');
   await expect(mistake.locator('.cell-number')).toHaveCSS('font-weight', '430');
 });
 
