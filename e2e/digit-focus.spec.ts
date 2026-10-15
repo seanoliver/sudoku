@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Locator, type Page } from '@playwright/test';
 import { gameBefore, openGame, stepToEnd } from './fixtures.ts';
 import { nextHint } from '../src/lib/hints.ts';
 import { createGame, SAVE_KEY } from '../src/lib/game.ts';
@@ -15,6 +15,7 @@ const other = game.solution[empty];
 const seed = (page: Page) => page.addInitScript(([key, value]) => { if (!sessionStorage.getItem('seeded')) { localStorage.setItem(key, value); sessionStorage.setItem('seeded', '1'); } }, [SAVE_KEY, JSON.stringify(game)]);
 const cell = (page: Page, i: number) => page.locator(`.board [data-index="${i}"]`);
 const lit = (page: Page) => page.locator('.number-key.digit-focused');
+const settled = async (locator: Locator, property: string) => locator.evaluate((el, p) => Promise.all(el.getAnimations().map(a => a.finished)).then(() => getComputedStyle(el).getPropertyValue(p)), property);
 const resolved = (page: Page, token: string) => page.evaluate(t => { const probe = document.createElement('i'); probe.style.color = `var(${t})`; document.body.append(probe); const color = getComputedStyle(probe).color; probe.remove(); return color; }, token);
 
 test('selecting a filled cell lights its key, rings its matches, and marks its notes', async ({ page }) => {
@@ -25,6 +26,7 @@ test('selecting a filled cell lights its key, rings its matches, and marks its n
   await cell(page, filled).click();
   await expect(lit(page)).toHaveText(String(digit));
   await expect(lit(page)).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('.number-key').nth(digit % 9)).toHaveAttribute('aria-pressed', 'false');
   await expect(page.getByRole('status').filter({ hasText: `Focused on ${digit}` })).toHaveCount(1);
   await expect(page.locator('.cell.focused')).toHaveCount(game.values.filter(v => v === digit).length);
   await expect(cell(page, empty).locator(`.note-digit.note-focused[data-digit="${digit}"]`)).toHaveCount(1);
@@ -81,6 +83,8 @@ test('the lit key is solid blue and its matches are ringed', async ({ page }) =>
   const blue = await resolved(page, '--blue');
   await expect(lit(page)).toHaveCSS('background-color', blue);
   await expect(page.locator('.note-digit.note-focused').first()).toHaveCSS('background-color', blue);
+  expect(await settled(lit(page).locator('span'), 'color')).toBe(await resolved(page, '--surface'));
+  expect(await settled(page.locator('.cell.focused .cell-number').first(), 'color')).toBe(await resolved(page, '--blue-strong'));
   const ring = await page.locator('.cell.focused').first().evaluate(el => getComputedStyle(el, '::after').boxShadow);
   expect(ring).toContain('inset');
 });
@@ -148,7 +152,7 @@ test('a focused wrong answer stays red, and the lit key dims while paused', asyn
   await page.addInitScript(([key, value]) => { if (!sessionStorage.getItem('seeded')) { localStorage.setItem(key, value); sessionStorage.setItem('seeded', '1'); } }, [SAVE_KEY, JSON.stringify(saved)]);
   await openGame(page);
   await cell(page, wrongAt).click();
-  await expect(page.locator('.cell.focused.conflict .cell-number')).toHaveCSS('color', await resolved(page, '--red'));
+  expect(await settled(page.locator('.cell.focused.conflict .cell-number'), 'color')).toBe(await resolved(page, '--red'));
   await page.getByRole('button', { name: 'Pause game' }).click();
   await expect(lit(page)).toHaveCSS('opacity', '0.42');
 });
