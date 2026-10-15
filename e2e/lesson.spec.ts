@@ -345,7 +345,7 @@ test('a key pressed within 350 ms of Start practice is ignored, and one pressed 
     // Key 1 is not a candidate in practice board 1's selected cell, so a tap that counts focuses 1.
     const { click } = await doubleTap(page, { later, target: '.number-pad .number-key' });
     expect(click).toBe(!counts);
-    await expect(page.locator('.digit-focus-bar .focus-indicator')).toHaveCount(counts ? 1 : 0);
+    await expect(page.locator('.number-key.digit-focused')).toHaveCount(counts ? 1 : 0);
     await page.goto('about:blank');
   }
 });
