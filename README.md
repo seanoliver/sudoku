@@ -91,6 +91,8 @@ pnpm build
 pnpm test:e2e
 ```
 
+`pnpm test:e2e` serves the build on a port chosen from the checkout's path, so worktrees can run it side by side. Set `E2E_PORT` to pick the port.
+
 - `src/lib/sudoku.ts`: seeded generator, peers, conflict detection, MRV uniqueness solver.
 - `src/lib/game.ts`: pure game transitions, undo, saved-game validation; `undo-description.ts` names what an undo or redo changed, for screen readers.
 - `src/lib/steps.ts`: human solving techniques as steps; `difficulty.ts` grades puzzles by the hardest one needed.
