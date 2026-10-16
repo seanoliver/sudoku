@@ -5,6 +5,7 @@ import { createGame, SAVE_KEY } from '../src/lib/game.ts';
 import { createPuzzle } from '../src/lib/difficulty.ts';
 import { getPlayableCandidates } from '../src/lib/candidates.ts';
 import { DEFAULT_PREFS, PREFS_KEY } from '../src/lib/preferences.ts';
+import { DAILY_KEY, dailyGameKey, dailyId, dailySeed } from '../src/lib/daily.ts';
 
 const base = createGame(createPuzzle('medium', 7));
 const candidates = getPlayableCandidates(base);
@@ -323,4 +324,84 @@ test('Home removes the retired focus-hold storage key', async ({ page }) => {
   await page.addInitScript(() => { if (!sessionStorage.getItem('seeded')) { localStorage.setItem('sudoku.focus-hold-learned.v1', '1'); sessionStorage.setItem('seeded', '1'); } });
   await page.goto('/');
   await expect.poll(() => page.evaluate(() => localStorage.getItem('sudoku.focus-hold-learned.v1'))).toBeNull();
+});
+
+const focusStatus = (page: Page) => page.getByRole('status').filter({ hasText: 'Focused on' });
+
+test('restarting the puzzle silences an earlier key-set focus announcement', async ({ page }) => {
+  await seed(page);
+  await openGame(page);
+  await keySetFocusOnEmpty(page);
+  await page.getByRole('button', { name: 'Settings' }).click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Restart puzzle' }).click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Restart puzzle' }).click();
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await expect(focusStatus(page)).toHaveCount(0);
+});
+
+test('opening a saved daily from Home silences an earlier key-set focus announcement', async ({ page }) => {
+  const day = '2026-10-12';
+  const daily = createGame({ ...createPuzzle('medium', dailySeed(day, 'medium')), id: dailyId(day, 'medium') });
+  await page.clock.install({ time: new Date(2026, 9, 12, 12, 0) });
+  await page.addInitScript(entries => { if (!sessionStorage.getItem('seeded')) { for (const [key, value] of Object.entries(entries)) localStorage.setItem(key, value); sessionStorage.setItem('seeded', '1'); } }, { [SAVE_KEY]: JSON.stringify(game), [DAILY_KEY]: JSON.stringify({ level: 'medium' }), [dailyGameKey('medium')]: JSON.stringify(daily) });
+  await openGame(page);
+  await keySetFocusOnEmpty(page);
+  await page.getByRole('button', { name: 'Home' }).click();
+  await page.locator('.daily-play').click();
+  await expect(page.locator(`.board [data-index="${daily.givens.findIndex(Boolean)}"] .cell-number`)).toHaveText(String(daily.givens.find(Boolean)));
+  await expect(focusStatus(page)).toHaveCount(0);
+});
+
+test('opening a lesson silences an earlier key-set focus announcement', async ({ page }) => {
+  await seed(page);
+  await openGame(page);
+  await keySetFocusOnEmpty(page);
+  await page.getByRole('button', { name: 'Home' }).click();
+  await page.locator('.home-all').click();
+  await page.locator('.learn-row').first().click();
+  await expect(page.locator('.lesson-bar')).toBeVisible();
+  await expect(focusStatus(page)).toHaveCount(0);
+});
+
+test('returning from Learn to the held game silences an earlier key-set focus announcement', async ({ page }) => {
+  await seed(page);
+  await openGame(page);
+  await keySetFocusOnEmpty(page);
+  await page.getByRole('button', { name: 'Home' }).click();
+  await page.locator('.home-all').click();
+  await page.locator('.lesson-back').click();
+  await page.getByRole('button', { name: 'Continue' }).click();
+  await expect(cell(page, empty)).toBeVisible();
+  await expect(focusStatus(page)).toHaveCount(0);
+});
+
+test('Home still shows when storage refuses to remove the retired focus-hold key', async ({ page }) => {
+  const errors: string[] = [];
+  page.on('pageerror', error => errors.push(error.message));
+  await page.addInitScript(() => {
+    localStorage.setItem('sudoku.focus-hold-learned.v1', '1');
+    const remove = Storage.prototype.removeItem;
+    Storage.prototype.removeItem = function (key: string) { if (key === 'sudoku.focus-hold-learned.v1') throw new DOMException('Blocked', 'SecurityError'); return remove.call(this, key); };
+  });
+  await page.goto('/');
+  await expect(page.locator('.home-all')).toBeVisible();
+  expect(errors).toEqual([]);
+});
+
+test('holding Enter on the lit key announces once', async ({ page }) => {
+  await seed(page);
+  await openGame(page);
+  await cell(page, filled).click();
+  await page.evaluate(() => {
+    const region = document.querySelector('p.sr-only[role="status"]')!;
+    const said: string[] = [];
+    (window as unknown as { said: string[] }).said = said;
+    new MutationObserver(() => { if (region.textContent) said.push(region.textContent); }).observe(region, { childList: true, characterData: true, subtree: true });
+  });
+  await lit(page).focus();
+  await page.keyboard.down('Enter');
+  await page.keyboard.down('Enter');
+  await page.keyboard.up('Enter');
+  await expect.poll(() => page.evaluate(() => (window as unknown as { said: string[] }).said)).toEqual(['Focus cleared']);
+  await expect(lit(page)).toHaveCount(0);
 });
