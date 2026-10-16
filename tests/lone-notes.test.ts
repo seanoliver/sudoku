@@ -15,7 +15,7 @@ const note = (game: engine.GameState, index: number, value: number) => engine.en
 test('removing the second-to-last note fills the cell when the placed numbers prove the last one', () => {
   const twoNotes = note(note(start, single, start.solution[single]), single, stale);
   const removed = note(twoNotes, single, stale);
-  const { game, cells } = engine.fillLoneNotes(twoNotes, removed);
+  const { game, cells } = engine.fillLoneNotes(removed);
   assert.deepEqual(cells, [single]);
   assert.equal(game.values[single], start.solution[single]);
   assert.deepEqual(game.notes[single], []);
@@ -28,7 +28,7 @@ test('removing the second-to-last note fills the cell when the placed numbers pr
 test('a lone note is not filled while other digits still fit the cell', () => {
   const digit = entry(open)[0];
   const next = note(start, open, digit);
-  assert.deepEqual(engine.fillLoneNotes(start, next), { game: next, cells: [] });
+  assert.deepEqual(engine.fillLoneNotes(next), { game: next, cells: [] });
 });
 
 test('exclusions are not evidence', () => {
@@ -36,14 +36,22 @@ test('exclusions are not evidence', () => {
   let next = note(start, open, keep);
   for (const digit of rest) next = engine.enter(next, { index: open, value: digit, exclude: true });
   assert.deepEqual(engine.loneNoteCells(next), []);
-  assert.deepEqual(engine.fillLoneNotes(start, next).cells, []);
+  assert.deepEqual(engine.fillLoneNotes(next).cells, []);
 });
 
-test('a cell that was already proven before the action is left alone', () => {
+test('a proven lone note you wrote fills on your next entry, wherever that entry is', () => {
   const proven = note(start, single, start.solution[single]);
   const unrelated = note(proven, open, entry(open)[0]);
-  assert.deepEqual(engine.loneNoteCells(proven), [single]);
-  assert.deepEqual(engine.fillLoneNotes(proven, unrelated).cells, []);
+  assert.deepEqual(engine.fillLoneNotes(unrelated).cells, [single]);
+});
+
+test('lone notes from Fill notes stay notes until you edit that cell', () => {
+  const noted = engine.fillNotes(start);
+  assert.ok(engine.loneNoteCells(noted).includes(single));
+  assert.deepEqual(engine.fillLoneNotes(noted).cells, []);
+  const edited = note(note(noted, single, start.solution[single]), single, start.solution[single]);
+  assert.equal(edited.noteOrigins[single], 'manual');
+  assert.ok(engine.fillLoneNotes(edited).cells.includes(single));
 });
 
 test('a fill clears its digit from peer notes, exclusions and bold, and fills only the cells the action proved', () => {
@@ -53,7 +61,7 @@ test('a fill clears its digit from peer notes, exclusions and bold, and fills on
   before = note(before, single, stale);
   before = engine.toggleBold(note(before, peer, digit), { indices: [peer], value: digit });
   const after = note(before, single, stale);
-  const { game, cells } = engine.fillLoneNotes(before, after);
+  const { game, cells } = engine.fillLoneNotes(after);
   assert.deepEqual(cells, [single]);
   assert.ok(!game.notes[peer].includes(digit));
   assert.ok(!game.bold[peer].includes(digit));
@@ -61,22 +69,23 @@ test('a fill clears its digit from peer notes, exclusions and bold, and fills on
   assert.deepEqual(changed, cells);
 });
 
-test('placing a number fills the peers it proves', () => {
-  const noted = engine.fillNotes(start);
+test('placing a number fills the peers it proves, and the fills prove no more in the same entry', () => {
+  const generated = engine.fillNotes(start);
+  const noted = { ...generated, noteOrigins: generated.noteOrigins.map(o => o && 'manual' as const) };
   const proved = (i: number) => engine.loneNoteCells(engine.enter(noted, { index: i, value: start.solution[i] })).filter(c => !engine.loneNoteCells(noted).includes(c));
   const target = empty.find(i => proved(i).length > 0)!;
   const placed = engine.enter(noted, { index: target, value: start.solution[target] });
-  const { game, cells } = engine.fillLoneNotes(noted, placed);
-  const fresh = proved(target);
-  assert.ok(fresh.length > 0);
-  assert.deepEqual(cells, fresh);
+  const { game, cells } = engine.fillLoneNotes(placed);
+  assert.ok(proved(target).every(i => cells.includes(i)));
+  assert.deepEqual(cells, engine.loneNoteCells(placed));
   for (const i of cells) assert.equal(game.values[i], start.solution[i]);
+  assert.ok(engine.loneNoteCells(game).length > 0, 'the fills leave newly proven cells for the next entry');
 });
 
-test('no change and a finished board fill nothing', () => {
-  assert.deepEqual(engine.fillLoneNotes(start, start), { game: start, cells: [] });
+test('a board with no lone notes and a finished board fill nothing', () => {
+  assert.deepEqual(engine.fillLoneNotes(start), { game: start, cells: [] });
   const solved = { ...start, values: [...start.solution] };
-  assert.deepEqual(engine.fillLoneNotes(start, solved), { game: solved, cells: [] });
+  assert.deepEqual(engine.fillLoneNotes(solved), { game: solved, cells: [] });
 });
 
 const twin = (() => {
@@ -89,20 +98,20 @@ const twin = (() => {
 
 test('one entry never fills the same digit into two peers', () => {
   const placed = engine.enter(twin, { index: 5, value: 8 });
-  const { game, cells } = engine.fillLoneNotes(twin, placed);
+  const { game, cells } = engine.fillLoneNotes(placed);
   assert.deepEqual(cells, [0]);
   assert.deepEqual(game.values.slice(0, 2), [9, 0]);
 });
 
 test('with Block incorrect answers on, a lone note that is not the answer stays a note', () => {
   const placed = engine.enter(twin, { index: 5, value: 8 });
-  assert.deepEqual(engine.fillLoneNotes(twin, placed, { blockIncorrectAnswers: true }), { game: placed, cells: [] });
+  assert.deepEqual(engine.fillLoneNotes(placed, { blockIncorrectAnswers: true }), { game: placed, cells: [] });
 });
 
 test('a lone note the placed numbers rule out is not filled', () => {
   const wrong = note(start, single, stale);
   assert.deepEqual(engine.loneNoteCells(wrong), []);
-  assert.deepEqual(engine.fillLoneNotes(start, wrong).cells, []);
+  assert.deepEqual(engine.fillLoneNotes(wrong).cells, []);
 });
 
 test("a fill clears its own cell's exclusions and bold, and its digit from peer exclusions", () => {
@@ -113,7 +122,7 @@ test("a fill clears its own cell's exclusions and bold, and its digit from peer 
   before = engine.toggleBold(note(before, single, digit), { indices: [single], value: digit });
   before = engine.enter(note(before, single, stale), { index: single, value: crossed, exclude: true });
   const after = note(before, single, stale);
-  const { game, cells } = engine.fillLoneNotes(before, after);
+  const { game, cells } = engine.fillLoneNotes(after);
   assert.deepEqual(before.exclusions[single], [crossed]);
   assert.deepEqual(cells, [single]);
   assert.deepEqual(game.exclusions[single], []);

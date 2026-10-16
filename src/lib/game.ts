@@ -181,14 +181,13 @@ export function loneNoteCells(game: GameState): number[] {
   });
 }
 /**
- * Places the lone notes that `next` proves and `previous` did not, inside `next`'s own undo step.
- * The fills clear their peers' notes but never fill another cell themselves.
+ * Places every proven lone note the player wrote, inside `next`'s own undo step. Notes from Fill notes
+ * count once the player edits that cell. The fills clear their peers' notes but never fill another cell themselves.
  * With `blockIncorrectAnswers`, a lone note proven by a wrong number stays a note.
  */
-export function fillLoneNotes(previous: GameState, next: GameState, { blockIncorrectAnswers = false }: { blockIncorrectAnswers?: boolean } = {}): { game: GameState; cells: number[] } {
-  if (next === previous || isComplete(next)) return { game: next, cells: [] };
-  const before = new Set(loneNoteCells(previous));
-  const candidates = loneNoteCells(next).filter(index => !before.has(index) && !(blockIncorrectAnswers && next.notes[index][0] !== next.solution[index]));
+export function fillLoneNotes(next: GameState, { blockIncorrectAnswers = false }: { blockIncorrectAnswers?: boolean } = {}): { game: GameState; cells: number[] } {
+  if (isComplete(next)) return { game: next, cells: [] };
+  const candidates = loneNoteCells(next).filter(index => next.noteOrigins[index] === 'manual' && !(blockIncorrectAnswers && next.notes[index][0] !== next.solution[index]));
   if (!candidates.length) return { game: next, cells: [] };
   const values = [...next.values], notes = next.notes.map(n => [...n]), exclusions = next.exclusions.map(n => [...n]), noteOrigins = [...next.noteOrigins], bold = next.bold.map(n => [...n]);
   const cells: number[] = [];
