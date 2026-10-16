@@ -2,7 +2,7 @@
 import { chromium } from '@playwright/test';
 import { spawn } from 'node:child_process';
 
-const PORT = 3410;
+const PORT = 3399;
 const inUse = await fetch(`http://localhost:${PORT}`).then(() => true, () => false);
 if (inUse) throw new Error(`Port ${PORT} is already in use; stop that server first.`);
 const server = spawn('pnpm', ['start', '--port', String(PORT)], { stdio: ['ignore', 'ignore', 'inherit'] });

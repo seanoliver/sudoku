@@ -91,7 +91,7 @@ pnpm build
 pnpm test:e2e
 ```
 
-`pnpm test:e2e` starts its own server on a port chosen from the checkout's path, so worktrees can run it side by side. If that port is taken, set `E2E_PORT` to another one.
+`pnpm test:e2e` starts its own server on a port chosen from the checkout's path, so worktrees can run it side by side. If that port is taken, stop what is listening (`lsof -iTCP:<port> -sTCP:LISTEN`) or set `E2E_PORT` to another one.
 
 - `src/lib/sudoku.ts`: seeded generator, peers, conflict detection, MRV uniqueness solver.
 - `src/lib/game.ts`: pure game transitions, undo, saved-game validation; `undo-description.ts` names what an undo or redo changed, for screen readers.
