@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 import { openGame } from './fixtures.ts';
-import { createGame, enter, SAVE_KEY, type GameState } from '../src/lib/game.ts';
+import { createGame, enter, fillNotes, SAVE_KEY, type GameState } from '../src/lib/game.ts';
 import { DEFAULT_PREFS, PREFS_KEY } from '../src/lib/preferences.ts';
 import { createPuzzle } from '../src/lib/difficulty.ts';
 import { getEntryDigits, peers } from '../src/lib/sudoku.ts';
@@ -175,4 +175,27 @@ test('with Block incorrect answers on, a wrong lone note is not filled', async (
   await key(page, start.solution[setup.q]).click();
   await expect(value(page, setup.q)).toHaveText(String(start.solution[setup.q]));
   await expect(value(page, setup.c)).toHaveCount(0);
+});
+
+test('a proven lone note you wrote earlier fills on your next entry elsewhere', async ({ page }) => {
+  await seed(page, { fillLoneNotes: true }, { ...pencil(start, single, answer), history: [] });
+  await openGame(page);
+  await cell(page, loose).click();
+  await mode(page, 'Notes');
+  await key(page, entry(loose)[0]).click();
+  await expect(value(page, single)).toHaveText(String(answer));
+});
+
+test('lone notes from Fill notes stay notes until you edit the cell', async ({ page }) => {
+  await seed(page, { fillLoneNotes: true }, { ...fillNotes(start), history: [] });
+  await openGame(page);
+  await cell(page, loose).click();
+  await mode(page, 'Notes');
+  await key(page, entry(loose)[0]).click();
+  await expect.poll(async () => (await savedGame(page)).history.length).toBe(1);
+  await expect(value(page, single)).toHaveCount(0);
+  await cell(page, single).click();
+  await key(page, answer).click();
+  await key(page, answer).click();
+  await expect(value(page, single)).toHaveText(String(answer));
 });

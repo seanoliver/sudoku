@@ -607,7 +607,7 @@ export default function SudokuGame() {
   };
   const fillLone = (next: GameState) => {
     if (!preferences.fillLoneNotes || lesson || !game) return next;
-    const { game: filled, cells } = fillLoneNotes(game, next, { blockIncorrectAnswers: preferences.blockIncorrectAnswers });
+    const { game: filled, cells } = fillLoneNotes(next, { blockIncorrectAnswers: preferences.blockIncorrectAnswers });
     if (!cells.length) return next;
     setLoneFilled({ cells, id: ++placedId.current });
     setFillAnnouncement(current => ({ id: current.id + 1, text: cells.map(i => `Filled ${filled.values[i]} in row ${Math.floor(i / 9) + 1}, column ${i % 9 + 1}`).join('. ') }));

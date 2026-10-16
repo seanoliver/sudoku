@@ -6,8 +6,9 @@ Roadmap item: optional sole-candidate autofill, from the September 21 playtest. 
 
 - A cell qualifies when it is empty, holds exactly one note, and the numbers placed in its row, column, and box rule out every other digit.
 - Exclusions and other notes are not evidence. One note alone never proves anything.
-- Only cells that the player's action just made qualify are filled. A cell that already qualified stays as it is.
-- A fill clears its digit from its peers' notes, exclusions, and bold, but never fills another cell. The next fill needs another action from the player.
+- After each entry, every qualifying cell whose notes the player wrote or edited fills, wherever it is on the board. Notes from Fill notes count once the player edits that cell, so Fill notes followed by a tap never solves the board.
+- A fill clears its digit from its peers' notes, exclusions, and bold, but never fills another cell in the same entry. A cell that a fill proves fills on the player's next entry.
+- Sean chose this rule on October 16 after playtesting build 12 (#122). The first version filled only cells the latest entry proved, so identical-looking lone notes filled or stayed depending on how they became lone.
 
 ## Behavior
 
