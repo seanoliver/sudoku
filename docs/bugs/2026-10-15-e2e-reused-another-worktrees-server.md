@@ -20,7 +20,7 @@ The same setting also reused a server from the same checkout after `pnpm build`,
 
 #110:
 
-- The port comes from `E2E_PORT`, or in CI 3400, or locally a hash of the config file's folder (3400 to 3999), so worktrees do not share a port.
+- The port comes from `E2E_PORT`, or in CI 3400, or locally a hash of the config file's folder (3400 to 4999), so worktrees do not share a port.
 - `reuseExistingServer: false` everywhere. A taken port fails with "already used" instead of testing other code.
 - An invalid `E2E_PORT` throws.
 
