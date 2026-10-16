@@ -499,6 +499,12 @@ h1,h2,h3,p { margin: 0; }
 /* CSS rather than Motion, so it can never be left small if Motion fails to load. */
 .cell-number.placed { animation: number-placed 160ms cubic-bezier(.2, .8, .2, 1); }
 @keyframes number-placed { from { transform: scale(.9); } }
+/* The 250ms delay plus the 1200ms ring must add up to LONE_FILL_MS in game.tsx. */
+.cell-number.lone-filled { animation: lone-filled 160ms 250ms cubic-bezier(.2, .8, .2, 1) backwards; }
+@keyframes lone-filled { from { opacity: 0; transform: scale(.9); } }
+.lone-fill-ring { position: absolute; inset: 2px; border-radius: 6px; box-shadow: inset 0 0 0 2px var(--green); background: color-mix(in srgb, var(--green) 14%, transparent); pointer-events: none; animation: lone-fill-ring 1200ms 250ms both; }
+@keyframes lone-fill-ring { from { opacity: 0; } 15%, 70% { opacity: 1; } to { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .lone-fill-ring { animation: none !important; } }
 
 .board-wrap.walkthrough .cell:not(.walk-used) > * { opacity: .22; }
 .board-wrap.walkthrough .notes { position: relative; }

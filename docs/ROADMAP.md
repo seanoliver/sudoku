@@ -149,7 +149,7 @@ Captured from Sean's September 20 feedback and the [September 21 playtest](playt
 
 ## September 21 additions
 
-Source: [original playtest notes and coverage](playtests/2026-09-21.md). Status: number-row focus, incorrect-entry feedback and faded red exclusions have shipped (see each item). Default number focus shipped with R22. Sole-candidate autofill is still pending design. The configurable number picker has shipped and is tracked in the existing section above.
+Source: [original playtest notes and coverage](playtests/2026-09-21.md). Status: number-row focus, incorrect-entry feedback and faded red exclusions have shipped (see each item). Default number focus shipped with R22. Sole-candidate autofill has shipped as Fill lone notes. The configurable number picker has shipped and is tracked in the existing section above.
 
 ### Default number focus
 
@@ -194,6 +194,8 @@ Source: [original playtest notes and coverage](playtests/2026-09-21.md). Status:
 **Completion criteria:** Adding or removing an exclusion switches an otherwise eligible cell between green and faded red. Placements, digit changes and undo refresh the state without changing annotations.
 
 ### Optional sole-candidate autofill
+
+**Status:** Shipped as Fill lone notes in [PR #120](https://github.com/seanoliver/sudoku/pull/120) ([design](plans/2026-10-16-lone-notes-design.md)), after Sean chose direction A, fills itself, on October 16. Off by default. Only the placed numbers count as proof, and a fill never causes another fill.
 
 - Add an option to fill a cell when only one candidate is possible and that candidate is noted in the cell.
 - Validate candidate eligibility independently of the visible note count. One handwritten note alone does not establish that only one candidate is possible.
@@ -509,8 +511,8 @@ Captured from Sean on September 24. Long-term scope, modeled on the way Good Sud
 
 Unrestricted deduction chaining previously reduced 86 of 100 sampled Hard puzzles to one candidate per empty cell before the first move. See the [manual-notes investigation](investigations/2026-09-15-manual-notes.md).
 
-This roadmap keeps automatic bookkeeping limited to explicit actions and existing placed-number peer cleanup. Adding notes, opening help, or enabling highlighting must not silently apply a chain of deductions. The September 21 sole-noted-candidate autofill request is a scoped proposal; its evidence and chaining rules must be resolved before implementation. Broader automation preferences remain deferred until single-step assistance is useful and trustworthy.
+This roadmap keeps automatic bookkeeping limited to explicit actions and existing placed-number peer cleanup. Adding notes, opening help, or enabling highlighting must not silently apply a chain of deductions. The September 21 sole-noted-candidate autofill request shipped as Fill lone notes: only placed numbers count as evidence, and a fill never chains into another. Broader automation preferences remain deferred until single-step assistance is useful and trustworthy.
 
 ## Delivery discipline
 
-Each item's Status line records what has shipped. Open follow-ups include temporary note preview and optional sole-candidate autofill. Open research spikes (R5–R7, R9, R12, R16–R18, R21, R23) must produce reviewed scope proposals before their feature outcomes enter the implementation sequence. CI merge gates are already active. Each feature starts with three rendered design directions for Sean to review, followed by a detailed implementation plan and a focused PR. Sean may change the order or skip renderings explicitly. This roadmap does not authorize implementing every phase at once. Update milestone status and links as changes merge.
+Each item's Status line records what has shipped. Open follow-ups include temporary note preview. Open research spikes (R5–R7, R9, R12, R16–R18, R21, R23) must produce reviewed scope proposals before their feature outcomes enter the implementation sequence. CI merge gates are already active. Each feature starts with three rendered design directions for Sean to review, followed by a detailed implementation plan and a focused PR. Sean may change the order or skip renderings explicitly. This roadmap does not authorize implementing every phase at once. Update milestone status and links as changes merge.
