@@ -183,19 +183,24 @@ export function loneNoteCells(game: GameState): number[] {
 /**
  * Places the lone notes that `next` proves and `previous` did not, inside `next`'s own undo step.
  * The fills clear their peers' notes but never fill another cell themselves.
+ * With `blockIncorrectAnswers`, a lone note proven by a wrong number stays a note.
  */
-export function fillLoneNotes(previous: GameState, next: GameState): { game: GameState; cells: number[] } {
+export function fillLoneNotes(previous: GameState, next: GameState, { blockIncorrectAnswers = false }: { blockIncorrectAnswers?: boolean } = {}): { game: GameState; cells: number[] } {
   if (next === previous || isComplete(next)) return { game: next, cells: [] };
   const before = new Set(loneNoteCells(previous));
-  const cells = loneNoteCells(next).filter(index => !before.has(index));
-  if (!cells.length) return { game: next, cells };
+  const candidates = loneNoteCells(next).filter(index => !before.has(index) && !(blockIncorrectAnswers && next.notes[index][0] !== next.solution[index]));
+  if (!candidates.length) return { game: next, cells: [] };
   const values = [...next.values], notes = next.notes.map(n => [...n]), exclusions = next.exclusions.map(n => [...n]), noteOrigins = [...next.noteOrigins], bold = next.bold.map(n => [...n]);
-  for (const index of cells) {
+  const cells: number[] = [];
+  for (const index of candidates) {
     const value = next.notes[index][0];
+    // A wrong placed number can prove the same digit in two peers; only the first one fills.
+    if (!getEntryDigits({ values, index }).includes(value)) continue;
+    cells.push(index);
     values[index] = value; notes[index] = []; exclusions[index] = []; bold[index] = []; noteOrigins[index] = null;
     for (const peer of peers(index)) { notes[peer] = notes[peer].filter(n => n !== value); exclusions[peer] = exclusions[peer].filter(n => n !== value); bold[peer] = bold[peer].filter(n => n !== value); }
   }
-  return { game: { ...next, values, notes, exclusions, noteOrigins, bold }, cells };
+  return cells.length ? { game: { ...next, values, notes, exclusions, noteOrigins, bold }, cells } : { game: next, cells };
 }
 export function undo(game: GameState): GameState {
   const previous = game.history.at(-1);

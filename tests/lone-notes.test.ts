@@ -78,3 +78,45 @@ test('no change and a finished board fill nothing', () => {
   const solved = { ...start, values: [...start.solution] };
   assert.deepEqual(engine.fillLoneNotes(start, solved), { game: solved, cells: [] });
 });
+
+const twin = (() => {
+  const blank = engine.createGame({ id: 'twin', difficulty: 'easy', givens: Array(81).fill(0), solution: Array(81).fill(1) });
+  const values = [...blank.values];
+  for (let row = 3; row < 9; row++) values[row * 9] = values[row * 9 + 1] = row - 2;
+  values[2] = 7;
+  return engine.enter(engine.enter({ ...blank, values }, { index: 0, value: 9, pencil: true }), { index: 1, value: 9, pencil: true });
+})();
+
+test('one entry never fills the same digit into two peers', () => {
+  const placed = engine.enter(twin, { index: 5, value: 8 });
+  const { game, cells } = engine.fillLoneNotes(twin, placed);
+  assert.deepEqual(cells, [0]);
+  assert.deepEqual(game.values.slice(0, 2), [9, 0]);
+});
+
+test('with Block incorrect answers on, a lone note that is not the answer stays a note', () => {
+  const placed = engine.enter(twin, { index: 5, value: 8 });
+  assert.deepEqual(engine.fillLoneNotes(twin, placed, { blockIncorrectAnswers: true }), { game: placed, cells: [] });
+});
+
+test('a lone note the placed numbers rule out is not filled', () => {
+  const wrong = note(start, single, stale);
+  assert.deepEqual(engine.loneNoteCells(wrong), []);
+  assert.deepEqual(engine.fillLoneNotes(start, wrong).cells, []);
+});
+
+test("a fill clears its own cell's exclusions and bold, and its digit from peer exclusions", () => {
+  const digit = start.solution[single];
+  const crossed = [1, 2, 3, 4, 5, 6, 7, 8, 9].find(d => d !== digit && d !== stale)!;
+  const peer = peers(single).find(p => !start.values[p] && entry(p).includes(digit))!;
+  let before = engine.enter(start, { index: peer, value: digit, exclude: true });
+  before = engine.toggleBold(note(before, single, digit), { indices: [single], value: digit });
+  before = engine.enter(note(before, single, stale), { index: single, value: crossed, exclude: true });
+  const after = note(before, single, stale);
+  const { game, cells } = engine.fillLoneNotes(before, after);
+  assert.deepEqual(before.exclusions[single], [crossed]);
+  assert.deepEqual(cells, [single]);
+  assert.deepEqual(game.exclusions[single], []);
+  assert.deepEqual(game.bold[single], []);
+  assert.ok(!game.exclusions[peer].includes(digit));
+});

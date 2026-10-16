@@ -19,10 +19,10 @@ const pencil = (game: GameState, index: number, value: number) => enter(game, { 
 const game = [[single, answer], [single, stale], [pair, start.solution[pair]], [loose, entry(loose)[0]]].reduce((g, [i, d]) => pencil(g, i, d), start);
 const saved = { ...game, history: [], redoHistory: [] };
 
-const seed = (page: Page, prefs: Partial<typeof DEFAULT_PREFS> = { fillLoneNotes: true }) => page.addInitScript(([key, value, prefsKey, prefsValue]) => {
+const seed = (page: Page, prefs: Partial<typeof DEFAULT_PREFS> = { fillLoneNotes: true }, board: GameState = saved) => page.addInitScript(([key, value, prefsKey, prefsValue]) => {
   if (sessionStorage.getItem('seeded')) return;
   localStorage.setItem(key, value); localStorage.setItem(prefsKey, prefsValue); sessionStorage.setItem('seeded', '1');
-}, [SAVE_KEY, JSON.stringify(saved), PREFS_KEY, JSON.stringify({ ...DEFAULT_PREFS, ...prefs })]);
+}, [SAVE_KEY, JSON.stringify(board), PREFS_KEY, JSON.stringify({ ...DEFAULT_PREFS, ...prefs })]);
 const cell = (page: Page, i: number) => page.locator(`.board [data-index="${i}"]`);
 const value = (page: Page, i: number) => cell(page, i).locator('.cell-number');
 const key = (page: Page, n: number) => page.locator('.number-pad .number-key').nth(n - 1);
@@ -94,4 +94,31 @@ test('Settings turns Fill lone notes on and keeps it', async ({ page }) => {
   await toggle.click();
   await expect(toggle).toHaveAttribute('aria-checked', 'true');
   await expect.poll(() => page.evaluate(k => JSON.parse(localStorage.getItem(k)!).fillLoneNotes, PREFS_KEY)).toBe(true);
+});
+
+test('a batch of notes fills a cell its edit proves', async ({ page }) => {
+  const neighbor = single % 9 > 0 && !start.values[single - 1] ? single - 1 : single + 1;
+  await seed(page, { fillLoneNotes: true, filterNumberKeys: false }, { ...pencil(saved, neighbor, stale), history: [] });
+  await openGame(page);
+  await mode(page, 'Notes');
+  const [from, to] = await Promise.all([cell(page, neighbor).boundingBox(), cell(page, single).boundingBox()]);
+  await page.mouse.move(from!.x + from!.width / 2, from!.y + from!.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(to!.x + to!.width / 2, to!.y + to!.height / 2, { steps: 5 });
+  await page.mouse.up();
+  await expect(page.getByRole('status').filter({ hasText: '2 cells selected' })).toHaveCount(1);
+  await page.keyboard.press(String(stale));
+  await expect(value(page, single)).toHaveText(String(answer));
+  await expect(value(page, neighbor)).toHaveCount(0);
+});
+
+test('a fill that finishes the puzzle shows the finish card', async ({ page }) => {
+  const last = { ...createGame({ ...start, givens: start.solution.map((d, i) => i === single ? 0 : d) }), id: start.id };
+  await seed(page, { fillLoneNotes: true }, last);
+  await openGame(page);
+  await cell(page, single).click();
+  await mode(page, 'Notes');
+  await key(page, answer).click();
+  await expect(page.locator('.completion')).toBeVisible();
+  await expect(value(page, single)).toHaveText(String(answer));
 });

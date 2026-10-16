@@ -17,6 +17,7 @@ Roadmap item: optional sole-candidate autofill, from the September 21 playtest. 
 - The number appears after a 250 ms beat and sits in a soft green ring that fades by 1.45 s. With reduced motion the ring stays still until it goes.
 - The fill is part of the player's action: one Undo takes back both. A live region announces "Filled 2 in row 8, column 7".
 - A fill that finishes the puzzle plays the whole-board celebration. Fills that complete a row, column, or box do not sweep it.
+- A solve that used it still counts as clean, as Fill notes does: the fill only places what the player's notes and the placed numbers already prove. Sean decided this on October 16.
 
 ## Rejected
 
