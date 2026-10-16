@@ -159,7 +159,7 @@ function FinishCard({ level, seconds, best, newBest, earned, counts, share, onRe
 const REJECTION_MS = 800;
 const CELEBRATION_STEP_MS = 45;
 const BOLD_HOLD_MS = 450;
-type KeyHold = { key: number; timer: number; fired: boolean; releasedAt?: number };
+type KeyHold = { key: number; pointerId: number; timer: number; fired: boolean; releasedAt?: number };
 const CELEBRATION_MS = 520;
 /** Manhattan distance between two cells on the 9x9 grid. */
 function SwipeCopy({ screen }: { screen: HTMLElement }) {
@@ -565,7 +565,7 @@ export default function SudokuGame() {
     if (cell !== undefined && next.values[cell]) moveFocus(next.values[cell]);
   };
   const toggleBoldNote = (value: number) => {
-    if (!game || paused || busy || sheet || complete || lessonLocked || !pencil) return false;
+    if (!game || paused || busy || sheet || complete || lessonLocked || !pencil || colorMode || keyState(value).focusOnly) return false;
     const indices = batchSelection ? selection.indices : [selected];
     const next = toggleBold(game, { indices, value, filterNumberKeys: preferences.filterNumberKeys });
     if (next === game) return false;
@@ -579,25 +579,26 @@ export default function SudokuGame() {
   };
   useLayoutEffect(() => { toggleBoldLatest.current = toggleBoldNote; });
   useEffect(() => () => { if (keyHold.current) clearTimeout(keyHold.current.timer); }, []);
-  const startKeyHold = (value: number) => {
+  const startKeyHold = (value: number, pointerId: number) => {
     if (keyHold.current) clearTimeout(keyHold.current.timer);
     keyHold.current = null;
     if (!pencil) return;
-    const hold: KeyHold = { key: value, fired: false, timer: 0 };
+    const hold: KeyHold = { key: value, pointerId, fired: false, timer: 0 };
     hold.timer = window.setTimeout(() => { hold.fired = toggleBoldLatest.current(value); }, BOLD_HOLD_MS);
     keyHold.current = hold;
   };
-  const endKeyHold = ({ released }: { released: boolean }) => {
+  const endKeyHold = ({ released, pointerId }: { released: boolean; pointerId: number }) => {
     const hold = keyHold.current;
-    if (!hold) return;
+    if (!hold || hold.pointerId !== pointerId) return;
     clearTimeout(hold.timer);
     if (released && hold.fired) hold.releasedAt = performance.now();
   };
   const endsBoldHold = (value: number) => {
     const hold = keyHold.current;
+    if (!hold || hold.key !== value) return false;
     keyHold.current = null;
-    if (hold) clearTimeout(hold.timer);
-    return Boolean(hold?.fired && hold.key === value && hold.releasedAt !== undefined && performance.now() - hold.releasedAt < 1000);
+    clearTimeout(hold.timer);
+    return hold.fired && hold.releasedAt !== undefined && performance.now() - hold.releasedAt < 1000;
   };
   const input = (value: number) => {
     if (!game || paused || busy || sheet || complete || lessonLocked) return;
@@ -1100,7 +1101,7 @@ export default function SudokuGame() {
           {DIGITS.map(n => {
             const { remaining, filtered, focusOnly } = keyState(n);
             const lit = focusedDigit === n;
-            return <Pressable key={n} className={`number-key ${lit ? 'digit-focused' : ''} ${!remaining ? 'digit-finished' : ''} ${filtered ? 'digit-filtered' : ''}`} aria-pressed={numberFocus || focusOnly ? lit : undefined} aria-label={(numberFocus || focusOnly ? `Focus on ${n}` : batchSelection ? (game && batchHasMark(game, { indices: selection.indices, value: n, marks: excluding ? 'exclusions' : 'notes' }) ? `Remove ${excluding ? 'exclusion' : 'note'} ${n} from ${selection.indices.length} selected cells` : `${excluding ? 'Exclude' : 'Add note'} ${n} ${excluding ? 'from' : 'to'} ${selection.indices.length} selected cells`) : `${excluding ? 'Rule out' : 'Enter'} ${n}${pencil ? ' as a note' : ''}`) + (filtered ? ', unavailable: already in this row, column, or box' : '') + (remaining ? '' : ', all placed')} disabled={!game || busy || paused || complete} onKeyDown={event => { if (event.key === 'Enter' && event.repeat) event.preventDefault(); }} onPointerDown={event => { if (event.isPrimary && event.button === 0) startKeyHold(n); }} onPointerUp={() => endKeyHold({ released: true })} onPointerLeave={() => endKeyHold({ released: false })} onPointerCancel={() => endKeyHold({ released: false })}
+            return <Pressable key={n} className={`number-key ${lit ? 'digit-focused' : ''} ${!remaining ? 'digit-finished' : ''} ${filtered ? 'digit-filtered' : ''}`} aria-pressed={numberFocus || focusOnly ? lit : undefined} aria-label={(numberFocus || focusOnly ? `Focus on ${n}` : batchSelection ? (game && batchHasMark(game, { indices: selection.indices, value: n, marks: excluding ? 'exclusions' : 'notes' }) ? `Remove ${excluding ? 'exclusion' : 'note'} ${n} from ${selection.indices.length} selected cells` : `${excluding ? 'Exclude' : 'Add note'} ${n} ${excluding ? 'from' : 'to'} ${selection.indices.length} selected cells`) : `${excluding ? 'Rule out' : 'Enter'} ${n}${pencil ? ' as a note' : ''}`) + (filtered ? ', unavailable: already in this row, column, or box' : '') + (remaining ? '' : ', all placed')} disabled={!game || busy || paused || complete} onKeyDown={event => { if (event.key === 'Enter' && event.repeat) event.preventDefault(); }} onPointerDown={event => { if (event.isPrimary && event.button === 0) startKeyHold(n, event.pointerId); }} onPointerUp={event => endKeyHold({ released: true, pointerId: event.pointerId })} onPointerLeave={event => endKeyHold({ released: false, pointerId: event.pointerId })} onPointerCancel={event => endKeyHold({ released: false, pointerId: event.pointerId })}
               onContextMenu={event => { if (pencil) event.preventDefault(); }}
               onClick={() => { if (!endsBoldHold(n)) input(n); }}><span style={{ gridRow: Math.ceil(n / 3), gridColumn: (n - 1) % 3 + 1 }}>{n}</span></Pressable>;
           })}
