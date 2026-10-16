@@ -200,7 +200,7 @@ export function fillLoneNotes(previous: GameState, next: GameState, { blockIncor
     values[index] = value; notes[index] = []; exclusions[index] = []; bold[index] = []; noteOrigins[index] = null;
     for (const peer of peers(index)) { notes[peer] = notes[peer].filter(n => n !== value); exclusions[peer] = exclusions[peer].filter(n => n !== value); bold[peer] = bold[peer].filter(n => n !== value); }
   }
-  return cells.length ? { game: { ...next, values, notes, exclusions, noteOrigins, bold }, cells } : { game: next, cells };
+  return { game: { ...next, values, notes, exclusions, noteOrigins, bold }, cells };
 }
 export function undo(game: GameState): GameState {
   const previous = game.history.at(-1);

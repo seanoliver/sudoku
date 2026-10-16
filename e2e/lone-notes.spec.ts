@@ -70,7 +70,7 @@ test('a lone note that other digits still fit is not filled', async ({ page }) =
   await mode(page, 'Notes');
   await key(page, entry(loose)[1]).click();
   await key(page, entry(loose)[1]).click();
-  await page.waitForTimeout(500);
+  await expect.poll(async () => (await savedGame(page)).history.length).toBeGreaterThan(0);
   await expect(value(page, loose)).toHaveCount(0);
 });
 
@@ -80,7 +80,7 @@ test('with the setting off, nothing fills', async ({ page }) => {
   await cell(page, single).click();
   await mode(page, 'Notes');
   await key(page, stale).click();
-  await page.waitForTimeout(500);
+  await expect.poll(async () => (await savedGame(page)).history.length).toBeGreaterThan(0);
   await expect(value(page, single)).toHaveCount(0);
   await expect(cell(page, single).locator(`.note-digit[data-digit="${answer}"]`)).toHaveAttribute('data-visible', 'true');
 });
@@ -121,4 +121,41 @@ test('a fill that finishes the puzzle shows the finish card', async ({ page }) =
   await key(page, answer).click();
   await expect(page.locator('.completion')).toBeVisible();
   await expect(value(page, single)).toHaveText(String(answer));
+  await expect(page.locator('.unit-celebration').first()).toBeAttached();
+});
+
+test('a fill that completes a row does not sweep it', async ({ page }) => {
+  const sol = start.solution;
+  const below = sol.findIndex((d, i) => i % 9 === 1 && i > 1 && d === sol[0]);
+  const last = { ...createGame({ ...start, givens: sol.map((d, i) => [0, 1, below, 72].includes(i) ? 0 : d) }), id: start.id };
+  await seed(page, { fillLoneNotes: true }, pencil(last, 1, sol[1]));
+  await openGame(page);
+  await page.evaluate(() => new MutationObserver(records => records.forEach(r => r.addedNodes.forEach(n => {
+    if (n instanceof Element && n.matches('.unit-celebration')) document.body.dataset.sweeps = String(Number(document.body.dataset.sweeps ?? 0) + 1);
+  }))).observe(document.querySelector('.board')!, { childList: true, subtree: true }));
+  await cell(page, 0).click();
+  await mode(page, 'Numbers');
+  await key(page, sol[0]).click();
+  await expect(value(page, 1)).toHaveText(String(sol[1]));
+  expect(await page.evaluate(() => document.body.dataset.sweeps)).toBeUndefined();
+});
+
+test('with Block incorrect answers on, a wrong lone note is not filled', async ({ page }) => {
+  // A wrong number at `wrong` takes `c`'s answer away, so placing `q` leaves only the wrong note `x`.
+  const allowed = (values: number[], i: number) => getEntryDigits({ values, index: i });
+  const setup = empty.flatMap(c => peers(c).filter(w => !start.values[w]).flatMap(wrong => {
+    const values = start.values.map((v, i) => i === wrong ? start.solution[c] : v);
+    return peers(c).filter(q => !values[q] && q !== wrong && allowed(values, q).includes(start.solution[q])).flatMap(q => {
+      const left = allowed(values, c).filter(d => d !== start.solution[q]);
+      return allowed(values, c).length === 2 && left.length === 1 ? [{ c, wrong, q, x: left[0], values }] : [];
+    });
+  }))[0];
+  const odd = pencil({ ...start, values: setup.values }, setup.c, setup.x);
+  await seed(page, { fillLoneNotes: true, blockIncorrectAnswers: true }, { ...odd, history: [] });
+  await openGame(page);
+  await cell(page, setup.q).click();
+  await mode(page, 'Numbers');
+  await key(page, start.solution[setup.q]).click();
+  await expect(value(page, setup.q)).toHaveText(String(start.solution[setup.q]));
+  await expect(value(page, setup.c)).toHaveCount(0);
 });
