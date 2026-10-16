@@ -70,7 +70,7 @@ test('a lone note that other digits still fit is not filled', async ({ page }) =
   await mode(page, 'Notes');
   await key(page, entry(loose)[1]).click();
   await key(page, entry(loose)[1]).click();
-  await expect.poll(async () => (await savedGame(page)).history.length).toBeGreaterThan(0);
+  await expect.poll(async () => (await savedGame(page)).history.length).toBe(2);
   await expect(value(page, loose)).toHaveCount(0);
 });
 
@@ -80,7 +80,7 @@ test('with the setting off, nothing fills', async ({ page }) => {
   await cell(page, single).click();
   await mode(page, 'Notes');
   await key(page, stale).click();
-  await expect.poll(async () => (await savedGame(page)).history.length).toBeGreaterThan(0);
+  await expect.poll(async () => (await savedGame(page)).history.length).toBe(1);
   await expect(value(page, single)).toHaveCount(0);
   await expect(cell(page, single).locator(`.note-digit[data-digit="${answer}"]`)).toHaveAttribute('data-visible', 'true');
 });
@@ -121,6 +121,23 @@ test('a fill that finishes the puzzle shows the finish card', async ({ page }) =
   await key(page, answer).click();
   await expect(page.locator('.completion')).toBeVisible();
   await expect(value(page, single)).toHaveText(String(answer));
+  await expect(page.locator('.unit-celebration').first()).toBeAttached();
+});
+
+test('a batch fill that finishes the puzzle plays the finish celebration', async ({ page }) => {
+  const last = { ...createGame({ ...start, givens: start.solution.map((d, i) => i === single ? 0 : d) }), id: start.id };
+  await seed(page, { fillLoneNotes: true }, last);
+  await openGame(page);
+  await mode(page, 'Notes');
+  const filled = single % 9 < 8 ? single + 1 : single - 1;
+  const [from, to] = await Promise.all([cell(page, single).boundingBox(), cell(page, filled).boundingBox()]);
+  await page.mouse.move(from!.x + from!.width / 2, from!.y + from!.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(to!.x + to!.width / 2, to!.y + to!.height / 2, { steps: 5 });
+  await page.mouse.up();
+  await expect(page.getByRole('status').filter({ hasText: '1 cell selected' })).toHaveCount(1);
+  await key(page, answer).click();
+  await expect(page.locator('.completion')).toBeVisible();
   await expect(page.locator('.unit-celebration').first()).toBeAttached();
 });
 
