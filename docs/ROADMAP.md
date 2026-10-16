@@ -195,7 +195,7 @@ Source: [original playtest notes and coverage](playtests/2026-09-21.md). Status:
 
 ### Optional sole-candidate autofill
 
-**Status:** Shipped as Fill lone notes in [PR #120](https://github.com/seanoliver/sudoku/pull/120) ([design](plans/2026-10-16-lone-notes-design.md)), after Sean chose direction A, fills itself, on October 16. Off by default. Only the placed numbers count as proof, and a fill never causes another fill.
+**Status:** Shipped as Fill lone notes in [PR #120](https://github.com/seanoliver/sudoku/pull/120) ([design](plans/2026-10-16-lone-notes-design.md)), after Sean chose direction A, fills itself, on October 16. Off by default. Only the placed numbers count as proof, and only notes the player wrote or edited fill; notes from Fill notes count once the player edits that cell ([PR #124](https://github.com/seanoliver/sudoku/pull/124), after playtesting build 12). A fill never causes another fill in the same entry; a cell a fill proves fills on the next entry.
 
 - Add an option to fill a cell when only one candidate is possible and that candidate is noted in the cell.
 - Validate candidate eligibility independently of the visible note count. One handwritten note alone does not establish that only one candidate is possible.
