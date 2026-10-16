@@ -1,4 +1,4 @@
-import { conflicts, peers, type Puzzle } from './sudoku.ts';
+import { conflicts, getEntryDigits, peers, type Puzzle } from './sudoku.ts';
 import { getPlayableCandidates } from './candidates.ts';
 export type NoteOrigin = 'manual' | 'generated' | null;
 const emptyNotes = (): number[][] => Array.from({ length: 81 }, () => []);
@@ -171,6 +171,36 @@ export function enter(game: GameState, { index, value, pencil = false, exclude =
     if (value) for (const peer of peers(index)) { notes[peer] = notes[peer].filter(n => n !== value); exclusions[peer] = exclusions[peer].filter(n => n !== value); }
   }
   return record(game, { values, notes, exclusions, noteOrigins });
+}
+/** Empty cells whose one note is the only digit their placed row, column and box allow. Exclusions are not evidence. */
+export function loneNoteCells(game: GameState): number[] {
+  return game.values.flatMap((value, index) => {
+    if (value || game.notes[index].length !== 1) return [];
+    const digits = getEntryDigits({ values: game.values, index });
+    return digits.length === 1 && digits[0] === game.notes[index][0] ? [index] : [];
+  });
+}
+/**
+ * Places the lone notes that `next` proves and `previous` did not, inside `next`'s own undo step.
+ * The fills clear their peers' notes but never fill another cell themselves.
+ * With `blockIncorrectAnswers`, a lone note proven by a wrong number stays a note.
+ */
+export function fillLoneNotes(previous: GameState, next: GameState, { blockIncorrectAnswers = false }: { blockIncorrectAnswers?: boolean } = {}): { game: GameState; cells: number[] } {
+  if (next === previous || isComplete(next)) return { game: next, cells: [] };
+  const before = new Set(loneNoteCells(previous));
+  const candidates = loneNoteCells(next).filter(index => !before.has(index) && !(blockIncorrectAnswers && next.notes[index][0] !== next.solution[index]));
+  if (!candidates.length) return { game: next, cells: [] };
+  const values = [...next.values], notes = next.notes.map(n => [...n]), exclusions = next.exclusions.map(n => [...n]), noteOrigins = [...next.noteOrigins], bold = next.bold.map(n => [...n]);
+  const cells: number[] = [];
+  for (const index of candidates) {
+    const value = next.notes[index][0];
+    // A wrong placed number can prove the same digit in two peers; only the first one fills.
+    if (!getEntryDigits({ values, index }).includes(value)) continue;
+    cells.push(index);
+    values[index] = value; notes[index] = []; exclusions[index] = []; bold[index] = []; noteOrigins[index] = null;
+    for (const peer of peers(index)) { notes[peer] = notes[peer].filter(n => n !== value); exclusions[peer] = exclusions[peer].filter(n => n !== value); bold[peer] = bold[peer].filter(n => n !== value); }
+  }
+  return { game: { ...next, values, notes, exclusions, noteOrigins, bold }, cells };
 }
 export function undo(game: GameState): GameState {
   const previous = game.history.at(-1);
