@@ -188,8 +188,8 @@ export default function SudokuGame() {
   const [storageError, setStorageError] = useState(false);
   const [sheet, setSheet] = useState<Sheet>(null);
   const [undoAnnouncement, setUndoAnnouncement] = useState({ id: 0, text: '' });
-  const [focusAnnouncement, setFocusAnnouncement] = useState({ id: 0, text: '' });
-  const moveFocus = (digit: number | null) => { setFocusedDigit(digit); setFocusAnnouncement(current => ({ ...current, text: '' })); };
+  const [focusAnnouncement, setFocusAnnouncement] = useState({ text: '' });
+  const moveFocus = (digit: number | null) => { setFocusedDigit(digit); setFocusAnnouncement(current => current.text ? { text: '' } : current); };
   const clearFocus = () => moveFocus(null);
   const [difficulty, setDifficulty] = useState<Difficulty>('easy');
   const [preferences, setPreferences] = useState(DEFAULT_PREFS);
@@ -564,7 +564,7 @@ export default function SudokuGame() {
     if (value !== 0 && (numberFocus || keyState(value).focusOnly)) {
       const clearing = focusedDigit === value;
       setFocusedDigit(clearing ? null : value); setBlockedEntry(null);
-      setFocusAnnouncement(current => ({ id: current.id + 1, text: clearing ? 'Focus cleared' : `Focused on ${value}` }));
+      setFocusAnnouncement({ text: clearing ? 'Focus cleared' : `Focused on ${value}` });
       return;
     }
     const refusedCells = batchSelection && excluding && preferences.blockIncorrectAnswers ? incorrectExclusions(game, { indices: selection.indices, value }) : [];
@@ -987,7 +987,7 @@ export default function SudokuGame() {
         </> : null}
       </div>
 
-      <p className="sr-only" role="status">{focusAnnouncement.text && !complete ? `${focusAnnouncement.text}${focusAnnouncement.id % 2 ? '\u00a0' : ''}` : ''}</p>
+      <p className="sr-only" role="status">{focusAnnouncement.text && !complete ? focusAnnouncement.text : ''}</p>
       <p className="sr-only" role="status">{walkLine && walkthrough ? `${lesson ? lessonName(lesson.id) : hintDisplay?.text}. Step ${walkIndex + 1} of ${walkthrough.length}. ${walkLine.text}` : hintDisplay?.label ?? ''}</p>
       <ViewTransition name="board" share={BOARD_SHARE} default="none"><div ref={boardWrap} className={`board-wrap ${complete ? 'is-complete' : ''} ${walkLine ? 'walkthrough' : ''}`}>
         <div className="board" role="grid" aria-label="Sudoku puzzle" aria-rowcount={9} aria-colcount={9} ref={board} {...selection.pointerHandlers} aria-multiselectable={batchSelection} aria-busy={busy} inert={paused || busy}>
