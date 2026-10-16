@@ -1,6 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 import { openGame } from './fixtures.ts';
 import { createGame, SAVE_KEY } from '../src/lib/game.ts';
+import { DEFAULT_PREFS, PREFS_KEY } from '../src/lib/preferences.ts';
 import { createPuzzle } from '../src/lib/difficulty.ts';
 import { peers } from '../src/lib/sudoku.ts';
 
@@ -141,7 +142,7 @@ test('Shift with a digit that Shift types, as on AZERTY, adds a plain note', asy
   await expect(note(page, a)).not.toHaveClass(/note-bold/);
 });
 
-test('Enter on a key after a hold that ended off the key still toggles the note', async ({ page }) => {
+test('a click with no pointer press, after a hold that ended off the key, still toggles the note', async ({ page }) => {
   await seed(page);
   await openGame(page);
   await cell(page, a).click();
@@ -153,8 +154,7 @@ test('Enter on a key after a hold that ended off the key still toggles the note'
   await page.mouse.move(box.x + box.width / 2, box.y - 200, { steps: 3 });
   await page.mouse.up();
   await expect(note(page, a)).toHaveClass(/note-bold/);
-  await key(page).focus();
-  await page.keyboard.press('Enter');
+  await key(page).dispatchEvent('click');
   await expect(note(page, a)).toHaveAttribute('data-visible', 'false');
 });
 
@@ -173,6 +173,51 @@ test('a hold or Shift with a number does nothing while paused, in Color, or on a
   await page.keyboard.press(`Shift+Digit${digit}`);
   await page.getByRole('button', { name: 'Resume game' }).click();
   await expect(note(page, a)).toHaveAttribute('data-visible', 'false');
+});
+
+test('a press shorter than the hold adds a plain note', async ({ page }) => {
+  await seed(page);
+  await openGame(page);
+  await cell(page, a).click();
+  await notesMode(page);
+  const box = (await key(page).boundingBox())!;
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await page.mouse.down();
+  await page.clock.runFor(300);
+  await page.mouse.up();
+  await expect(note(page, a)).toHaveAttribute('data-visible', 'true');
+  await expect(note(page, a)).not.toHaveClass(/note-bold/);
+});
+
+test('with Filter number keys off, a hold on a finished number focuses it', async ({ page }) => {
+  const finished = game.solution[a];
+  const full = { ...game, values: game.values.map((v, i) => game.solution[i] === finished ? finished : v) };
+  const keep = full.values.findIndex(v => !v);
+  await page.clock.install();
+  await page.addInitScript(([key, value, prefsKey, prefs]) => { localStorage.setItem(key, value); localStorage.setItem(prefsKey, prefs); }, [SAVE_KEY, JSON.stringify(full), PREFS_KEY, JSON.stringify({ ...DEFAULT_PREFS, filterNumberKeys: false })]);
+  await openGame(page);
+  await cell(page, keep).click();
+  await notesMode(page);
+  await hold(page, finished);
+  await expect(key(page, finished)).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('.note-bold')).toHaveCount(0);
+});
+
+test('a batch hold skips cells whose row, column, or box already has the number', async ({ page }) => {
+  const pick = (() => {
+    for (let x = 0; x < 81; x++) for (let y = x + 1; y < 81; y++) {
+      if (game.values[x] || game.values[y]) continue;
+      const d = [1, 2, 3, 4, 5, 6, 7, 8, 9].find(n => !peers(x).some(p => game.values[p] === n) && peers(y).some(p => game.values[p] === n) && peers(y).some(p => !game.values[p] && p !== x));
+      if (d && Math.floor(x / 9) === Math.floor(y / 9) && Math.abs(x - y) === 1) return { x, y, d };
+    }
+    throw new Error('no pair');
+  })();
+  await seed(page);
+  await openGame(page);
+  await drag(page, pick.x, pick.y);
+  await hold(page, pick.d);
+  await expect(cell(page, pick.x).locator(`.note-digit[data-digit="${pick.d}"]`)).toHaveClass(/note-bold/);
+  await expect(cell(page, pick.y).locator(`.note-digit[data-digit="${pick.d}"]`)).toHaveAttribute('data-visible', 'false');
 });
 
 test('a hold on a dimmed key focuses its number, like a tap', async ({ page }) => {
@@ -202,5 +247,22 @@ test.describe('touch', () => {
     await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
     await expect(note(page, a)).toHaveClass(/note-bold/);
     await expect(note(page, a)).toHaveAttribute('data-visible', 'true');
+  });
+
+  test('sliding a finger off the key before the hold fires cancels it', async ({ page, browserName }) => {
+    test.skip(browserName !== 'chromium', 'CDP touch events');
+    await seed(page);
+    await openGame(page);
+    await cell(page, a).click();
+    await notesMode(page);
+    const box = (await key(page).boundingBox())!;
+    const point = { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+    const cdp = await page.context().newCDPSession(page);
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [point] });
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: point.x, y: point.y - 200 }] });
+    await page.clock.runFor(700);
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+    await expect(note(page, a)).toHaveAttribute('data-visible', 'false');
+    await expect(page.locator('.note-bold')).toHaveCount(0);
   });
 });
