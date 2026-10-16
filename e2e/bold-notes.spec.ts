@@ -34,6 +34,22 @@ test('holding a number key in Notes adds the note bold, and holding it again mak
   await hold(page);
   await expect(note(page, a)).not.toHaveClass(/note-bold/);
   await expect(note(page, a)).toHaveAttribute('data-visible', 'true');
+  await expect(page.getByRole('status').filter({ hasText: `Note ${digit} plain` })).toHaveCount(1);
+});
+
+test('sliding off the key before the hold fires cancels it', async ({ page }) => {
+  await seed(page);
+  await openGame(page);
+  await cell(page, a).click();
+  await notesMode(page);
+  const box = (await key(page).boundingBox())!;
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(box.x + box.width / 2, box.y - 200, { steps: 3 });
+  await page.waitForTimeout(700);
+  await page.mouse.up();
+  await expect(note(page, a)).toHaveAttribute('data-visible', 'false');
+  await expect(page.locator('.note-bold')).toHaveCount(0);
 });
 
 test('a tap still adds and removes a note, and removing a bold note drops its bold', async ({ page }) => {
@@ -87,4 +103,31 @@ test('in Numbers, a long press enters the number once, like a tap', async ({ pag
   await hold(page, game.solution[a]);
   await expect(cell(page, a).locator('.cell-number')).toHaveText(String(game.solution[a]));
   await expect(page.locator('.note-bold')).toHaveCount(0);
+});
+
+test('a hold that ends off the key does not swallow the next tap', async ({ page }) => {
+  await seed(page);
+  await openGame(page);
+  await cell(page, a).click();
+  await notesMode(page);
+  const box = (await key(page).boundingBox())!;
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await page.mouse.down();
+  await page.waitForTimeout(700);
+  await page.mouse.move(box.x + box.width / 2, box.y - 200, { steps: 5 });
+  await page.mouse.up();
+  await expect(note(page, a)).toHaveClass(/note-bold/);
+  await page.getByRole('button', { name: 'Numbers', exact: true }).click();
+  await key(page, game.solution[a]).click();
+  await expect(cell(page, a).locator('.cell-number')).toHaveText(String(game.solution[a]));
+});
+
+test('Shift with a digit that Shift types, as on AZERTY, adds a plain note', async ({ page }) => {
+  await seed(page);
+  await openGame(page);
+  await cell(page, a).click();
+  await page.keyboard.press('n');
+  await cell(page, a).dispatchEvent('keydown', { key: String(digit), code: `Digit${digit}`, shiftKey: true, bubbles: true });
+  await expect(note(page, a)).toHaveAttribute('data-visible', 'true');
+  await expect(note(page, a)).not.toHaveClass(/note-bold/);
 });

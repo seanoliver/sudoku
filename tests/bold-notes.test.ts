@@ -34,6 +34,13 @@ test('bolding a missing note adds it bold and clears its exclusion', () => {
   assert.equal(bold.noteOrigins[a], 'manual');
 });
 
+test('a bold note added to an empty cell is manual, so the save restores', () => {
+  const bold = engine.toggleBold(start, { indices: [b], value: 4 });
+  assert.equal(start.noteOrigins[b], null);
+  assert.equal(bold.noteOrigins[b], 'manual');
+  assert.ok(engine.restore(JSON.stringify(bold)));
+});
+
 test('a batch bolds every cell, and makes them plain only when all are already bold', () => {
   const one = engine.toggleBold(noted, { indices: [a], value: 4 });
   const both = engine.toggleBold(one, { indices: [a, b], value: 4 });
@@ -43,6 +50,7 @@ test('a batch bolds every cell, and makes them plain only when all are already b
 });
 
 test('givens and filled cells are never bolded', () => {
+  for (const value of [0, 10, 4.5]) assert.equal(engine.toggleBold(noted, { indices: [a], value }), noted);
   assert.equal(engine.toggleBold(start, { indices: [given], value: 1 }), start);
   const filled = engine.enter(start, { index: a, value: start.solution[a] });
   assert.equal(engine.toggleBold(filled, { indices: [a], value: 1 }), filled);
@@ -84,9 +92,26 @@ test('bold survives a save, and older saves without it restore with none', () =>
   assert.ok(restored?.bold.every(cell => cell.length === 0));
 });
 
-test('a save with a bold digit that is not a note is refused', () => {
-  const broken = { ...noted, bold: noted.bold.map((cell, i) => i === a ? [5] : cell) };
-  assert.equal(engine.restore(JSON.stringify(broken)), null);
+test('a save with a bold digit that is not a note keeps the game and drops that bold', () => {
+  const stray = engine.toggleBold(noted, { indices: [a], value: 4 });
+  const saved = { ...stray, bold: stray.bold.map((cell, i) => i === a ? [4, 5] : cell) };
+  assert.deepEqual(engine.restore(JSON.stringify(saved))?.bold[a], [4]);
+});
+
+test('a save whose bold is not a notes grid is refused', () => {
+  for (const bold of ['4', null, {}, Array(80).fill([]), Array(81).fill([0]), Array(81).fill([4, 4])]) {
+    assert.equal(engine.restore(JSON.stringify({ ...noted, bold })), null);
+  }
+  const history = [{ ...noted.history[0], bold: Array(81).fill([10]) }];
+  assert.equal(engine.restore(JSON.stringify({ ...noted, history })), null);
+});
+
+test('a hold with Filter number keys on skips cells whose row, column, or box has the number', () => {
+  const placed = start.values.findIndex(Boolean);
+  const peer = peers(placed).find(p => !start.values[p])!;
+  const value = start.values[placed];
+  assert.equal(engine.toggleBold(start, { indices: [peer], value, filterNumberKeys: true }), start);
+  assert.deepEqual(engine.toggleBold(start, { indices: [peer], value }).bold[peer], [value]);
 });
 
 test('restart clears bold', () => {

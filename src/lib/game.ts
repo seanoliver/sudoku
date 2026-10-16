@@ -208,8 +208,10 @@ export function restore(raw: string): GameState | null {
         : (!s.notes[i].length || noteOrigins[i] !== null) && (!exclusions[i].length || noteOrigins[i] !== null) && !s.notes[i].some(d => exclusions[i].includes(d)))) return null;
       const colors = Object.hasOwn(s, 'colors') ? s.colors : Array(81).fill(0);
       if (!Array.isArray(colors) || colors.length !== 81 || !colors.every((c, i) => c === 0 || (!game.givens[i] && (c === 1 || c === 2)))) return null;
-      const bold = Object.hasOwn(s, 'bold') ? s.bold : emptyNotes();
-      if (!isNotes(bold) || !bold.every((cell, i) => cell.every(d => s.notes[i].includes(d)))) return null;
+      const savedBold = Object.hasOwn(s, 'bold') ? s.bold : emptyNotes();
+      if (!isNotes(savedBold)) return null;
+      // An older build can drop a note and keep its bold; drop the stray bold rather than the whole save.
+      const bold = savedBold.map((cell, i) => cell.filter(d => s.notes[i].includes(d)));
       return { values: s.values, notes: s.notes, exclusions, noteOrigins, colors, bold };
     };
     const current = migrateSnapshot(game);
