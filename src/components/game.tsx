@@ -2,7 +2,7 @@
 
 import { addTransitionType, startTransition, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore, ViewTransition, type KeyboardEvent, type RefObject } from 'react';
 import { flushSync } from 'react-dom';
-import { createGame, restartGame, enter, toggleNotes, toggleExclusions, incorrectExclusions, batchHasMark, fillNotes, paintCells, clearColors, undo, redo, restore, isComplete, rejectEntry, SAVE_KEY, type CellColor, type GameState, type Rejection } from '@/lib/game';
+import { createGame, restartGame, enter, toggleBold, toggleNotes, toggleExclusions, incorrectExclusions, batchHasMark, fillNotes, paintCells, clearColors, undo, redo, restore, isComplete, rejectEntry, SAVE_KEY, type CellColor, type GameState, type Rejection } from '@/lib/game';
 import { peers, getEntryDigits, completedUnits, celebrationLabel, type Difficulty, type Puzzle } from '@/lib/sudoku';
 import { candidateCells, excludedCells, getPlayableCandidates } from '@/lib/candidates';
 import { useNoteSelection } from './use-note-selection';
@@ -158,6 +158,7 @@ function FinishCard({ level, seconds, best, newBest, earned, counts, share, onRe
 }
 const REJECTION_MS = 800;
 const CELEBRATION_STEP_MS = 45;
+const BOLD_HOLD_MS = 450;
 const CELEBRATION_MS = 520;
 /** Manhattan distance between two cells on the 9x9 grid. */
 function SwipeCopy({ screen }: { screen: HTMLElement }) {
@@ -189,6 +190,9 @@ export default function SudokuGame() {
   const [sheet, setSheet] = useState<Sheet>(null);
   const [undoAnnouncement, setUndoAnnouncement] = useState({ id: 0, text: '' });
   const [focusAnnouncement, setFocusAnnouncement] = useState({ text: '' });
+  const [boldAnnouncement, setBoldAnnouncement] = useState({ id: 0, text: '' });
+  // The click that ends a hold must not also toggle the note, so it checks `fired`.
+  const keyHold = useRef<{ timer: number; fired: boolean } | null>(null);
   const moveFocus = (digit: number | null) => { setFocusedDigit(digit); setFocusAnnouncement(current => current.text ? { text: '' } : current); };
   const clearFocus = () => moveFocus(null);
   const [difficulty, setDifficulty] = useState<Difficulty>('easy');
@@ -558,6 +562,26 @@ export default function SudokuGame() {
     if (cell !== undefined) { setSelected(cell); focusAfterRender.current = `.board [data-index="${cell}"]`; }
     if (cell !== undefined && next.values[cell]) moveFocus(next.values[cell]);
   };
+  const toggleBoldNote = (value: number) => {
+    if (!game || paused || busy || sheet || complete || lessonLocked || !pencil) return;
+    const indices = batchSelection ? selection.indices : [selected];
+    const next = toggleBold(game, { indices, value, filterNumberKeys: preferences.filterNumberKeys });
+    if (next === game) return;
+    setBlockedEntry(null);
+    setGame(next);
+    if (batchSelection) selection.markApplied();
+    haptic('tap');
+    const bolded = indices.some(index => next.bold[index]?.includes(value));
+    setBoldAnnouncement(current => ({ id: current.id + 1, text: `Note ${value} ${bolded ? 'bold' : 'plain'}` }));
+  };
+  const startKeyHold = (value: number) => {
+    if (!pencil) return;
+    if (keyHold.current) clearTimeout(keyHold.current.timer);
+    const hold = { fired: false, timer: 0 };
+    hold.timer = window.setTimeout(() => { hold.fired = true; toggleBoldNote(value); }, BOLD_HOLD_MS);
+    keyHold.current = hold;
+  };
+  const endKeyHold = () => { if (keyHold.current) clearTimeout(keyHold.current.timer); };
   const input = (value: number) => {
     if (!game || paused || busy || sheet || complete || lessonLocked) return;
     lessonTappedAt.current = -Infinity;
@@ -621,6 +645,7 @@ export default function SudokuGame() {
       const next = (selected + movement[event.key] + 81) % 81;
       resetSelection(); selectCell(next); board.current?.querySelector<HTMLButtonElement>(`[data-index="${next}"]`)?.focus();
     } else if (colorMode && (/^[0-9]$/.test(event.key) || ['Backspace', 'Delete'].includes(event.key))) { event.preventDefault(); if (/^[3-9]$/.test(event.key)) return; paint(event.key === '1' ? 1 : event.key === '2' ? 2 : 0); }
+    else if (event.shiftKey && pencil && /^(Digit|Numpad)[1-9]$/.test(event.code)) { event.preventDefault(); if (!event.repeat) toggleBoldNote(Number(event.code.at(-1))); focusSelectedCell(); }
     else if (/^[1-9]$/.test(event.key)) { event.preventDefault(); if (!event.repeat) input(Number(event.key)); focusSelectedCell(); }
     else if (['Backspace','Delete','0'].includes(event.key)) { event.preventDefault(); input(0); focusSelectedCell(); }
     else if (event.key.toLowerCase() === 'h') { event.preventDefault(); if ((event.target as Element).closest('.digit-focus-bar, .game-bar .hint-button')) focusAfterRender.current = HINT_STRIP_FOCUS; showHint(); }
@@ -1004,11 +1029,11 @@ export default function SudokuGame() {
               const same = value > 0 && selectedValue === value;
               const classes = ['cell', given ? 'given' : 'entered', selectedCell ? 'selected' : '', !selectedCell && related.has(i) && preferences.highlightPeers && !complete ? 'related' : '', same && !selectedCell && !complete ? 'matching' : '', same && focusedDigit === value && !complete && !walkLine ? 'focused' : '', possible.has(i) ? 'possible' : '', excludedPossible.has(i) ? 'excluded-possible' : '', badCells.has(i) ? 'conflict' : '', color && !walkLine ? `painted paint-${COLOR_NAMES[color]}` : '', rejection?.cells.includes(i) ? 'rejecting' : '', ...(walkLine ? walkClasses(walkLine, i) : [...(hintDisplay?.cells.get(i) ?? [])].map(role => `hint-${role}`))].filter(Boolean).join(' ');
               const sides = selectedCell && !walkLine ? batchSelection ? outlineEdges.get(i) : null : undefined;
-              return <div role="gridcell" aria-selected={selectedCell} aria-readonly={given} aria-rowindex={row+1} aria-colindex={col+1} key={i} className="cell-slot"><button className={classes} data-index={i} data-given={given} tabIndex={selected === i ? 0 : -1} aria-label={`Row ${row+1}, column ${col+1}, ${value ? `${value}${given ? ', given' : ''}` : notes.length ? `${generated ? 'generated notes' : 'notes'} ${notes.join(', ')}` : 'empty'}${!value && ruledOut.length ? `, ruled out ${ruledOut.join(', ')}` : ''}${possible.has(i) ? `, possible placement for ${selectedValue}` : ''}${excludedPossible.has(i) ? `, excluded placement for ${selectedValue}` : ''}${badCells.has(i) ? ', incorrect answer' : ''}${color ? `, ${COLOR_NAMES[color]}` : ''}`} aria-disabled={complete} data-chip={walkLine ? marks(walkLine.chips, i) : undefined} data-strike={walkLine ? marks(walkLine.strike, i) : undefined} onClick={event => selection.clickCell(event, i)}>
+              return <div role="gridcell" aria-selected={selectedCell} aria-readonly={given} aria-rowindex={row+1} aria-colindex={col+1} key={i} className="cell-slot"><button className={classes} data-index={i} data-given={given} tabIndex={selected === i ? 0 : -1} aria-label={`Row ${row+1}, column ${col+1}, ${value ? `${value}${given ? ', given' : ''}` : notes.length ? `${generated ? 'generated notes' : 'notes'} ${notes.map(n => game?.bold[i].includes(n) ? `${n} bold` : n).join(', ')}` : 'empty'}${!value && ruledOut.length ? `, ruled out ${ruledOut.join(', ')}` : ''}${possible.has(i) ? `, possible placement for ${selectedValue}` : ''}${excludedPossible.has(i) ? `, excluded placement for ${selectedValue}` : ''}${badCells.has(i) ? ', incorrect answer' : ''}${color ? `, ${COLOR_NAMES[color]}` : ''}`} aria-disabled={complete} data-chip={walkLine ? marks(walkLine.chips, i) : undefined} data-strike={walkLine ? marks(walkLine.strike, i) : undefined} onClick={event => selection.clickCell(event, i)}>
                 {celebrating && celebratedCells.has(i) && <span key={`celebrate-${celebrating.id}`} className="unit-celebration" style={{ animationDelay: `${distance(i, celebrating.origin) * CELEBRATION_STEP_MS}ms` }} aria-hidden="true"/>}
                 {value ? placed?.index === i && !given ? <span key={placed.id} className="cell-number placed" onAnimationEnd={() => setPlaced(null)}>{value}</span> : <span className="cell-number">{value}</span> : null}
                 {walkLine?.ghost?.cell === i && <span className="walk-ghost" aria-hidden="true">{walkLine.ghost.digit}</span>}
-                <CellNotes key={game?.id} focusedDigit={complete || walkLine ? null : focusedDigit} filled={Boolean(value)} manual={generated ? EMPTY_NOTES : notes} automatic={generated ? notes : EMPTY_NOTES} excluded={ruledOut} boardKey={boardKey}/>
+                <CellNotes key={game?.id} focusedDigit={complete || walkLine ? null : focusedDigit} filled={Boolean(value)} manual={generated ? EMPTY_NOTES : notes} automatic={generated ? notes : EMPTY_NOTES} excluded={ruledOut} bold={game?.bold[i] ?? EMPTY_NOTES} boardKey={boardKey}/>
                 {rejection?.cells.includes(i) && <span key={`rejected-${rejection.id}`} className="rejected-digit" aria-hidden="true">{rejection.value}</span>}
                 {rejection?.sources.includes(i) && <span key={`source-${rejection.id}`} className="rejection-source" aria-hidden="true"/>}
                 {badCells.has(i) && <span className="conflict-dot"/>}
@@ -1058,9 +1083,12 @@ export default function SudokuGame() {
           {DIGITS.map(n => {
             const { remaining, filtered, focusOnly } = keyState(n);
             const lit = focusedDigit === n;
-            return <Pressable key={n} className={`number-key ${lit ? 'digit-focused' : ''} ${!remaining ? 'digit-finished' : ''} ${filtered ? 'digit-filtered' : ''}`} aria-pressed={numberFocus || focusOnly ? lit : undefined} aria-label={(numberFocus || focusOnly ? `Focus on ${n}` : batchSelection ? (game && batchHasMark(game, { indices: selection.indices, value: n, marks: excluding ? 'exclusions' : 'notes' }) ? `Remove ${excluding ? 'exclusion' : 'note'} ${n} from ${selection.indices.length} selected cells` : `${excluding ? 'Exclude' : 'Add note'} ${n} ${excluding ? 'from' : 'to'} ${selection.indices.length} selected cells`) : `${excluding ? 'Rule out' : 'Enter'} ${n}${pencil ? ' as a note' : ''}`) + (filtered ? ', unavailable: already in this row, column, or box' : '') + (remaining ? '' : ', all placed')} disabled={!game || busy || paused || complete} onKeyDown={event => { if (event.key === 'Enter' && event.repeat) event.preventDefault(); }} onClick={() => input(n)}><span style={{ gridRow: Math.ceil(n / 3), gridColumn: (n - 1) % 3 + 1 }}>{n}</span></Pressable>;
+            return <Pressable key={n} className={`number-key ${lit ? 'digit-focused' : ''} ${!remaining ? 'digit-finished' : ''} ${filtered ? 'digit-filtered' : ''}`} aria-pressed={numberFocus || focusOnly ? lit : undefined} aria-label={(numberFocus || focusOnly ? `Focus on ${n}` : batchSelection ? (game && batchHasMark(game, { indices: selection.indices, value: n, marks: excluding ? 'exclusions' : 'notes' }) ? `Remove ${excluding ? 'exclusion' : 'note'} ${n} from ${selection.indices.length} selected cells` : `${excluding ? 'Exclude' : 'Add note'} ${n} ${excluding ? 'from' : 'to'} ${selection.indices.length} selected cells`) : `${excluding ? 'Rule out' : 'Enter'} ${n}${pencil ? ' as a note' : ''}`) + (filtered ? ', unavailable: already in this row, column, or box' : '') + (remaining ? '' : ', all placed')} disabled={!game || busy || paused || complete} onKeyDown={event => { if (event.key === 'Enter' && event.repeat) event.preventDefault(); }} onPointerDown={event => { if (event.isPrimary && event.button === 0) startKeyHold(n); }} onPointerUp={endKeyHold} onPointerLeave={endKeyHold} onPointerCancel={endKeyHold}
+              onContextMenu={event => { if (pencil) event.preventDefault(); }}
+              onClick={() => { const hold = keyHold.current; keyHold.current = null; if (hold) clearTimeout(hold.timer); if (hold?.fired) return; input(n); }}><span style={{ gridRow: Math.ceil(n / 3), gridColumn: (n - 1) % 3 + 1 }}>{n}</span></Pressable>;
           })}
         </div>}
+        <p className="sr-only" role="status">{boldAnnouncement.text && `${boldAnnouncement.text}${boldAnnouncement.id % 2 ? '\u00a0' : ''}`}</p>
         <p className="sr-only" role="status">{undoAnnouncement.text && `${undoAnnouncement.text}${undoAnnouncement.id % 2 ? '\u00a0' : ''}`}</p>
         <p className="sr-only" role="status">{batchSelection ? `${selection.indices.length} ${selection.indices.length === 1 ? 'cell' : 'cells'} selected` : ''}</p>
         <p className="sr-only" role="status">{rejection ? `${rejection.value} rejected, ${rejection.kind === 'constraint' ? `already in this ${rejection.unit}` : rejection.exclusion ? `it is the answer for ${rejection.cells.length === 1 ? 'this cell' : 'a selected cell'}` : 'incorrect for this cell'}${rejection.id % 2 ? '\u00a0' : ''}` : ''}</p>

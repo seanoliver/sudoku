@@ -1,6 +1,6 @@
 import type { GameState } from './game.ts';
 
-type Board = Pick<GameState, 'values' | 'notes' | 'exclusions' | 'noteOrigins' | 'colors'>;
+type Board = Pick<GameState, 'values' | 'notes' | 'exclusions' | 'noteOrigins' | 'colors'> & Partial<Pick<GameState, 'bold'>>;
 export type ActionKind = 'number' | 'notes' | 'exclusion' | 'colors';
 export type Action = { kind: ActionKind; cells: number[] };
 export type Recovery = { direction: 'undo' | 'redo'; action: Action };
@@ -18,7 +18,7 @@ export function describeAction(before: Board, after: Board): Action | null {
     if (before.values[i] !== after.values[i]) numbers.push(i);
     if (before.colors[i] !== after.colors[i]) colors.push(i);
     const notes = !sameDigits(before.notes[i], after.notes[i]), exclusions = !sameDigits(before.exclusions[i], after.exclusions[i]);
-    if (notes || exclusions || before.noteOrigins[i] !== after.noteOrigins[i]) marks.push(i);
+    if (notes || exclusions || before.noteOrigins[i] !== after.noteOrigins[i] || !sameDigits(before.bold?.[i] ?? [], after.bold?.[i] ?? [])) marks.push(i);
     notesChanged ||= notes;
     exclusionsChanged ||= exclusions;
     gainedExclusion ||= after.exclusions[i].some(digit => !before.exclusions[i].includes(digit));
