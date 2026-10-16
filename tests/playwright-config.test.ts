@@ -1,13 +1,13 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { createHash } from 'node:crypto';
 import { dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { checkoutPortFor } from '../e2e/checkout-port.ts';
 
 const configUrl = new URL('../playwright.config.ts', import.meta.url);
 const root = dirname(fileURLToPath(configUrl));
-const run = (env: Record<string, string>, cwd = root) => spawnSync(process.execPath, ['--experimental-strip-types', '--input-type=module', '-e', `const c = (await import(${JSON.stringify(configUrl.href)})).default; console.log(JSON.stringify({ url: c.use.baseURL, reuse: c.webServer.reuseExistingServer }))`], {
+const run = (env: Record<string, string>, cwd = root) => spawnSync(process.execPath, ['--experimental-strip-types', '--input-type=module', '-e', `const c = (await import(${JSON.stringify(configUrl.href)})).default; console.log(JSON.stringify({ url: c.use.baseURL, reuse: c.webServer.reuseExistingServer, serverUrl: c.webServer.url, command: c.webServer.command }))`], {
   cwd,
   env: { ...Object.fromEntries(Object.entries(process.env).filter(([key]) => key !== 'CI' && key !== 'E2E_PORT')), ...env } as NodeJS.ProcessEnv,
   encoding: 'utf8',
@@ -16,7 +16,10 @@ const run = (env: Record<string, string>, cwd = root) => spawnSync(process.execP
 const config = (env: Record<string, string> = {}, cwd?: string) => {
   const result = run(env, cwd);
   assert.equal(result.status, 0, result.stderr);
-  return JSON.parse(result.stdout) as { url: string; reuse: boolean };
+  const loaded = JSON.parse(result.stdout) as { url: string; reuse: boolean; serverUrl: string; command: string };
+  assert.equal(loaded.serverUrl, loaded.url);
+  assert.ok(loaded.command.endsWith(`--port ${new URL(loaded.url).port}`), loaded.command);
+  return loaded;
 };
 
 test('no run reuses a server, locally or in CI', () => {
@@ -24,9 +27,14 @@ test('no run reuses a server, locally or in CI', () => {
   assert.equal(config({ CI: '1' }).reuse, false);
 });
 
-test('CI uses 3400 and a local run uses a port from 3400 to 4999 hashed from the config folder', () => {
+test('a checkout port is hashed from its folder into 3400 to 4999', () => {
+  assert.equal(checkoutPortFor('/a'), 4429);
+  assert.equal(checkoutPortFor('/b'), 3521);
+});
+
+test('CI uses 3400 and a local run uses the port hashed from the config folder', () => {
   assert.equal(config({ CI: '1' }).url, 'http://localhost:3400');
-  const expected = 3400 + parseInt(createHash('sha256').update(root).digest('hex').slice(0, 8), 16) % 1600;
+  const expected = checkoutPortFor(root);
   assert.equal(config().url, `http://localhost:${expected}`);
   assert.equal(config({}, `${root}/e2e`).url, `http://localhost:${expected}`);
 });
