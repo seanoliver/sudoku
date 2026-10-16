@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import { defineConfig, devices } from '@playwright/test';
 
-const checkoutPort = 3400 + parseInt(createHash('sha256').update(import.meta.dirname).digest('hex').slice(0, 8), 16) % 2000;
+const checkoutPort = 3400 + parseInt(createHash('sha256').update(import.meta.dirname).digest('hex').slice(0, 8), 16) % 1600;
 const requested = process.env.E2E_PORT;
 if (requested && !(/^\d+$/.test(requested) && +requested >= 1024 && +requested <= 65535)) throw new Error(`E2E_PORT must be a port from 1024 to 65535, got ${requested}`);
 const PORT = requested ? Number(requested) : process.env.CI ? 3400 : checkoutPort;
