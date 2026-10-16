@@ -4,11 +4,11 @@ export type NoteOrigin = 'manual' | 'generated' | null;
 const emptyNotes = (): number[][] => Array.from({ length: 81 }, () => []);
 /** A cell's color: 0 none, 1 gold, 2 blue. */
 export type CellColor = 0 | 1 | 2;
-type Snapshot = { values: number[]; notes: number[][]; exclusions: number[][]; noteOrigins: NoteOrigin[]; colors: CellColor[] };
+type Snapshot = { values: number[]; notes: number[][]; exclusions: number[][]; noteOrigins: NoteOrigin[]; colors: CellColor[]; bold: number[][] };
 export type GameState = Puzzle & Snapshot & { version: 1; history: Snapshot[]; redoHistory: Snapshot[] };
 export const SAVE_KEY = 'sudoku.game.v1';
 export function createGame(puzzle: Puzzle): GameState {
-  return { ...puzzle, version: 1, values: [...puzzle.givens], notes: emptyNotes(), exclusions: emptyNotes(), noteOrigins: Array(81).fill(null), colors: Array(81).fill(0), history: [], redoHistory: [] };
+  return { ...puzzle, version: 1, values: [...puzzle.givens], notes: emptyNotes(), exclusions: emptyNotes(), noteOrigins: Array(81).fill(null), colors: Array(81).fill(0), bold: emptyNotes(), history: [], redoHistory: [] };
 }
 export type Rejection = { kind: 'constraint' | 'answer'; sources: number[]; unit: 'row' | 'column' | 'box' | null };
 const unitOf = (index: number, sources: number[]): Rejection['unit'] => sources.some(s => Math.floor(s / 9) === Math.floor(index / 9)) ? 'row' : sources.some(s => s % 9 === index % 9) ? 'column' : 'box';
@@ -28,11 +28,34 @@ export function rejectEntry(game: GameState, { index, value, pencil = false, exc
 export function restartGame({ id, difficulty, givens, solution, source }: GameState): GameState {
   return createGame({ id, difficulty, givens, solution, ...(source === undefined ? {} : { source }) });
 }
-function snapshot({ values, notes, exclusions, noteOrigins, colors }: GameState): Snapshot {
-  return { values, notes, exclusions, noteOrigins, colors };
+function snapshot({ values, notes, exclusions, noteOrigins, colors, bold }: GameState): Snapshot {
+  return { values, notes, exclusions, noteOrigins, colors, bold };
 }
+/** A note that goes away takes its bold with it, whichever change removed it. */
 function record(game: GameState, next: Partial<Snapshot>): GameState {
-  return { ...game, ...next, history: [...game.history.slice(-199), snapshot(game)], redoHistory: [] };
+  const notes = next.notes ?? game.notes, bold = next.bold ?? game.bold;
+  const kept = bold.map((cell, i) => cell.every(d => notes[i].includes(d)) ? cell : cell.filter(d => notes[i].includes(d)));
+  return { ...game, ...next, bold: kept, history: [...game.history.slice(-199), snapshot(game)], redoHistory: [] };
+}
+/**
+ * Holding a number key: bolds `value` in every selected empty cell, adding the note where it is missing,
+ * or makes it plain again when every selected cell already has it bold.
+ */
+export function toggleBold(game: GameState, { indices, value, filterNumberKeys = false }: { indices: readonly number[]; value: number; filterNumberKeys?: boolean }): GameState {
+  if (!Number.isInteger(value) || value < 1 || value > 9 || isComplete(game)) return game;
+  const cells = batchCells(game, indices).filter(index => game.notes[index].includes(value) || !(filterNumberKeys && heldByPeer(game, index, value)));
+  if (!cells.length) return game;
+  const bold = [...game.bold];
+  if (cells.every(index => game.bold[index].includes(value))) {
+    for (const index of cells) bold[index] = bold[index].filter(n => n !== value);
+    return record(game, { bold });
+  }
+  const notes = [...game.notes], exclusions = [...game.exclusions], noteOrigins = [...game.noteOrigins];
+  for (const index of cells) {
+    if (!notes[index].includes(value)) { notes[index] = [...notes[index], value].sort(); exclusions[index] = exclusions[index].filter(n => n !== value); noteOrigins[index] = 'manual'; }
+    bold[index] = bold[index].includes(value) ? bold[index] : [...bold[index], value].sort();
+  }
+  return record(game, { notes, exclusions, noteOrigins, bold });
 }
 export function fillNotes(game: GameState): GameState {
   if (isComplete(game)) return game;
@@ -185,7 +208,11 @@ export function restore(raw: string): GameState | null {
         : (!s.notes[i].length || noteOrigins[i] !== null) && (!exclusions[i].length || noteOrigins[i] !== null) && !s.notes[i].some(d => exclusions[i].includes(d)))) return null;
       const colors = Object.hasOwn(s, 'colors') ? s.colors : Array(81).fill(0);
       if (!Array.isArray(colors) || colors.length !== 81 || !colors.every((c, i) => c === 0 || (!game.givens[i] && (c === 1 || c === 2)))) return null;
-      return { values: s.values, notes: s.notes, exclusions, noteOrigins, colors };
+      const savedBold = Object.hasOwn(s, 'bold') ? s.bold : emptyNotes();
+      if (!isNotes(savedBold)) return null;
+      // An older build can drop a note and keep its bold; drop the stray bold rather than the whole save.
+      const bold = savedBold.map((cell, i) => cell.filter(d => s.notes[i].includes(d)));
+      return { values: s.values, notes: s.notes, exclusions, noteOrigins, colors, bold };
     };
     const current = migrateSnapshot(game);
     if (!game.givens.every((n,i) => !n || n === game.solution[i]) || !current) return null;
