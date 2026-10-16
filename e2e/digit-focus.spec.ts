@@ -88,9 +88,16 @@ test('the lit key is solid blue and its matches are ringed', async ({ page }) =>
   await expect(lit(page)).toHaveCSS('background-color', blue);
   await expect(page.locator('.note-digit.note-focused').first()).toHaveCSS('background-color', blue);
   expect(await settled(lit(page).locator('span'), 'color')).toBe(await resolved(page, '--surface'));
-  expect(await settled(page.locator('.cell.focused .cell-number').first(), 'color')).toBe(await resolved(page, '--blue-strong'));
+  expect(await settled(page.locator('.cell.focused.given .cell-number').first(), 'color')).toBe(await resolved(page, '--ink'));
+  await expect(page.locator('.cell.focused.given .cell-number').first()).toHaveCSS('font-weight', '700');
   const ring = await page.locator('.cell.focused').first().evaluate(el => getComputedStyle(el, '::after').boxShadow);
   expect(ring).toContain('inset');
+  await cell(page, empty).click();
+  await page.keyboard.press(String(other));
+  await expect(cell(page, empty)).toHaveClass(/focused/);
+  const strong = await resolved(page, '--blue-strong');
+  await expect.poll(() => settled(cell(page, empty).locator('.cell-number'), 'color')).toBe(strong);
+  await expect(cell(page, empty).locator('.cell-number')).toHaveCSS('font-weight', '700');
 });
 
 test('holding a digit key toggles focus once', async ({ page }) => {
