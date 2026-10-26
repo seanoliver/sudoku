@@ -192,7 +192,8 @@ test('a pushed screen opens at its top, and Home comes back where it was left', 
   await page.evaluate(() => scrollTo(0, document.scrollingElement!.scrollHeight));
   const homeScroll = await page.evaluate(() => scrollY);
   expect(homeScroll).toBeGreaterThan(100);
-  await navigate(page, () => page.locator('.home-solved-count').click());
+  // The bar scrolls away with Home, so the push starts from the week, which is still in view.
+  await navigate(page, () => page.locator('.daily-week-link').click());
   expect(await page.evaluate(() => scrollY)).toBe(0);
   await expect(page.locator('.screen-nav')).toHaveAttribute('data-collapsed', 'false');
   await navigate(page, () => page.locator('.lesson-back').click());
@@ -227,9 +228,9 @@ test('the board shrinks into the daily card only when it shows the open daily', 
   await expect(page.locator('.daily-label')).toBeVisible();
   await navigate(page, () => page.getByRole('button', { name: 'Home' }).click());
   expect(await transitions(page)).toEqual(expect.arrayContaining([expect.stringContaining('::view-transition-group(board)')]));
-  await page.getByRole('button', { name: 'Daily level: medium. Change' }).click();
+  await page.getByRole('button', { name: 'Level: medium. Change' }).click();
   await page.getByRole('button', { name: /^hard:/ }).click();
-  await expect(page.getByRole('button', { name: 'Daily level: hard. Change' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Level: hard. Change' })).toBeVisible();
   await page.goForward();
   await expect(page.locator('.daily-label')).toHaveText('Daily · medium');
   await transitions(page);

@@ -79,7 +79,7 @@ test('a finished game leaves Home, where it is counted rather than offered again
   await start(page);
   await solveWithNoteAndFix(page);
   await page.getByRole('button', { name: 'Home' }).click();
-  await expect(page.locator('.home-solved-count')).toHaveText('1 solved');
+  await expect(page.locator('.home-solved-count')).toHaveAccessibleName('History, 1 solved');
   await expect(page.locator('.resume-row')).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Replay' })).toHaveCount(0);
 });

@@ -76,3 +76,9 @@ export async function stepToEnd(page: Page) {
   while (await next.count() && await next.isEnabled()) await next.click();
   await page.waitForTimeout(400);
 }
+
+export async function newPuzzle(page: Page, level: 'easy' | 'medium' | 'hard' | 'expert') {
+  await page.locator('.level-picker').click();
+  await page.getByRole('button', { name: new RegExp(`^${level}`) }).click();
+  await page.getByRole('button', { name: `New ${level} puzzle` }).click();
+}
