@@ -1138,7 +1138,7 @@ export default function SudokuGame() {
       </div>
     </main>
     </>}
-    <div className="desktop-caption">A simple game. A little space to think.</div></>}
+    </>}
   </div></ViewTransition>
 
     <dialog className="sheet" data-kind={sheet ?? undefined} ref={dialog} onPointerDown={sheetDrag.onPointerDown} onPointerMove={sheetDrag.onPointerMove} onPointerUp={sheetDrag.onPointerUp} onPointerCancel={sheetDrag.onPointerCancel} onClose={event => { const sheetElement = event.currentTarget; sheetDrag.reset(sheetElement); delete sheetElement.dataset.closing; sheetElement.style.translate = ''; setSheet(null); }} onCancel={event => { if (!('closing' in event.currentTarget.dataset)) { event.preventDefault(); closeSheet(); } }} onAnimationEnd={event => { if (event.target === dialog.current && 'closing' in dialog.current.dataset) dialog.current.close(); }} onClick={event => { if (event.target === dialog.current) { const rect = dialog.current.getBoundingClientRect(); if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) closeSheet(); } }} aria-labelledby="sheet-title">
