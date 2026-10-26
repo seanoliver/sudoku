@@ -4,7 +4,7 @@ import { SAVE_KEY } from '../src/lib/game.ts';
 import { CLOCK_KEY } from '../src/lib/home.ts';
 import { SOLVES_KEY } from '../src/lib/solves.ts';
 import { DAILY_KEY, DAILY_SOLVES_KEY, dailyGameKey, dailyId, dailySeed } from '../src/lib/daily.ts';
-import { lessonOf } from '../src/lib/lessons.ts';
+import { LEARNED_KEY, LESSON_BANDS, lessonOf } from '../src/lib/lessons.ts';
 import { createPuzzle } from '../src/lib/difficulty.ts';
 import { createGame, enter, type GameState } from '../src/lib/game.ts';
 
@@ -112,7 +112,7 @@ test('a first daily is ready to play, with no streak and an empty week', async (
   await expect(hero(page).locator('.daily-week .solved')).toHaveCount(0);
   await expect(hero(page).locator('.daily-week li').last()).toHaveClass(/today/);
   await expect(hero(page).locator('.home-board text')).not.toHaveCount(0);
-  await expect(page.getByRole('button', { name: 'Daily level: medium. Change' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Level: medium. Change' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Play today’s puzzle' })).toBeVisible();
 });
 
@@ -159,11 +159,11 @@ test('a new daily level shows that level’s daily for today, and is kept', asyn
   const board = () => hero(page).locator('.home-board').textContent();
   await expect(hero(page).locator('.home-board text')).not.toHaveCount(0);
   const medium = await board();
-  await page.getByRole('button', { name: 'Daily level: medium. Change' }).focus();
+  await page.getByRole('button', { name: 'Level: medium. Change' }).focus();
   await page.keyboard.press('Enter');
   await expect(page.getByRole('button', { name: /^medium:/ })).toHaveAttribute('aria-pressed', 'true');
   await page.getByRole('button', { name: /^hard:/ }).click();
-  await expect(page.getByRole('button', { name: 'Daily level: hard. Change' })).toBeFocused();
+  await expect(page.getByRole('button', { name: 'Level: hard. Change' })).toBeFocused();
   await expect.poll(board).not.toBe(medium);
   await expect(hero(page).locator('.home-board text')).not.toHaveCount(0);
   expect((await stored(page, DAILY_KEY)).level).toBe('hard');
@@ -175,7 +175,7 @@ test('solving the daily at any level marks the day, at every level', async ({ pa
   const easy = createGame({ ...createPuzzle('easy', dailySeed(TODAY, 'easy')), id: dailyId(TODAY, 'easy') });
   const last = easy.givens.indexOf(0);
   await homeAt(page, { solved: daysBefore(2), daily: { ...easy, values: easy.solution.map((v, i) => i === last ? 0 : v) } });
-  await page.getByRole('button', { name: 'Daily level: medium. Change' }).click();
+  await page.getByRole('button', { name: 'Level: medium. Change' }).click();
   await page.getByRole('button', { name: /^easy:/ }).click();
   await page.locator('.daily-play').click();
   await page.locator(`.board [data-index="${last}"]`).click();
@@ -187,7 +187,7 @@ test('solving the daily at any level marks the day, at every level', async ({ pa
   await expect(hero(page).locator('.daily-week .today.solved')).toHaveCount(1);
   expect((await stored(page, DAILY_SOLVES_KEY)).solved).toContainEqual(expect.objectContaining({ day: TODAY, level: 'easy' }));
   expect((await stored(page, SOLVES_KEY)).solves).toContainEqual(expect.objectContaining({ id: dailyId(TODAY, 'easy'), difficulty: 'easy' }));
-  await page.getByRole('button', { name: 'Daily level: easy. Change' }).click();
+  await page.getByRole('button', { name: 'Level: easy. Change' }).click();
   await page.getByRole('button', { name: /^hard:/ }).click();
   await expect(page.getByRole('heading', { name: 'Today’s puzzle is ready' })).toBeVisible();
   await expect(hero(page).locator('.daily-week .today.solved')).toHaveCount(1);
@@ -204,9 +204,9 @@ test('after solving Medium, Hard’s daily shows its own unsolved board with Pla
   await expect(page.locator('.completion')).toBeVisible();
   await page.getByRole('button', { name: 'Home' }).click();
   await expect(page.getByRole('heading', { name: 'Today’s puzzle is solved' })).toBeVisible();
-  await page.getByRole('button', { name: 'Daily level: medium. Change' }).click();
+  await page.getByRole('button', { name: 'Level: medium. Change' }).click();
   await page.getByRole('button', { name: /^hard:/ }).click();
-  await expect(page.getByRole('button', { name: 'Daily level: hard. Change' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Level: hard. Change' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Today’s puzzle is ready' })).toBeVisible();
   await expect(hero(page).locator('.home-board text')).not.toHaveCount(0);
   const hard = createPuzzle('hard', dailySeed(TODAY, 'hard'));
@@ -315,16 +315,64 @@ test('Continue with the longest time fits on one line on a small phone', async (
   await homeAt(page, { solved: daysBefore(6), progress: true, seconds: 3599 });
   const play = page.locator('.daily-play');
   await expect(play).toHaveText('Continue · 59:59');
-  const fit = await page.locator('.daily-hero-foot').evaluate(foot => {
-    const button = foot.querySelector('.daily-play')!, box = button.getBoundingClientRect(), chip = foot.querySelector('.daily-level')!.getBoundingClientRect(), card = foot.closest('.daily-hero')!.getBoundingClientRect();
-    return { height: box.height, overflow: foot.scrollWidth - foot.clientWidth, right: card.right - box.right, gap: box.left - chip.right, wraps: button.scrollWidth > button.clientWidth };
+  const fit = await play.evaluate(button => {
+    const box = button.getBoundingClientRect(), card = button.closest('.daily-hero')!.getBoundingClientRect();
+    return { height: box.height, left: box.left - card.left, right: card.right - box.right, wraps: button.scrollWidth > button.clientWidth };
   });
   expect(fit.height).toBeLessThanOrEqual(44);
-  expect(fit.overflow).toBe(0);
+  expect(fit.left).toBeGreaterThanOrEqual(12);
   expect(fit.right).toBeGreaterThanOrEqual(12);
-  expect(fit.gap).toBeGreaterThanOrEqual(8);
   expect(fit.wraps).toBe(false);
 });
+
+// The installed iPhone app pads the page by the notch and home-bar areas; the variables stand in for env(safe-area-inset-*).
+for (const [width, height, top, bottom] of [[375, 667, 20, 0], [375, 812, 50, 34], [390, 844, 47, 34]] as const) {
+  test(`Home fits in the installed app at ${width} × ${height} with ${top}px and ${bottom}px safe areas`, async ({ page }) => {
+    await page.setViewportSize({ width, height });
+    await page.addInitScript(([t, b]) => document.addEventListener('DOMContentLoaded', () => {
+      document.documentElement.style.setProperty('--safe-top', `${t}px`);
+      document.documentElement.style.setProperty('--safe-bottom', `${b}px`);
+    }), [top, bottom]);
+    await homeAt(page, { solved: daysBefore(6), progress: true, regular: true });
+    await expect(page.locator('.resume-row')).toBeVisible();
+    expect(await page.evaluate(() => document.documentElement.scrollHeight <= innerHeight)).toBe(true);
+  });
+}
+
+// Android's text size setting scales text in px, so `large` stands in for it at 130%.
+for (const [width, height, large] of [[375, 667, false], [360, 640, false], [320, 568, false], [300, 600, false], [280, 653, false], [360, 640, true], [320, 568, true]] as const) {
+  test(`Home's bar fits across ${width} px with four-digit counts and Install${large ? ', with large text' : ''}`, async ({ page }) => {
+    await page.setViewportSize({ width, height });
+    if (large) await page.addInitScript(() => document.addEventListener('DOMContentLoaded', () => document.head.append(Object.assign(document.createElement('style'), { textContent: '.level-picker { font-size: 130% !important; }' }))));
+    await page.addInitScript(([key, learned]) => {
+      localStorage.setItem('sudoku.solved.v1', JSON.stringify({ ids: Array.from({ length: 1000 }, (_, k) => `p${k}-hard`) }));
+      localStorage.setItem(key, JSON.stringify(Object.fromEntries(learned.map(id => [id, '2026-10-01']))));
+    }, [LEARNED_KEY, LESSON_BANDS.flatMap(band => band.lessons)] as const);
+    await homeAt(page, {});
+    await expect(page.locator('.home-install')).toBeVisible();
+    await expect(page.locator('.home-solved-count')).toHaveAccessibleName('History, 1000 solved');
+    const sizes = await page.evaluate(() => {
+      const picker = document.querySelector('.level-picker')!;
+      return { page: document.documentElement.scrollWidth, view: innerWidth, settings: document.querySelector('.home-bar .settings-button')!.getBoundingClientRect().right,
+        pickerOverflow: picker.scrollWidth - picker.clientWidth, pickerRight: picker.getBoundingClientRect().right, actionsLeft: document.querySelector('.home-bar .app-actions')!.getBoundingClientRect().left };
+    });
+    expect(sizes.page).toBeLessThanOrEqual(sizes.view);
+    expect(sizes.settings).toBeLessThanOrEqual(sizes.view);
+    expect(sizes.pickerOverflow).toBeLessThanOrEqual(0);
+    expect(sizes.pickerRight).toBeLessThanOrEqual(sizes.actionsLeft);
+  });
+}
+
+for (const [width, height] of [[390, 844], [375, 667], [360, 640], [430, 932], [1440, 790]] as const) for (const regular of [true, false]) {
+  test(`Home fits without scrolling at ${width} × ${height}, ${regular ? 'with' : 'without'} a game to continue`, async ({ page }) => {
+    await page.setViewportSize({ width, height });
+    await homeAt(page, { solved: daysBefore(6), progress: true, regular });
+    await expect(page.locator('.resume-row')).toHaveCount(regular ? 1 : 0);
+    const sizes = await page.evaluate(() => ({ page: document.documentElement.scrollHeight, view: innerHeight, rows: document.querySelector('.home-rows')!.getBoundingClientRect().bottom }));
+    expect(sizes.page).toBeLessThanOrEqual(sizes.view);
+    expect(sizes.rows).toBeLessThanOrEqual(sizes.view);
+  });
+}
 
 test('a new puzzle from a daily names the regular game it would replace', async ({ page }) => {
   await seed(page, { [SAVE_KEY]: regular });

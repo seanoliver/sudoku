@@ -486,6 +486,11 @@ Captured from Sean on September 24. Long-term scope, modeled on the way Good Sud
 - **Output:** Three rendered directions and a recommendation, before any build.
 - **Status:** Shipped in [PR #118](https://github.com/seanoliver/sudoku/pull/118) ([design](plans/2026-10-15-bold-notes-design.md)): hold a number key in Notes to bold that note, or Shift with a number; a bold note has a soft gray disc.
 
+### R24. Home on one screen
+
+- **Idea:** Home should feel like an app screen, not a webpage: everything fits without scrolling, as the game screen does, with no logo in the bar, and one level picker that sets both the daily and a new puzzle. Sean asked for it on October 25.
+- **Status:** Shipped in [PR #128](https://github.com/seanoliver/sudoku/pull/128) ([design](plans/2026-10-25-home-one-screen-design.md)), after Sean chose direction A1, picker in the bar, on October 25: no logo, one level picker in the bar for the daily and New puzzle, and the daily board sized to fit.
+
 ## Very low priority: desktop experience
 
 **Player benefit:** Make desktop feel intentionally designed for a larger screen, with comfortable mouse and keyboard play.

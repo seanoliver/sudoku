@@ -40,7 +40,7 @@ import { ReplayPage } from './replay-page';
 import { replayStore } from './replay-store';
 import { LearnPage } from './learn-page';
 import { Home, LEVEL_NOTES } from './home';
-import { greeting, homeState, nextLesson, readSolved, solvedCount, savedSeconds, SOLVED_KEY, storeSolved } from '@/lib/home';
+import { homeState, nextLesson, readSolved, solvedCount, savedSeconds, SOLVED_KEY, storeSolved } from '@/lib/home';
 import { LESSON_BANK } from '@/lib/lesson-bank';
 import { findStep } from '@/lib/steps';
 import { THEME_COLOR } from '@/lib/theme-color';
@@ -49,7 +49,7 @@ import { GameBar } from './game-bar';
 import { BOARD_SHARE, SCREEN_ENTER, SCREEN_EXIT, type Move } from './screen-motion';
 
 type Screen = 'home' | 'game' | 'learn' | 'history' | 'daily' | 'replay';
-type Sheet = 'restart' | 'new' | 'settings' | 'help' | 'privacy' | 'install' | 'colors' | 'daily-level' | null;
+type Sheet = 'restart' | 'new' | 'settings' | 'help' | 'privacy' | 'install' | 'colors' | null;
 // The game gets its own history entry above Home, so the browser's back button returns Home.
 const GAME_ENTRY = 'sudokuGame';
 // A replay gets its own entry above whatever opened it, so Back closes it.
@@ -225,7 +225,7 @@ export default function SudokuGame() {
   const replays = useSyncExternalStore(replayStore.subscribe, replayStore.snapshot, replayStore.serverSnapshot);
   const [view, setView] = useState<'home' | 'game'>('home');
   // `regular` is the stored regular game, read when the open game is a daily.
-  const [homeData, setHomeData] = useState<{ seconds: number | null; regular: GameState | null; daily: DailyHome | null; learned: Learned; solved: number; greeting: string }>({ seconds: null, regular: null, daily: null, learned: {}, solved: 0, greeting: greeting(12) });
+  const [homeData, setHomeData] = useState<{ seconds: number | null; regular: GameState | null; daily: DailyHome | null; learned: Learned; solved: number }>({ seconds: null, regular: null, daily: null, learned: {}, solved: 0 });
   const [learned, setLearned] = useState<Learned>({});
   const away = held !== null;
   // Watching, reading feedback, or done: the board is for looking at, so nothing may change it.
@@ -545,7 +545,8 @@ export default function SudokuGame() {
     // An unrelated render can commit before the one that shows the target, so the target stays pending until it exists.
     const target = [...document.querySelectorAll<HTMLElement>(focusAfterRender.current)].find(element => !element.closest('.swipe-under'));
     if (!target) return;
-    target.focus();
+    // Home's bar buttons sit at the top, so focusing one must not undo the scroll Home came back to.
+    target.focus({ preventScroll: Boolean(target.closest('.home-bar')) });
     focusAfterRender.current = null;
   });
   const showHint = () => {
@@ -718,7 +719,7 @@ export default function SudokuGame() {
   function refreshHome(current: GameState | null) {
     const regular = current && !dailyOf(current.id) ? current : lastRegular.current ?? storedRegular();
     try { if (localStorage.getItem('sudoku.focus-hold-learned.v1') !== null) localStorage.removeItem('sudoku.focus-hold-learned.v1'); } catch { /* Nothing reads it. */ }
-    try { setHomeData({ seconds: regular ? savedSeconds(localStorage.getItem(clockKey(regular.id)), regular.id) : null, regular, daily: readDailyHome(regular), learned: readLearned(localStorage.getItem(LEARNED_KEY)), solved: solvedCount(readSolved(localStorage.getItem(SOLVED_KEY)), readHistory(localStorage.getItem(HISTORY_KEY)).completed), greeting: greeting(new Date().getHours()) }); }
+    try { setHomeData({ seconds: regular ? savedSeconds(localStorage.getItem(clockKey(regular.id)), regular.id) : null, regular, daily: readDailyHome(regular), learned: readLearned(localStorage.getItem(LEARNED_KEY)), solved: solvedCount(readSolved(localStorage.getItem(SOLVED_KEY)), readHistory(localStorage.getItem(HISTORY_KEY)).completed) }); }
     catch { setHomeData(data => ({ ...data, regular, daily: readDailyHome(regular) })); }
   }
   // A finished iOS swipe has already moved the screen, and under reduced motion a transition only loses taps, so both change at once.
@@ -728,7 +729,7 @@ export default function SudokuGame() {
   };
   const pendingMove = useRef<Move | null>(null);
   const showHome = (focus: string) => { setView('home'); refreshHome(held ? held.game : game); focusAfterRender.current = focus; };
-  const goHome = () => { setHintState(null); resetSelection(); setBlockedEntry(null); showHome(game && dailyOf(game.id) ? isComplete(game) ? '.daily-week-link' : '.daily-play' : homeState(game) === 'playing' ? '.resume-row' : '.home-level'); };
+  const goHome = () => { setHintState(null); resetSelection(); setBlockedEntry(null); showHome(game && dailyOf(game.id) ? isComplete(game) ? '.daily-week-link' : '.daily-play' : homeState(game) === 'playing' ? '.resume-row' : '.home-new'); };
   const continueGame = () => move('grow', continueNow);
   const continueNow = () => { setView('game'); enterGameEntry(); focusAfterRender.current = paused ? '.board-cover button' : `.board [data-index="${selected}"]`; };
   /** Switches to a game other than the open one. The switch renders first, so Home's shared board is the one that opens. */
@@ -787,7 +788,6 @@ export default function SudokuGame() {
     const id = dailyId(dailyHome.today, level);
     try { localStorage.setItem(DAILY_KEY, serializeDailyLevel(level)); } catch { /* The level holds until Home is read again. */ }
     setHomeData(data => data.daily ? { ...data, daily: { ...data.daily, level, seconds: savedSeconds(readStored(clockKey(id)), id) } } : data);
-    closeSheet();
   };
   const playLevel = (level: Difficulty) => {
     if (regularUnfinished) { setDifficulty(level); openSheet('new'); return; }
@@ -998,8 +998,8 @@ export default function SudokuGame() {
   const replaying = replayView && game ? replayOf(replayView.id) : undefined;
   const dailyView = dailyHome && { today: dailyHome.today, level: dailyHome.level, game: dailyGame, seconds: preferences.hideTimer ? null : dailyHome.seconds, started: Boolean(dailyGame?.history.length) || Boolean(dailyHome.seconds), done: dailyHome.solved.some(solve => solve.day === dailyHome.today && solve.level === dailyHome.level), solvedDays: new Set(dailyHome.solved.map(solve => solve.day)), streak: dailyStreak(dailyHome.solved, dailyHome.today) };
   const homeScreen = <Home daily={dailyView} resume={regularGame && regularUnfinished ? { game: regularGame, seconds: preferences.hideTimer ? null : homeData.seconds } : null} learned={LESSON_BANDS.flatMap(band => band.lessons).filter(id => homeData.learned[id]).length}
-      next={nextLesson(homeData.learned)} solved={homeData.solved} greeting={homeData.greeting} shared={dailyHome && openGame?.id === dailyId(dailyHome.today, dailyHome.level) ? 'daily' : openGame && openGame === regularGame && regularUnfinished ? 'regular' : null}
-      onDaily={playDaily} onDailyLevel={() => openSheet('daily-level')} onMonth={openMonth} onContinue={continueRegular} onPlay={playLevel} onLesson={id => openLesson(id, 'home')} onLearn={openLearn} onSettings={() => openSheet('settings')} onHistory={openHistory} onInstall={installed || process.env.NEXT_PUBLIC_BUILD_TARGET === 'ios' ? undefined : () => openSheet('install')}
+      next={nextLesson(homeData.learned)} solved={homeData.solved} shared={dailyHome && openGame?.id === dailyId(dailyHome.today, dailyHome.level) ? 'daily' : openGame && openGame === regularGame && regularUnfinished ? 'regular' : null}
+      onDaily={playDaily} onLevel={chooseDailyLevel} onMonth={openMonth} onContinue={continueRegular} onPlay={playLevel} onLesson={id => openLesson(id, 'home')} onLearn={openLearn} onSettings={() => openSheet('settings')} onHistory={openHistory} onInstall={installed || process.env.NEXT_PUBLIC_BUILD_TARGET === 'ios' ? undefined : () => openSheet('install')}
       notice={<>{error && <div className="notice" role="alert"><span>{error}</span><button onClick={() => setError('')} aria-label="Dismiss message"><Icon name="close" size={16}/></button></div>}{storageError && <p className="storage-warning" role="status">Saving is unavailable in this browser. Keep this tab open to continue your puzzle.</p>}</>}/>;
   const swipeTarget = replayView ? 'game' : historyData || monthOpen || learnOpen ? 'home' : lesson ? ({ hint: 'game', list: 'learn', home: 'home' } as const)[lesson.from] : view === 'game' ? 'home' : null;
   // A layout effect for the same reason as `startSwipe`: a swipe can start during a screen transition.
@@ -1144,7 +1144,6 @@ export default function SudokuGame() {
     <dialog className="sheet" data-kind={sheet ?? undefined} ref={dialog} onPointerDown={sheetDrag.onPointerDown} onPointerMove={sheetDrag.onPointerMove} onPointerUp={sheetDrag.onPointerUp} onPointerCancel={sheetDrag.onPointerCancel} onClose={event => { const sheetElement = event.currentTarget; sheetDrag.reset(sheetElement); delete sheetElement.dataset.closing; sheetElement.style.translate = ''; setSheet(null); }} onCancel={event => { if (!('closing' in event.currentTarget.dataset)) { event.preventDefault(); closeSheet(); } }} onAnimationEnd={event => { if (event.target === dialog.current && 'closing' in dialog.current.dataset) dialog.current.close(); }} onClick={event => { if (event.target === dialog.current) { const rect = dialog.current.getBoundingClientRect(); if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) closeSheet(); } }} aria-labelledby="sheet-title">
       <div className="sheet-content"><div className="sheet-handle"/><button className="sheet-close icon-button" onClick={() => closeSheet()} aria-label="Close dialog"><Icon name="close" size={19}/></button>
         {sheet === 'new' && <><div className="sheet-symbol"><Icon name="plus" size={28}/></div><h2 id="sheet-title">A fresh puzzle</h2><p className="sheet-subtitle">Choose how much of a challenge you’d like.</p><div className="difficulty-options" role="group" aria-label="Puzzle difficulty">{LEVELS.map(level => <button key={level} className={difficulty === level ? 'chosen' : ''} aria-pressed={difficulty === level} aria-label={`${level}: ${LEVEL_NOTES[level]}`} onClick={() => setDifficulty(level)}><LevelBars level={level}/><span className="capitalize">{level}</span></button>)}</div><p className="level-note" aria-hidden="true"><span className="capitalize">{difficulty}</span> · {LEVEL_NOTES[difficulty]}</p>{regularUnfinished && regularGame && <p className="replacement-note">This will replace your <span className="capitalize">{regularGame.difficulty}</span> puzzle in progress.</p>}<button className="primary-button full-width" onClick={() => { closeSheet(); requestPuzzle(difficulty); }}>Start puzzle</button><button className="text-button full-width" onClick={() => closeSheet()}>Keep playing</button></>}
-        {sheet === 'daily-level' && dailyHome && <><div className="sheet-symbol"><Icon name="sparkles" size={28}/></div><h2 id="sheet-title">Daily level</h2><div className="difficulty-options" role="group" aria-label="Daily level">{LEVELS.map(level => <button key={level} className={dailyHome.level === level ? 'chosen' : ''} aria-pressed={dailyHome.level === level} aria-label={`${level}: ${LEVEL_NOTES[level]}`} onClick={() => chooseDailyLevel(level)}><LevelBars level={level}/><span className="capitalize">{level}</span></button>)}</div></>}
         {sheet === 'restart' && <><div className="sheet-symbol"><Icon name="restart" size={28}/></div><h2 id="sheet-title">Restart this puzzle?</h2><p className="sheet-subtitle">Start the same puzzle again with a fresh timer. Your entries, notes, exclusions, and undo history will be cleared.</p><p className="replacement-note">This cannot be undone.</p><button className="primary-button full-width" onClick={restartPuzzle}>Restart puzzle</button><button className="text-button full-width" onClick={() => closeSheet()}>Keep playing</button></>}
         {sheet === 'settings' && <><h2 id="sheet-title">Settings</h2>
           <div className="puzzle-actions">
