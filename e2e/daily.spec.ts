@@ -374,9 +374,10 @@ for (const [width, height] of [[390, 844], [375, 667], [360, 640], [430, 932], [
   });
 }
 
-test('on a tall desktop window, Home keeps its bar at the top and centers the rest below it', async ({ page }) => {
-  await page.setViewportSize({ width: 1440, height: 1200 });
+for (const [width, height] of [[1440, 1200], [700, 1000]] as const) test(`on a tall ${width} × ${height} window, Home keeps its bar at the top, centers the rest below it, and shows no caption`, async ({ page }) => {
+  await page.setViewportSize({ width, height });
   await homeAt(page, { solved: daysBefore(6), progress: true, regular: true });
+  await expect(page.getByText('A simple game. A little space to think.')).toHaveCount(0);
   const layout = await page.evaluate(() => ({ bar: document.querySelector('.home-bar')!.getBoundingClientRect(), home: document.querySelector('.home')!.getBoundingClientRect(), view: innerHeight }));
   expect(layout.bar.top).toBeLessThan(30);
   expect(Math.abs((layout.home.top - layout.bar.bottom) - (layout.view - layout.home.bottom))).toBeLessThan(30);
