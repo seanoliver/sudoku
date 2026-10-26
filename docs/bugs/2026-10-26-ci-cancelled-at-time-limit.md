@@ -2,20 +2,22 @@
 
 ## Symptom
 
-From 2026-10-26, the single `CI` job was cancelled at its 20-minute limit on most runs: both `main` runs after #128 and #127 merged, and every run of #131. No test failed. The job ended on "Install Playwright browsers" or partway through "Browser tests".
+From 2026-10-26, the single `CI` job was cancelled at its 20-minute limit on most runs: both `main` runs after #128 and #127 merged, all three attempts of #131's run 40349759292. #133's run 40368886694 was also cancelled at the raised 30-minute limit. No test failed. The job ended on "Install Playwright browsers" or partway through "Browser tests".
 
 ## Root cause
 
 Two slow steps shared one 20-minute job.
 
-- `playwright install --with-deps chromium webkit` first installs about 120 Ubuntu packages through apt from `azure.archive.ubuntu.com`. That mirror stalled: one run fetched 50 packages in 16 minutes, and a later run spent 28 minutes without starting the browser download. Install times ranged from 30 seconds to over 28 minutes.
+- `playwright install --with-deps chromium webkit` first installs about 180 Ubuntu packages (119 to 142 MB) through apt from `azure.archive.ubuntu.com`. That mirror stalled: one run fetched 42 packages in about 15 minutes, and a later run spent 28 minutes without starting the browser download. Install times ranged from 30 seconds to over 28 minutes.
 - About 820 browser tests (Chromium, WebKit, and the two motion projects) ran with Playwright's CI default of half the runner's cores, 2 workers on a 4-core runner. They took 14 to 18 minutes.
 
 A fast mirror left about 2 minutes to spare. A slow one cancelled the run.
 
 ## Reproduction
 
-Push to any branch with the workflow at `8908574` and watch the step times. Runs 40349759292 (three attempts) and 40368886694 show the stalled apt step; run 40266843476 shows the test step running past the limit.
+Run 40266843476 on `main` at `8908574` shows the test step running past the limit (17m57s). Run 40349759292 on `feat/desktop-center` (three attempts) shows the stalled apt step with the same workflow, and run 40368886694 on `ci/timeout-cache` shows it again with the 30-minute limit and cache. The stall depends on the mirror, so a new run may not reproduce it.
+
+The runs before the fix used `ubuntu-latest`; #133 pins `ubuntu-24.04`. Whether the image change contributed is unverified.
 
 ## Fix
 
@@ -34,5 +36,5 @@ Run 40380013390 on #133: `checks` took 2m07s and the shards took 3m13s to 8m15s,
 ## Recurrence guardrail
 
 - The image tag must equal `@playwright/test` in `package.json`. A mismatch makes Playwright look for browser builds the image does not have. Bump both together.
-- Every job has a 15-minute limit, so a stall fails fast instead of using 30 minutes.
+- `checks` and each `e2e` shard have a 15-minute limit, so a stall fails fast instead of using 30 minutes.
 - If a shard nears its limit, add a shard before raising the limit.
