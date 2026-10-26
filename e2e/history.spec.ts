@@ -48,7 +48,7 @@ test('a finished puzzle appears in History, and Home is one tap back', async ({ 
 test('History shows the streak, each level’s count and best time, and earlier solves', async ({ page }) => {
   await seed(page, [solve('a', 'easy', 300, 0), solve('b', 'hard', 905, 0), solve('c', 'easy', 250, 1), solve('d', 'medium', 500, 2), solve('e', 'expert', 2000, 5)], 3);
   await page.goto('/');
-  await expect(page.locator('.home-solved-count')).toHaveText('8 solved');
+  await expect(page.locator('.home-solved-count')).toHaveAccessibleName('History, 8 solved');
   await page.locator('.home-solved-count').click();
   await expect(page.locator('.history-streak')).toContainText('3 days');
   await expect(page.locator('.history-level.level-easy')).toContainText('2');
@@ -95,7 +95,7 @@ test('reopening a game that was already finished does not record it again as sol
   const game = JSON.parse(almostSolved().game);
   await page.addInitScript(([key, value, id]) => { localStorage.setItem(key, value); localStorage.setItem('sudoku.clock.v1', JSON.stringify({ id, seconds: 777 })); }, [SAVE_KEY, JSON.stringify({ ...game, values: game.solution }), game.id]);
   await page.goto('/');
-  await expect(page.locator('.home-solved-count')).toHaveText('1 solved');
+  await expect(page.locator('.home-solved-count')).toHaveAccessibleName('History, 1 solved');
   await page.waitForTimeout(300);
   expect(await page.evaluate(k => localStorage.getItem(k), SOLVES_KEY)).toBeNull();
 });
@@ -201,18 +201,19 @@ test('the large title hands over to the header row once History scrolls under it
   await expect(compact).toHaveCSS('opacity', '0');
 });
 
-test('History opens at its top from a scrolled Home, and Home comes back where it was left', async ({ page }) => {
+test('History opens at its top each time, even after it was scrolled', async ({ page }) => {
   await page.setViewportSize({ width: 844, height: 390 });
   await seed(page, [solve('a', 'easy', 300, 0)]);
   await page.goto('/');
-  await expect(page.locator('.home-solved-count')).toHaveText('1 solved');
+  await expect(page.locator('.home-solved-count')).toHaveAccessibleName('History, 1 solved');
+  await page.locator('.home-solved-count').click();
+  await expect(page.getByRole('heading', { name: 'History', level: 1 })).toBeInViewport();
   await page.evaluate(() => scrollTo(0, document.scrollingElement!.scrollHeight));
-  const homeScroll = await page.evaluate(() => scrollY);
-  expect(homeScroll).toBeGreaterThan(100);
+  expect(await page.evaluate(() => scrollY)).toBeGreaterThan(100);
+  await page.getByRole('button', { name: 'Home' }).click();
+  await expect(page.locator('.home-solved-count')).toBeFocused();
+  expect(await page.evaluate(() => scrollY)).toBe(0);
   await page.locator('.home-solved-count').click();
   await expect(page.getByRole('heading', { name: 'History', level: 1 })).toBeInViewport();
   expect(await page.evaluate(() => scrollY)).toBe(0);
-  await page.getByRole('button', { name: 'Home' }).click();
-  await expect(page.locator('.home-solved-count')).toBeVisible();
-  expect(await page.evaluate(() => scrollY)).toBe(homeScroll);
 });

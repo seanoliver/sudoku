@@ -36,9 +36,6 @@ export function storeSolved(id: string) {
   try { localStorage.setItem(SOLVED_KEY, serializeSolved(recordSolved(readSolved(localStorage.getItem(SOLVED_KEY)), id))); } catch { /* The count is optional. */ }
 }
 
-/** Home's hello, by the hour it is read. */
-export const greeting = (hour: number) => hour < 5 ? 'Up late' : hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
-
 /**
  * Every solve on record. Expert puzzles come from the bank and have been recorded by source in play history since
  * before this count existed, so they are counted from there; the count's own list adds the other difficulties.

@@ -1,7 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
-import { gameBefore } from './fixtures.ts';
+import { gameBefore, newPuzzle } from './fixtures.ts';
 import { SAVE_KEY } from '../src/lib/game.ts';
-import { lessonOf } from '../src/lib/lessons.ts';
+import { lessonOf, LEARNED_KEY, LESSONS } from '../src/lib/lessons.ts';
 
 const inProgress = gameBefore(step => lessonOf(step) === 'pointing');
 const saved = (page: Page) => page.evaluate(k => localStorage.getItem(k), SAVE_KEY);
@@ -36,7 +36,7 @@ test('a new puzzle from Home asks before replacing the game in progress', async 
   await page.goto('/');
   await expect(page.getByRole('button', { name: 'Continue' })).toBeVisible();
   const before = await saved(page);
-  await page.getByRole('button', { name: 'New hard puzzle' }).click();
+  await newPuzzle(page, 'hard');
   await expect(page.locator('.replacement-note')).toBeVisible();
   await page.getByRole('button', { name: 'Keep playing' }).click();
   await expect(page.getByRole('button', { name: 'Continue' })).toBeVisible();
@@ -58,7 +58,7 @@ test('a finished game is counted on Home, with nothing to continue', async ({ pa
   await page.goto('/');
   await expect(page.getByRole('heading', { name: 'Today’s puzzle is ready' })).toBeVisible();
   await expect(page.getByRole('button', { name: /^Continue/ })).toHaveCount(0);
-  await expect(page.locator('.home-solved-count')).toHaveText('1 solved');
+  await expect(page.locator('.home-solved-count')).toHaveAccessibleName('History, 1 solved');
 });
 
 test('the game timer does not run on Home', async ({ page }) => {
@@ -97,7 +97,7 @@ test('solving a puzzle of any difficulty adds to the solved count on Home', asyn
   await page.keyboard.press(String(digit));
   await expect(page.locator('.completion')).toBeVisible();
   await page.getByRole('button', { name: 'Home' }).click();
-  await expect(page.locator('.home-solved-count')).toHaveText('1 solved');
+  await expect(page.locator('.home-solved-count')).toHaveAccessibleName('History, 1 solved');
 });
 
 test('restarting from Home’s settings resets the time', async ({ page }) => {
@@ -152,7 +152,7 @@ test('a puzzle started from Home takes the keyboard at once', async ({ page }) =
 test('a puzzle started from Home over a game in progress takes the keyboard too', async ({ page }) => {
   await seed(page, inProgress);
   await page.goto('/');
-  await page.getByRole('button', { name: 'New easy puzzle' }).click();
+  await newPuzzle(page, 'easy');
   await page.getByRole('button', { name: 'Start puzzle' }).click();
   await expect(page.locator('.board .cell:focus')).toHaveCount(1);
 });
@@ -199,12 +199,12 @@ test('the installed app shows no install card', async ({ page }) => {
 test('Expert puzzles finished before the solved count existed still count on Home', async ({ page }) => {
   await page.addInitScript(() => localStorage.setItem('sudoku.puzzle-history.v1', JSON.stringify({ seen: ['k1', 'k2', 'k3'], completed: ['k1', 'k2'] })));
   await page.goto('/');
-  await expect(page.locator('.home-solved-count')).toHaveText('2 solved');
+  await expect(page.locator('.home-solved-count')).toHaveAccessibleName('History, 2 solved');
 });
 
-test('a level row shows its whole focus ring inside the grouped list', async ({ page }) => {
+test('a row shows its whole focus ring inside the grouped card', async ({ page }) => {
   await page.goto('/');
-  const easy = page.locator('.home-level').first();
+  const easy = page.locator('.home-new');
   await easy.waitFor();
   // A key press first, so the focus that follows counts as keyboard focus (Safari's Tab skips buttons).
   await page.keyboard.press('Shift');
@@ -221,4 +221,49 @@ test('with site data blocked, a puzzle still starts and shows its clock', async 
   await expect(page.locator('.board .cell').first()).toBeVisible();
   await expect(page.locator('.time-controls .clock')).toHaveText('00:00');
   await expect(page.locator('.storage-warning')).toBeVisible();
+});
+
+test('one level picker sets the daily and New puzzle, and closes on Escape or a tap outside', async ({ page }) => {
+  await page.goto('/');
+  const picker = page.locator('.level-picker');
+  await expect(picker).toHaveAccessibleName('Level: easy. Change');
+  await expect(page.locator('.home-new strong')).toHaveText('Easy');
+  await expect(page.locator('.home-lesson .lesson-meta')).toHaveText(/^0\/\d+$/);
+  await expect(page.locator('.home-all')).toHaveAccessibleName(/^All techniques, 0 of \d+ learned$/);
+  await picker.click();
+  await expect(page.getByRole('button', { name: /^easy:/ })).toBeFocused();
+  await page.keyboard.press('Escape');
+  await expect(page.locator('.level-menu')).toHaveCount(0);
+  await expect(picker).toBeFocused();
+  await picker.click();
+  await page.locator('.home-all').focus();
+  await expect(page.locator('.level-menu')).toHaveCount(0);
+  await picker.click();
+  // The daily card's right padding, clear of the menu.
+  const hero = (await page.locator('.daily-hero').boundingBox())!;
+  await page.mouse.click(hero.x + hero.width - 8, hero.y + hero.height / 2);
+  await expect(page.locator('.level-menu')).toHaveCount(0);
+  await picker.click();
+  await page.getByRole('button', { name: /^expert:/ }).click();
+  await expect(picker).toHaveAccessibleName('Level: expert. Change');
+  await expect(page.locator('.home-new strong')).toHaveText('Expert');
+  expect(JSON.parse(await page.evaluate(() => localStorage.getItem('sudoku.daily.v1')) ?? '{}').level).toBe('expert');
+  await page.getByRole('button', { name: 'New expert puzzle' }).click();
+  await expect(page.locator('.difficulty-button .capitalize')).toHaveText('expert');
+});
+
+test('coming back to a bar button keeps the scroll Home was left at', async ({ page }) => {
+  await page.setViewportSize({ width: 844, height: 390 });
+  await seed(page, inProgress);
+  await page.addInitScript(([key, value]) => localStorage.setItem(key, value), [LEARNED_KEY, JSON.stringify(Object.fromEntries(LESSONS.map(id => [id, '2026-10-01'])))]);
+  await page.goto('/');
+  await page.getByRole('button', { name: /Revisit any lesson/ }).waitFor();
+  await page.evaluate(() => scrollTo(0, document.scrollingElement!.scrollHeight));
+  const homeScroll = await page.evaluate(() => scrollY);
+  expect(homeScroll).toBeGreaterThan(100);
+  // With every technique learned, the last row opens Learn, and coming back focuses Learn in the bar.
+  await page.getByRole('button', { name: /Revisit any lesson/ }).click();
+  await page.locator('.lesson-back').click();
+  await expect(page.locator('.home-all')).toBeFocused();
+  expect(await page.evaluate(() => scrollY)).toBe(homeScroll);
 });
