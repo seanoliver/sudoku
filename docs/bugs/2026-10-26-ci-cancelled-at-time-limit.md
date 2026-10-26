@@ -2,7 +2,7 @@
 
 ## Symptom
 
-From 2026-10-26, the single `CI` job was cancelled at its 20-minute limit on most runs: both `main` runs after #128 and #127 merged, all three attempts of #131's run 40349759292. #133's run 40368886694 was also cancelled at the raised 30-minute limit. No test failed. The job ended on "Install Playwright browsers" or partway through "Browser tests".
+From 2026-10-26, the single `CI` job was cancelled at its 20-minute limit on most runs: both `main` runs after #128 and #127 merged, and all three attempts of #131's run 40349759292. #133's run 40368886694 was also cancelled at the raised 30-minute limit. No test failed. The job ended on "Install Playwright browsers" or partway through "Browser tests".
 
 ## Root cause
 
