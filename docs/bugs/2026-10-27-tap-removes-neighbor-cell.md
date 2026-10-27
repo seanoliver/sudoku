@@ -21,7 +21,7 @@ The e2e test reproduces the mismatch directly. It presses one cell and redirects
 
 ## Verification
 - `e2e/batch-sticky.spec.ts`: "a tap that iOS delivers to a neighboring cell still removes the pressed cell from the selection" passes in Chromium and WebKit with the fix, and fails in both when `clickCell` uses the clicked cell.
-- On-device check: TestFlight build 14 from this branch.
+- On device: Sean confirmed on TestFlight build 1.0 (14) that a tap removes the tapped cell.
 
 ## Recurrence guardrail
 Board taps act on the cell from `pointerdown`, the same hit test drags use. Don't take the cell for a tap from the `click` event's target.
