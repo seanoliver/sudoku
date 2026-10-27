@@ -142,6 +142,35 @@ test('after a number, a tapped cell joins the selection and a drag then adds to 
   await expect(count(page, 4)).toHaveCount(1);
 });
 
+test('a tap that iOS delivers to a neighboring cell still removes the pressed cell from the selection', async ({ page }) => {
+  await seed(page);
+  await openGame(page);
+  await selectBoth(page);
+  // Send the click from pressing b to a instead, as iOS can for a fingertip that overlaps a.
+  await page.evaluate(([pressed, neighbor]) => document.addEventListener('click', event => {
+    if (!(event.target as Element).closest(`[data-index="${pressed}"]`)) return;
+    event.stopImmediatePropagation();
+    document.querySelector(`.board [data-index="${neighbor}"]`)!.dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 1 }));
+  }, { capture: true, once: true }), [b, a]);
+  await cell(page, b).click();
+  await expect(cell(page, a)).toHaveClass(/\bselected\b/);
+  await expect(cell(page, b)).not.toHaveClass(/\bselected\b/);
+});
+
+test('Enter on a cell acts on that cell even after a tap whose click never arrived', async ({ page }) => {
+  await seed(page);
+  await openGame(page);
+  await selectBoth(page);
+  await page.evaluate(pressed => document.addEventListener('click', event => {
+    if ((event.target as Element).closest(`[data-index="${pressed}"]`)) event.stopImmediatePropagation();
+  }, { capture: true, once: true }), b);
+  await cell(page, b).click();
+  await cell(page, a).focus();
+  await page.keyboard.press('Enter');
+  await expect(cell(page, a)).not.toHaveClass(/\bselected\b/);
+  await expect(cell(page, b)).toHaveClass(/\bselected\b/);
+});
+
 test('a second drag before any number adds to the new selection', async ({ page }) => {
   await seed(page);
   await openGame(page);

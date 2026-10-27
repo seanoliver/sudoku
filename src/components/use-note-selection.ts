@@ -29,6 +29,7 @@ export function useNoteSelection({ values, enabled, onSelect, onBegin, onFocus }
   const [indices, setIndices] = useState<number[]>([]);
   const gesture = useRef<Gesture | null>(null);
   const suppressClick = useRef(false);
+  const tapped = useRef<number | null>(null);
   const applied = useRef(false);
   const stopGesture = useCallback(() => {
     const current = gesture.current;
@@ -69,6 +70,7 @@ export function useNoteSelection({ values, enabled, onSelect, onBegin, onFocus }
     onBegin({ replacing });
   };
   const onPointerDown = (event: PointerEvent<HTMLDivElement>) => {
+    tapped.current = null;
     if (!event.isPrimary) { suppressClick.current = true; stopGesture(); return; }
     if (!enabled || event.button !== 0) return;
     stopGesture();
@@ -118,6 +120,7 @@ export function useNoteSelection({ values, enabled, onSelect, onBegin, onFocus }
   const onPointerUp = (event: PointerEvent<HTMLDivElement>) => {
     if (gesture.current?.id !== event.pointerId) return;
     suppressClick.current = gesture.current.dragging || gesture.current.cancelled;
+    tapped.current = suppressClick.current ? null : gesture.current.index;
     stopGesture();
   };
   const onPointerCancel = (event: PointerEvent<HTMLDivElement>) => {
@@ -125,10 +128,13 @@ export function useNoteSelection({ values, enabled, onSelect, onBegin, onFocus }
     suppressClick.current = true;
     stopGesture();
   };
-  const clickCell = (event: MouseEvent, index: number) => {
+  const clickCell = (event: MouseEvent, clicked: number) => {
     if (!enabled) return;
     // Keyboard / assistive activation has detail 0 and no accompanying pointer gesture.
     if (event.detail !== 0 && suppressClick.current) { suppressClick.current = false; return; }
+    // iOS can send a finger's tap to a neighbor of the cell it pressed, so a tap acts on the pressed cell.
+    const index = event.detail !== 0 && tapped.current !== null ? tapped.current : clicked;
+    tapped.current = null;
     if (!indices.length) { onSelect(index); return; }
     if (values?.[index]) { reset(); onSelect(index); return; }
     if (!eligible(index)) return;
