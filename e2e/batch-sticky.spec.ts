@@ -157,6 +157,20 @@ test('a tap that iOS delivers to a neighboring cell still removes the pressed ce
   await expect(cell(page, b)).not.toHaveClass(/\bselected\b/);
 });
 
+test('Enter on a cell acts on that cell even after a tap whose click never arrived', async ({ page }) => {
+  await seed(page);
+  await openGame(page);
+  await selectBoth(page);
+  await page.evaluate(pressed => document.addEventListener('click', event => {
+    if ((event.target as Element).closest(`[data-index="${pressed}"]`)) event.stopImmediatePropagation();
+  }, { capture: true, once: true }), b);
+  await cell(page, b).click();
+  await cell(page, a).focus();
+  await page.keyboard.press('Enter');
+  await expect(cell(page, a)).not.toHaveClass(/\bselected\b/);
+  await expect(cell(page, b)).toHaveClass(/\bselected\b/);
+});
+
 test('a second drag before any number adds to the new selection', async ({ page }) => {
   await seed(page);
   await openGame(page);
